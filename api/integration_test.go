@@ -895,7 +895,7 @@ func TestCORS(t *testing.T) {
 	res = preflight("http://localhost:5173")
 	payload, _ := io.ReadAll(res.Body)
 	res.Body.Close()
-	if res.StatusCode != 204 || len(payload) != 0 || res.Header.Get("Access-Control-Allow-Origin") != "http://localhost:5173" || !strings.Contains(res.Header.Get("Access-Control-Allow-Methods"), "POST") || !strings.Contains(res.Header.Get("Access-Control-Allow-Headers"), "Content-Type") || !strings.Contains(res.Header.Get("Access-Control-Allow-Headers"), "X-Demo-Actor") {
+	if res.StatusCode != 204 || len(payload) != 0 || res.Header.Get("Access-Control-Allow-Origin") != "http://localhost:5173" || !strings.Contains(res.Header.Get("Access-Control-Allow-Methods"), "POST") || !strings.Contains(res.Header.Get("Access-Control-Allow-Headers"), "Content-Type") || !strings.Contains(res.Header.Get("Access-Control-Allow-Headers"), "X-Demo-Actor") || !strings.Contains(res.Header.Get("Access-Control-Allow-Headers"), "Authorization") {
 		t.Fatalf("preflight %d %q headers %#v", res.StatusCode, payload, res.Header)
 	}
 	res = preflight("https://evil.example")
