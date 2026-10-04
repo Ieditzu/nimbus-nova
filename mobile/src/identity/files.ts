@@ -5,6 +5,7 @@ import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { MAX_IDENTITY_BYTES } from "./policy";
+import { photoSize } from "./photo-size";
 
 export type IdentityAsset = {
   uri: string;
@@ -56,11 +57,7 @@ async function photoAsset(uri: string): Promise<IdentityAsset> {
     const context = ImageManipulator.manipulate(uri);
     let rendered = await context.renderAsync();
     if (Math.max(rendered.width, rendered.height) > 1800) {
-      context.resize(
-        rendered.width >= rendered.height
-          ? { width: 1800, height: null }
-          : { height: 1800, width: null },
-      );
+      context.resize(photoSize(rendered.width, rendered.height));
       rendered = await context.renderAsync();
     }
     const saved = await rendered.saveAsync({

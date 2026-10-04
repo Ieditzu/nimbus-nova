@@ -54,14 +54,32 @@ export function CameraCapture({
     taking.current = true;
     setBusy(true);
     setError("");
+    let expired = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const view = camera.current;
     try {
-      const photo = await camera.current.takePictureAsync({
-        quality: 1,
-        exif: false,
+      const preparation = (async () => {
+        const photo = await view.takePictureAsync({
+          quality: 0.9,
+          imageType: "jpg",
+          exif: false,
+        });
+        if (!photo?.uri)
+          throw new Error("Nu am putut face fotografia. Încearcă din nou.");
+        const asset = await prepareCameraPhoto(photo.uri);
+        if (expired) {
+          releaseAsset(asset);
+          throw new Error("Captura a expirat.");
+        }
+        return asset;
+      })();
+      const deadline = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          expired = true;
+          reject(new Error("Fotografia nu s-a putut salva. Încearcă din nou."));
+        }, 30_000);
       });
-      if (!photo?.uri)
-        throw new Error("Nu am putut face fotografia. Încearcă din nou.");
-      const asset = await prepareCameraPhoto(photo.uri);
+      const asset = await Promise.race([preparation, deadline]);
       if (mounted.current) onCapture(asset);
       else releaseAsset(asset);
     } catch (e) {
@@ -70,6 +88,7 @@ export function CameraCapture({
           e instanceof Error ? e.message : "Camera nu este disponibilă.",
         );
     } finally {
+      if (timer) clearTimeout(timer);
       taking.current = false;
       if (mounted.current) setBusy(false);
     }
