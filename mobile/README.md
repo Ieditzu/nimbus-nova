@@ -20,7 +20,7 @@ npm run android     # Expo preview on an Android emulator
 npm run web         # browser preview of this same worker app
 npm run typecheck
 npm run lint
-npm test            # Node 22.6+; identity approval and transport checks
+npm test            # Node 22.6+; identity approval, transport and upload-flow checks
 ```
 
 ## Appearance
@@ -45,5 +45,9 @@ Temporary native copies are kept in the app's cache, never saved to the gallery,
 **New account creation is currently blocked.** The backend reports `face_match: "not_available"`; the mobile app stops before uploading any identity files when it receives this status. Identity requests also require an HTTPS API URL, so the normal HTTP LAN development address supports existing login and tasks, but cannot receive identity documents. Registration requires all shared verification checks to pass and a valid, unexpired proof matching the signup email. A `verified` status alone is insufficient.
 
 The backend owner still needs to connect real document OCR, face matching, passive liveness, and the agreed provider privacy settings. No ID Analyzer key or SDK belongs in the mobile app. Review provider setup and server retention before using real identity documents. iOS/Android native camera permission and capture behavior still require checks on physical devices; browser QA and platform bundle exports cannot replace those checks.
+
+An API key saved on one laptop does not configure an API running on another. The local API process must load `IDANALYZER_KEY` and `IDANALYZER_REGION=eu` from a private environment file outside the repository before it starts. Loading those values does not enable verification until the backend adapter is implemented. Never use an `EXPO_PUBLIC_` variable for the provider key.
+
+The upload flow rejects unavailable or missing provider checks before reading any document bytes. It checks the returned session's email, document kind and expiry, and only returns a proof after all required uploads and verification checks pass for the same session. The tests use synthetic services and documents; passing them is not evidence that the external provider verified a real Romanian CI or CEI.
 
 Codex assisted Perjoc with the initial app code, API client, styling, and setup notes. Nova's icon is a simple vector star rendered to PNG. Review and verify the code before the final submission.
