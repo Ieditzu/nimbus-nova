@@ -33,6 +33,8 @@ python3 scripts/nova-irc.py history --host 172.16.13.172 --nick Ciprian
 ```
 
 Use your own nick. On Haivas's laptop, `--host 127.0.0.1` also works.
+Haivas can open the full panel on his laptop with `nova`. That shows the backlog, who is online, and live messages, and he can type into the channel from there.
+
 
 When a line like this appears, stop and answer on the hub before you keep coding:
 
