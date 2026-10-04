@@ -45,8 +45,11 @@ func validateScannedIdentity(ctx context.Context, kind string, files map[string]
 	}
 	checks["face_match"] = "passed"
 	checks["selfie"] = "passed"
-	country, ok := scan.field("issuerOrgIso2")
-	if !ok || country != "RO" {
+	country, ok := scan.field("countryIso2")
+	if !ok {
+		return time.Time{}, appErr(422, "document_country_unreadable", "Țara emitentă nu a putut fi confirmată din act. Refă fotografiile întregului card. (DOCUMENT_COUNTRY_UNREADABLE)")
+	}
+	if country != "RO" {
 		return time.Time{}, appErr(422, "document_country", "Este acceptat doar un act de identitate emis în România.")
 	}
 	documentType, ok := scan.field("documentType")

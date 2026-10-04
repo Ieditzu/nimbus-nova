@@ -20,7 +20,7 @@ import (
 
 func scanFixture() identityScan {
 	r := identityScan{Success: true, Decision: "accept", Data: map[string][]identityField{}}
-	for key, value := range map[string]string{"issuerOrgIso2": "RO", "documentType": "I", "dob": "2015-03-15", "personalNumber": "5150315400013", "documentNumber": "RX123456", "expiry": "2035-03-15"} {
+	for key, value := range map[string]string{"countryIso2": "RO", "documentType": "I", "dob": "2015-03-15", "personalNumber": "5150315400013", "documentNumber": "RX123456", "expiry": "2035-03-15"} {
 		r.Data[key] = []identityField{{Value: value, Confidence: 0.99}}
 	}
 	score := 0.9
@@ -235,7 +235,7 @@ func TestIdentityFailClosedAndCleanup(t *testing.T) {
 				score := 0.2
 				scan.Scores.FaceCompare = &score
 			case "non-Romanian":
-				scan.Data["issuerOrgIso2"][0].Value = "DE"
+				scan.Data["countryIso2"][0].Value = "DE"
 			case "passport":
 				scan.Data["documentType"][0].Value = "P"
 			case "wrong-cnp":
@@ -410,5 +410,31 @@ func TestUnreadableCardReturnsDocumentAdviceAndNoProof(t *testing.T) {
 	view := body["verification"].(map[string]any)
 	if !strings.Contains(view["message"].(string), "DOCUMENT_UNRECOGNIZED") || view["checks"].(map[string]any)["selfie"] != "pending" {
 		t.Fatalf("incorrect advice: %v", view)
+	}
+}
+
+func TestV2IssuingCountryField(t *testing.T) {
+	for _, tc := range []struct{ name, country, code string }{
+		{"Romanian CEI", "RO", ""},
+		{"foreign card", "DE", "document_country"},
+		{"unreadable country", "", "document_country_unreadable"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			scan := scanFixture()
+			if tc.country == "" {
+				delete(scan.Data, "countryIso2")
+			} else {
+				scan.Data["countryIso2"][0].Value = tc.country
+			}
+			checks := map[string]string{}
+			_, ae := validateScannedIdentity(t.Context(), "cei", map[string][]byte{"cei_pdf": testPDF("CNP 5150315400013 Document RX123456")}, scan, checks)
+			if tc.code == "" {
+				if ae != nil || checks["document"] != "passed" {
+					t.Fatalf("Romanian V2 card rejected: %v %v", ae, checks)
+				}
+			} else if ae == nil || ae.Code != tc.code {
+				t.Fatalf("incorrect country diagnosis: %v", ae)
+			}
+		})
 	}
 }
