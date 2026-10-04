@@ -10,40 +10,56 @@ import {
 import { useColorScheme } from "react-native";
 
 export type ThemePreference = "dark" | "light" | "system";
-const dark = {
-  background: "#101615",
-  surface: "#19211f",
-  raised: "#222d29",
-  text: "#f0f4f2",
-  muted: "#a9b8b0",
-  border: "#34433c",
-  accent: "#96e0ba",
-  onAccent: "#112b1e",
-  accentSoft: "#263c31",
-  danger: "#ffb4ac",
-  dangerSoft: "#392522",
-  success: "#96e0ba",
-  successSoft: "#263c31",
-  warning: "#e8ca89",
-  warningSoft: "#373020",
+// Slush-inspired paper grounds and a shared sticker palette. Status colors stay semantic.
+export const fonts = {
+  body: "Inter_500Medium",
+  bold: "Inter_700Bold",
+  display: "Anton_400Regular",
 };
-export type Colors = typeof dark;
-const light: Colors = {
-  background: "#f4f6f3",
+const light = {
+  background: "#dceeff",
   surface: "#ffffff",
-  raised: "#eaf0e9",
-  text: "#17261e",
-  muted: "#526359",
-  border: "#d0dbd0",
-  accent: "#256247",
+  raised: "#e9e9e9",
+  text: "#000000",
+  muted: "#41464d",
+  border: "#000000",
+  accent: "#000000",
   onAccent: "#ffffff",
-  accentSoft: "#dfede3",
-  danger: "#a1332b",
-  dangerSoft: "#fbe9e6",
-  success: "#256247",
-  successSoft: "#dfede3",
-  warning: "#795510",
-  warningSoft: "#f5ecd8",
+  accentSoft: "#e9ccff",
+  blue: "#4da2ff",
+  mint: "#55db9c",
+  lavender: "#e9ccff",
+  yellow: "#ffd731",
+  stickerInk: "#000000",
+  danger: "#a52b19",
+  dangerSoft: "#ffe4df",
+  success: "#155c38",
+  successSoft: "#dcf5e6",
+  warning: "#694711",
+  warningSoft: "#fff0d2",
+};
+export type Colors = typeof light;
+const dark: Colors = {
+  background: "#17181d",
+  surface: "#24262d",
+  raised: "#32343d",
+  text: "#ffffff",
+  muted: "#c0c3ce",
+  border: "#adb1c1",
+  accent: "#ffffff",
+  onAccent: "#17181d",
+  accentSoft: "#41334f",
+  blue: "#4da2ff",
+  mint: "#55db9c",
+  lavender: "#e9ccff",
+  yellow: "#ffd731",
+  stickerInk: "#000000",
+  danger: "#ffb4a5",
+  dangerSoft: "#402822",
+  success: "#ade9c5",
+  successSoft: "#253b30",
+  warning: "#ffe0a1",
+  warningSoft: "#3c3423",
 };
 const storageKey = "nova.appearance";
 const ThemeContext = createContext<{
@@ -56,7 +72,7 @@ const ThemeContext = createContext<{
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const system = useColorScheme();
-  const [preference, setValue] = useState<ThemePreference>("dark");
+  const [preference, setValue] = useState<ThemePreference>("light");
   const [storageError, setStorageError] = useState("");
   const changed = useRef(false);
   const writes = useRef(Promise.resolve());

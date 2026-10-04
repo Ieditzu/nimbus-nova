@@ -11,6 +11,7 @@ import { Link, useFocusEffect, usePathname } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
+  useWindowDimensions,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -21,7 +22,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { errorMessage } from "../lib/errors";
-import { useTheme } from "./theme";
+import { fonts, useTheme } from "./theme";
 export function useData<T>(load: () => Promise<T>) {
   const [data, setData] = useState<T>();
   const [loading, setLoading] = useState(true);
@@ -75,23 +76,105 @@ export function Icon({
   const { colors } = useTheme();
   return <Ionicons name={name} size={size} color={color ?? colors.muted} />;
 }
+/** Decorative stickers never convey task or verification status. */
+export function Sticker({
+  name = "sparkles",
+  color,
+  size = 44,
+}: {
+  name?: keyof typeof Ionicons.glyphMap;
+  color?: string;
+  size?: number;
+}) {
+  const { colors } = useTheme();
+  return (
+    <View
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={[
+        s.sticker,
+        { width: size, height: size, backgroundColor: color ?? colors.yellow },
+      ]}
+    >
+      <Icon name={name} size={size * 0.5} color={colors.stickerInk} />
+    </View>
+  );
+}
 export function Header({
   title,
   subtitle,
   action,
+  hero = false,
 }: {
   title: string;
   subtitle?: string;
   action?: ReactNode;
+  hero?: boolean;
 }) {
   const { colors, isDark, setPreference } = useTheme();
+  const { width, fontScale } = useWindowDimensions();
   return (
     <View style={s.header}>
-      <View style={s.grow}>
-        <Text style={[s.wordmark, { color: colors.accent }]}>nova</Text>
+      <View style={s.brandRow}>
+        <View style={s.brand}>
+          <Sticker size={32} color={colors.mint} />
+          <Text style={[s.wordmark, { color: colors.text }]}>NOVA</Text>
+        </View>
+        {action ?? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              isDark ? "Activează tema luminoasă" : "Activează tema întunecată"
+            }
+            onPress={() => setPreference(isDark ? "light" : "dark")}
+            style={({ pressed }) => [
+              s.iconButton,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                opacity: pressed ? 0.65 : 1,
+              },
+            ]}
+          >
+            <Icon
+              name={isDark ? "sunny-outline" : "moon-outline"}
+              color={colors.text}
+            />
+          </Pressable>
+        )}
+      </View>
+      <View style={[s.heading, hero && s.hero]}>
+        {hero && fontScale <= 1.3 ? (
+          <View
+            pointerEvents="none"
+            accessible={false}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={s.heroArt}
+          >
+            <View style={[s.ribbon, { borderColor: colors.blue }]} />
+            <View style={s.heroSticker}>
+              <Sticker
+                name="arrow-up-outline"
+                color={colors.yellow}
+                size={34}
+              />
+            </View>
+            <View style={s.smallSticker}>
+              <Sticker name="star" color={colors.lavender} size={28} />
+            </View>
+          </View>
+        ) : null}
         <Text
           accessibilityRole="header"
-          style={[s.title, { color: colors.text }]}
+          style={[
+            s.title,
+            hero && s.heroTitle,
+            hero && width < 360 && { fontSize: 40, lineHeight: 46 },
+            hero && fontScale > 1.3 && { maxWidth: "100%" },
+            { color: colors.text },
+          ]}
         >
           {title}
         </Text>
@@ -99,28 +182,6 @@ export function Header({
           <Text style={[s.subtitle, { color: colors.muted }]}>{subtitle}</Text>
         ) : null}
       </View>
-      {action ?? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={
-            isDark ? "Activează tema luminoasă" : "Activează tema întunecată"
-          }
-          onPress={() => setPreference(isDark ? "light" : "dark")}
-          style={({ pressed }) => [
-            s.iconButton,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              opacity: pressed ? 0.65 : 1,
-            },
-          ]}
-        >
-          <Icon
-            name={isDark ? "sunny-outline" : "moon-outline"}
-            color={colors.text}
-          />
-        </Pressable>
-      )}
     </View>
   );
 }
@@ -204,7 +265,7 @@ export function BottomNav() {
     <View
       style={[
         s.bottom,
-        { backgroundColor: colors.background, borderColor: colors.border },
+        { backgroundColor: colors.surface, borderColor: colors.border },
       ]}
     >
       {tabs.map((tab) => {
@@ -215,24 +276,25 @@ export function BottomNav() {
             <Pressable
               accessibilityRole="tab"
               accessibilityState={{ selected }}
-              style={s.navItem}
+              style={StyleSheet.flatten([
+                s.navItem,
+                selected && {
+                  backgroundColor: colors.accent,
+                  borderColor: colors.accent,
+                },
+              ])}
             >
-              <View
-                style={[
-                  s.navIcon,
-                  selected && { backgroundColor: colors.accentSoft },
-                ]}
-              >
+              <View style={[s.navIcon]}>
                 <Icon
                   name={tab.icon}
                   size={22}
-                  color={selected ? colors.accent : colors.muted}
+                  color={selected ? colors.onAccent : colors.text}
                 />
               </View>
               <Text
                 style={[
                   s.navText,
-                  { color: selected ? colors.accent : colors.muted },
+                  { color: selected ? colors.onAccent : colors.text },
                 ]}
               >
                 {tab.label}
@@ -348,7 +410,12 @@ export function Badge({
   const foreground = tone === "neutral" ? colors.muted : colors[tone];
   const background = tone === "neutral" ? colors.raised : colors[`${tone}Soft`];
   return (
-    <View style={[s.badge, { backgroundColor: background }]}>
+    <View
+      style={[
+        s.badge,
+        { backgroundColor: background, borderColor: colors.border },
+      ]}
+    >
       <Text style={[s.badgeText, { color: foreground }]}>{children}</Text>
     </View>
   );
@@ -363,64 +430,106 @@ const s = StyleSheet.create({
     width: "100%",
     alignSelf: "center",
   },
-  header: {
+  header: { gap: 24, marginBottom: 4 },
+  brandRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    marginBottom: 4,
+    justifyContent: "space-between",
+    gap: 12,
   },
-  grow: { flex: 1 },
-  wordmark: {
-    fontSize: 18,
-    fontWeight: "700",
-    letterSpacing: -0.5,
-    marginBottom: 20,
-  },
+  brand: { flexDirection: "row", alignItems: "center", gap: 8 },
+  wordmark: { fontFamily: fonts.display, fontSize: 28, letterSpacing: -0.5 },
+  heading: { gap: 10 },
   title: {
-    fontSize: 30,
-    fontWeight: "700",
-    letterSpacing: -0.7,
-    lineHeight: 38,
+    fontFamily: fonts.display,
+    fontSize: 38,
+    lineHeight: 44,
+    letterSpacing: -0.5,
   },
-  subtitle: { fontSize: 14, lineHeight: 21, marginTop: 4 },
-  iconButton: {
-    width: 48,
-    height: 48,
+  subtitle: { fontFamily: fonts.body, fontSize: 14, lineHeight: 22 },
+  hero: { paddingVertical: 12, minHeight: 168 },
+  heroTitle: { fontSize: 46, lineHeight: 52, maxWidth: "76%" },
+  heroArt: { position: "absolute", right: 0, top: 8, width: 60, height: 110 },
+  ribbon: {
+    position: "absolute",
+    width: 52,
+    height: 104,
+    borderWidth: 14,
+    borderRadius: 70,
+
+    right: 0,
+    top: 0,
+  },
+  heroSticker: { position: "absolute", right: -4, bottom: 0 },
+  smallSticker: { position: "absolute", right: 30, top: -5 },
+  sticker: {
     borderWidth: 1,
-    borderRadius: 24,
+    borderColor: "#000000",
+    borderRadius: 999,
+    justifyContent: "center",
+    alignItems: "center",
+    transform: [{ rotate: "-12deg" }],
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderWidth: 1,
+    borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
   },
   bottom: {
     flexDirection: "row",
-    borderTopWidth: 1,
-    paddingTop: 8,
-    paddingBottom: 5,
-  },
-  navItem: { flex: 1, minHeight: 58, alignItems: "center", gap: 3 },
-  navIcon: { paddingHorizontal: 20, paddingVertical: 5, borderRadius: 16 },
-  navText: { fontSize: 12, fontWeight: "600" },
-  button: {
-    minHeight: 48,
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 999,
+    padding: 5,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    maxWidth: 608,
+    width: "92%",
+    alignSelf: "center",
+  },
+  navItem: {
+    flex: 1,
+    minHeight: 54,
+    borderWidth: 1,
+    borderColor: "transparent",
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
+  },
+  navIcon: { alignItems: "center" },
+  navText: { fontFamily: fonts.bold, fontSize: 11, letterSpacing: 0.3 },
+  button: {
+    minHeight: 50,
+    borderWidth: 1,
+    borderRadius: 999,
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
-  buttonText: { fontSize: 15, fontWeight: "600" },
-  body: { fontSize: 14, lineHeight: 21 },
+  buttonText: {
+    fontFamily: fonts.bold,
+    fontSize: 14,
+    letterSpacing: 0.2,
+    flexShrink: 1,
+    textAlign: "center",
+  },
+  body: { fontFamily: fonts.body, fontSize: 14, lineHeight: 21 },
   state: { paddingVertical: 32, gap: 16, alignItems: "center" },
-  notice: { padding: 16, gap: 12, borderRadius: 12 },
+  notice: { padding: 20, gap: 12, borderRadius: 24 },
   footer: { borderTopWidth: 1, paddingHorizontal: 20, paddingVertical: 12 },
   badge: {
-    borderRadius: 6,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     alignSelf: "flex-start",
+    maxWidth: "100%",
   },
-  badgeText: { fontSize: 12, fontWeight: "600" },
+  badgeText: { fontFamily: fonts.bold, fontSize: 11, letterSpacing: 0.15 },
 });

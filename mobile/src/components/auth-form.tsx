@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../auth/session";
-import { useTheme, type Colors } from "./theme";
+import { fonts, useTheme, type Colors } from "./theme";
 import { Button, usePageScroll } from "./ui";
 import { AuthField, PasswordField } from "./auth-fields";
 import { SignupForm } from "./signup-form";
@@ -119,27 +119,35 @@ const styles = (c: Colors) =>
   StyleSheet.create({
     form: {
       gap: 18,
-      borderTopWidth: 1,
-      borderTopColor: c.border,
-      paddingTop: 24,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 28,
+      backgroundColor: c.surface,
+      padding: 20,
     },
     intro: { gap: 8 },
-    title: { fontSize: 22, fontWeight: "600", color: c.text },
-    body: { fontSize: 14, lineHeight: 21, color: c.muted },
+    title: { fontFamily: fonts.display, fontSize: 26, color: c.text },
+    body: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      lineHeight: 21,
+      color: c.muted,
+    },
     error: {
+      fontFamily: fonts.body,
       color: c.danger,
       backgroundColor: c.dangerSoft,
       padding: 14,
-      borderRadius: 10,
+      borderRadius: 24,
       fontSize: 14,
       lineHeight: 21,
       overflow: "hidden",
     },
     switch: { minHeight: 48, justifyContent: "center", alignItems: "center" },
     switchText: {
+      fontFamily: fonts.bold,
       color: c.accent,
       fontSize: 14,
-      fontWeight: "600",
       textAlign: "center",
     },
     notice: { gap: 12 },

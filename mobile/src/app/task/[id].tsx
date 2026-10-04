@@ -7,7 +7,7 @@ import { formatBani, NovaError } from "../../api/client";
 import { errorMessage } from "../../lib/errors";
 import { categoryLabel, schedule, taskStatusLabel } from "../../lib/labels";
 import { Badge, Button, Icon, Page, State, useData } from "../../components/ui";
-import { useTheme, type Colors } from "../../components/theme";
+import { fonts, useTheme, type Colors } from "../../components/theme";
 
 export default function TaskDetailScreen() {
   const { colors, isDark } = useTheme();
@@ -165,22 +165,22 @@ const styles = (c: Colors) =>
       minHeight: 44,
       alignSelf: "flex-start",
     },
-    backText: { color: c.text, fontSize: 15, fontWeight: "500" },
+    backText: { fontFamily: fonts.bold, color: c.text, fontSize: 15 },
     headingBlock: { gap: 10 },
     title: {
+      fontFamily: fonts.bold,
       color: c.text,
       fontSize: 28,
       lineHeight: 35,
-      fontWeight: "700",
       letterSpacing: -0.6,
     },
-    poster: { color: c.muted, fontSize: 14 },
+    poster: { fontFamily: fonts.body, color: c.muted, fontSize: 14 },
     facts: {
       padding: 18,
       backgroundColor: c.surface,
       borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 16,
+      borderRadius: 24,
       gap: 14,
     },
     pay: {
@@ -190,21 +190,43 @@ const styles = (c: Colors) =>
       gap: 3,
     },
     amount: {
+      fontFamily: fonts.bold,
       fontSize: 30,
-      fontWeight: "600",
       color: c.text,
       letterSpacing: -0.5,
     },
-    meta: { color: c.muted, fontSize: 12, lineHeight: 18 },
+    meta: {
+      fontFamily: fonts.body,
+      color: c.muted,
+      fontSize: 12,
+      lineHeight: 18,
+    },
     fact: { flexDirection: "row", alignItems: "center", gap: 10 },
-    factText: { flex: 1, fontSize: 15, color: c.text, lineHeight: 22 },
-    note: { color: c.muted, fontSize: 12, lineHeight: 18, paddingTop: 4 },
+    factText: {
+      fontFamily: fonts.body,
+      flex: 1,
+      fontSize: 15,
+      color: c.text,
+      lineHeight: 22,
+    },
+    note: {
+      fontFamily: fonts.body,
+      color: c.muted,
+      fontSize: 12,
+      lineHeight: 18,
+      paddingTop: 4,
+    },
     section: { gap: 12 },
-    sectionTitle: { color: c.text, fontSize: 18, fontWeight: "600" },
-    body: { color: c.muted, fontSize: 15, lineHeight: 23 },
+    sectionTitle: { fontFamily: fonts.bold, color: c.text, fontSize: 18 },
+    body: {
+      fontFamily: fonts.body,
+      color: c.muted,
+      fontSize: 15,
+      lineHeight: 23,
+    },
     safety: {
       backgroundColor: c.accentSoft,
-      borderRadius: 12,
+      borderRadius: 24,
       padding: 16,
       gap: 10,
     },
@@ -214,8 +236,9 @@ const styles = (c: Colors) =>
       justifyContent: "space-between",
       marginTop: 8,
     },
-    label: { fontSize: 14, color: c.text, fontWeight: "600" },
+    label: { fontFamily: fonts.bold, fontSize: 14, color: c.text },
     input: {
+      fontFamily: fonts.body,
       minHeight: 120,
       padding: 14,
       textAlignVertical: "top",
@@ -225,15 +248,21 @@ const styles = (c: Colors) =>
       color: c.text,
       fontSize: 16,
       lineHeight: 23,
-      borderRadius: 12,
+      borderRadius: 24,
     },
-    help: { color: c.muted, fontSize: 12, lineHeight: 18 },
+    help: {
+      fontFamily: fonts.body,
+      color: c.muted,
+      fontSize: 12,
+      lineHeight: 18,
+    },
     error: {
+      fontFamily: fonts.body,
       backgroundColor: c.dangerSoft,
       color: c.danger,
       fontSize: 14,
       lineHeight: 21,
-      borderRadius: 10,
+      borderRadius: 24,
       padding: 14,
       overflow: "hidden",
     },
@@ -242,6 +271,6 @@ const styles = (c: Colors) =>
       padding: 16,
       borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 12,
+      borderRadius: 24,
     },
   });

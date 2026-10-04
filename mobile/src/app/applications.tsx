@@ -17,7 +17,7 @@ import {
   State,
   useData,
 } from "../components/ui";
-import { useTheme, type Colors } from "../components/theme";
+import { fonts, useTheme, type Colors } from "../components/theme";
 
 export default function MyApplicationsScreen() {
   const { session, restoring } = useAuth();
@@ -144,12 +144,12 @@ const styles = (c: Colors) =>
       justifyContent: "space-between",
       gap: 12,
     },
-    summaryText: { fontSize: 14, color: c.muted },
+    summaryText: { fontFamily: fonts.body, fontSize: 14, color: c.muted },
     card: {
-      backgroundColor: c.surface,
+      backgroundColor: c.accentSoft,
       borderColor: c.border,
       borderWidth: 1,
-      borderRadius: 16,
+      borderRadius: 24,
       padding: 18,
     },
     top: {
@@ -158,42 +158,66 @@ const styles = (c: Colors) =>
       alignItems: "center",
     },
     title: {
+      fontFamily: fonts.bold,
       fontSize: 20,
       lineHeight: 27,
-      fontWeight: "600",
       color: c.text,
       marginTop: 16,
       marginBottom: 8,
     },
-    meta: { color: c.muted, fontSize: 14, lineHeight: 22 },
+    meta: {
+      fontFamily: fonts.body,
+      color: c.muted,
+      fontSize: 14,
+      lineHeight: 22,
+    },
     statusRow: {
       flexDirection: "row",
       justifyContent: "space-between",
       gap: 12,
       marginTop: 16,
     },
-    status: { color: c.text, fontSize: 14, fontWeight: "600", lineHeight: 22 },
+    status: {
+      fontFamily: fonts.bold,
+      color: c.text,
+      fontSize: 14,
+      lineHeight: 22,
+    },
     messageBox: {
       marginTop: 16,
       padding: 12,
       backgroundColor: c.raised,
-      borderRadius: 8,
+      borderRadius: 24,
     },
-    messageLabel: { color: c.muted, fontSize: 12, marginBottom: 5 },
-    message: { color: c.text, fontSize: 14, lineHeight: 21 },
+    messageLabel: {
+      fontFamily: fonts.body,
+      color: c.muted,
+      fontSize: 12,
+      marginBottom: 5,
+    },
+    message: {
+      fontFamily: fonts.body,
+      color: c.text,
+      fontSize: 14,
+      lineHeight: 21,
+    },
     bottom: {
       marginTop: 16,
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
     },
-    price: { fontSize: 18, color: c.text, fontWeight: "600" },
-    details: { color: c.accent, fontSize: 14, fontWeight: "600" },
+    price: { fontFamily: fonts.bold, fontSize: 18, color: c.text },
+    details: { fontFamily: fonts.bold, color: c.accent, fontSize: 14 },
     emptyButton: {
       minHeight: 48,
       padding: 14,
       backgroundColor: c.accent,
-      borderRadius: 12,
+      borderRadius: 999,
     },
-    emptyButtonText: { color: c.onAccent, fontSize: 14, fontWeight: "600" },
+    emptyButtonText: {
+      fontFamily: fonts.bold,
+      color: c.onAccent,
+      fontSize: 14,
+    },
   });

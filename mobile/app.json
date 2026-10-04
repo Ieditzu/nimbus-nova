@@ -40,7 +40,8 @@
           "cameraPermission": "Nova folosește camera pentru actul de identitate și selfie.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-font"
     ],
     "scheme": "nova"
   }

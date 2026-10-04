@@ -13,15 +13,15 @@ import { formatBani } from "../api/client";
 import type { Category, TaskPublic } from "../api/types";
 import { categories, categoryLabel, schedule } from "../lib/labels";
 import {
-  Badge,
   Button,
   Header,
   Icon,
   Page,
   State,
+  Sticker,
   useData,
 } from "../components/ui";
-import { useTheme, type Colors } from "../components/theme";
+import { fonts, useTheme, type Colors } from "../components/theme";
 
 const filterLabels: Record<Category, string> = {
   event_setup: "Evenimente",
@@ -53,7 +53,11 @@ export default function TaskListScreen() {
   }
   return (
     <Page onRefresh={() => void refresh()} refreshing={refreshing}>
-      <Header title="Sarcini" subtitle="Alege ce poți face și când." />
+      <Header
+        hero
+        title={"Sarcini pe\nritmul tău."}
+        subtitle="Alege ce poți face. Câștigă în timpul tău."
+      />
       <View style={s.searchSection}>
         <Text style={s.label}>Oraș</Text>
         <View style={s.searchRow}>
@@ -163,6 +167,12 @@ function TaskCard({ task }: { task: TaskPublic }) {
   const { colors } = useTheme();
   const s = styles(colors);
   const when = schedule(task.starts_at, task.ends_at);
+  const sticker = {
+    event_setup: { color: colors.lavender, icon: "balloon-outline" as const },
+    light_moving: { color: colors.mint, icon: "cube-outline" as const },
+    shop_cover: { color: colors.blue, icon: "storefront-outline" as const },
+    other: { color: colors.yellow, icon: "sparkles" as const },
+  }[task.category];
   return (
     <Link href={{ pathname: "/task/[id]", params: { id: task.id } }} asChild>
       <Pressable
@@ -170,9 +180,14 @@ function TaskCard({ task }: { task: TaskPublic }) {
         accessibilityLabel={`${task.title}, ${formatBani(task.amount_bani)}, vezi detalii`}
         style={s.card}
       >
-        <View style={s.cardTop}>
-          <Badge>{categoryLabel[task.category]}</Badge>
-          <Icon name="chevron-forward" size={18} />
+        <View style={[s.cardTop, { backgroundColor: sticker.color }]}>
+          <Sticker
+            name={sticker.icon}
+            color={colors.surface === "#ffffff" ? "#ffffff" : sticker.color}
+            size={44}
+          />
+          <Text style={s.category}>{categoryLabel[task.category]}</Text>
+          <Icon name="arrow-forward" size={20} color={colors.stickerInk} />
         </View>
         <Text style={s.cardTitle}>{task.title}</Text>
         <View style={s.meta}>
@@ -207,7 +222,7 @@ function TaskCard({ task }: { task: TaskPublic }) {
 const styles = (c: Colors) =>
   StyleSheet.create({
     searchSection: { gap: 8 },
-    label: { color: c.text, fontSize: 14, fontWeight: "600" },
+    label: { fontFamily: fonts.bold, color: c.text, fontSize: 14 },
     searchRow: { flexDirection: "row", gap: 8 },
     searchBox: {
       flex: 1,
@@ -217,11 +232,12 @@ const styles = (c: Colors) =>
       paddingLeft: 12,
       borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 12,
+      borderRadius: 999,
       backgroundColor: c.surface,
       gap: 6,
     },
     searchInput: {
+      fontFamily: fonts.body,
       flex: 1,
       minWidth: 0,
       color: c.text,
@@ -244,9 +260,9 @@ const styles = (c: Colors) =>
       borderRadius: 22,
       backgroundColor: c.surface,
     },
-    filterActive: { backgroundColor: c.accentSoft, borderColor: c.accent },
-    filterText: { fontSize: 14, color: c.muted, fontWeight: "500" },
-    filterTextActive: { color: c.accent },
+    filterActive: { backgroundColor: c.accent, borderColor: c.accent },
+    filterText: { fontFamily: fonts.bold, fontSize: 13, color: c.text },
+    filterTextActive: { color: c.onAccent },
     results: {
       flexDirection: "row",
       alignItems: "center",
@@ -254,32 +270,48 @@ const styles = (c: Colors) =>
       gap: 8,
       marginBottom: -8,
     },
-    resultsTitle: { fontSize: 15, fontWeight: "600", color: c.text, flex: 1 },
+    resultsTitle: {
+      fontFamily: fonts.bold,
+      fontSize: 15,
+      color: c.text,
+      flex: 1,
+    },
     refresh: {
       minHeight: 44,
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
     },
-    resultsCount: { fontSize: 12, color: c.muted },
+    resultsCount: { fontFamily: fonts.body, fontSize: 12, color: c.muted },
     card: {
-      padding: 18,
+      padding: 20,
       borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 16,
+      borderRadius: 24,
       backgroundColor: c.surface,
     },
     cardTop: {
+      padding: 12,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: "#000000",
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: 8,
     },
+    category: {
+      fontFamily: fonts.bold,
+      color: c.stickerInk,
+      flex: 1,
+      fontSize: 13,
+      lineHeight: 18,
+    },
     cardTitle: {
+      fontFamily: fonts.bold,
       color: c.text,
-      fontSize: 20,
-      lineHeight: 27,
-      fontWeight: "600",
+      fontSize: 23,
+      lineHeight: 29,
       marginVertical: 16,
     },
     meta: {
@@ -288,9 +320,21 @@ const styles = (c: Colors) =>
       gap: 8,
       marginBottom: 8,
     },
-    metaText: { flex: 1, color: c.muted, fontSize: 14, lineHeight: 20 },
+    metaText: {
+      fontFamily: fonts.body,
+      flex: 1,
+      color: c.muted,
+      fontSize: 14,
+      lineHeight: 20,
+    },
     safety: { flexDirection: "row", gap: 8, paddingTop: 8 },
-    safetyText: { flex: 1, color: c.muted, fontSize: 12, lineHeight: 18 },
+    safetyText: {
+      fontFamily: fonts.body,
+      flex: 1,
+      color: c.muted,
+      fontSize: 12,
+      lineHeight: 18,
+    },
     cardBottom: {
       borderTopWidth: 1,
       borderTopColor: c.border,
@@ -301,11 +345,16 @@ const styles = (c: Colors) =>
       justifyContent: "space-between",
     },
     price: {
+      fontFamily: fonts.bold,
       color: c.text,
-      fontSize: 22,
-      fontWeight: "600",
+      fontSize: 25,
       letterSpacing: -0.4,
     },
-    caption: { color: c.muted, fontSize: 12, marginTop: 3 },
-    details: { fontSize: 14, fontWeight: "600", color: c.accent },
+    caption: {
+      fontFamily: fonts.body,
+      color: c.muted,
+      fontSize: 12,
+      marginTop: 3,
+    },
+    details: { fontFamily: fonts.bold, fontSize: 14, color: c.accent },
   });

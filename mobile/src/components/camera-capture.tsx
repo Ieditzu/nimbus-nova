@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Button, Icon } from "./ui";
-import { useTheme } from "./theme";
+import { fonts, useTheme } from "./theme";
 import {
   prepareCameraPhoto,
   releaseAsset,
@@ -182,7 +182,7 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     gap: 12,
   },
-  title: { fontSize: 20, fontWeight: "600", flex: 1 },
+  title: { fontFamily: fonts.bold, fontSize: 20, flex: 1 },
   close: {
     minHeight: 48,
     minWidth: 48,
@@ -201,7 +201,7 @@ const s = StyleSheet.create({
     aspectRatio: 1.45,
     borderWidth: 2,
     borderColor: "#fff",
-    borderRadius: 12,
+    borderRadius: 24,
   },
   faceGuide: {
     width: "75%",
@@ -211,9 +211,14 @@ const s = StyleSheet.create({
     borderColor: "#fff",
     borderRadius: 180,
   },
-  body: { fontSize: 15, lineHeight: 23, textAlign: "center" },
+  body: {
+    fontFamily: fonts.body,
+    fontSize: 15,
+    lineHeight: 23,
+    textAlign: "center",
+  },
   instructions: { padding: 20 },
   footer: { paddingHorizontal: 20, paddingBottom: 16 },
   permission: { flex: 1, justifyContent: "center", padding: 24, gap: 24 },
-  error: { padding: 20, fontSize: 14, lineHeight: 21 },
+  error: { fontFamily: fonts.body, padding: 20, fontSize: 14, lineHeight: 21 },
 });

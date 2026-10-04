@@ -7,7 +7,7 @@ import {
   View,
   type TextInputProps,
 } from "react-native";
-import { useTheme, type Colors } from "./theme";
+import { fonts, useTheme, type Colors } from "./theme";
 import { Icon } from "./ui";
 
 export function AuthField({
@@ -68,13 +68,14 @@ export function PasswordField({
 const styles = (c: Colors) =>
   StyleSheet.create({
     field: { gap: 8 },
-    label: { color: c.text, fontSize: 14, fontWeight: "600" },
+    label: { fontFamily: fonts.bold, color: c.text, fontSize: 14 },
     input: {
+      fontFamily: fonts.body,
       backgroundColor: c.surface,
       color: c.text,
       borderColor: c.border,
       borderWidth: 1,
-      borderRadius: 12,
+      borderRadius: 999,
       padding: 14,
       minHeight: 50,
       fontSize: 16,
@@ -85,9 +86,10 @@ const styles = (c: Colors) =>
       backgroundColor: c.surface,
       borderColor: c.border,
       borderWidth: 1,
-      borderRadius: 12,
+      borderRadius: 999,
     },
     passwordInput: {
+      fontFamily: fonts.body,
       flex: 1,
       minWidth: 0,
       color: c.text,

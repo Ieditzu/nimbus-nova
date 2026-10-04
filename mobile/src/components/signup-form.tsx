@@ -22,7 +22,7 @@ import { IdentityError } from "../identity/errors";
 import { errorMessage } from "../lib/errors";
 import { AuthField, PasswordField } from "./auth-fields";
 import { CameraCapture } from "./camera-capture";
-import { useTheme, type Colors } from "./theme";
+import { fonts, useTheme, type Colors } from "./theme";
 import { Button, Icon, usePageScroll } from "./ui";
 
 export function SignupForm({
@@ -510,21 +510,33 @@ const styles = (c: Colors) =>
   StyleSheet.create({
     form: {
       gap: 18,
-      borderTopWidth: 1,
-      borderTopColor: c.border,
-      paddingTop: 24,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 28,
+      backgroundColor: c.surface,
+      padding: 20,
     },
     intro: { gap: 8 },
-    title: { fontSize: 22, fontWeight: "600", color: c.text },
-    body: { fontSize: 14, lineHeight: 21, color: c.muted },
-    help: { fontSize: 13, lineHeight: 20, color: c.muted },
-    label: { fontSize: 15, fontWeight: "600", color: c.text },
+    title: { fontFamily: fonts.display, fontSize: 26, color: c.text },
+    body: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      lineHeight: 21,
+      color: c.muted,
+    },
+    help: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      lineHeight: 20,
+      color: c.muted,
+    },
+    label: { fontFamily: fonts.bold, fontSize: 15, color: c.text },
     grow: { flex: 1, minWidth: 0 },
     steps: { flexDirection: "row", gap: 12 },
     step: { flex: 1, gap: 8 },
-    stepLine: { height: 3, borderRadius: 2, backgroundColor: c.border },
+    stepLine: { height: 3, borderRadius: 2, backgroundColor: c.raised },
     activeLine: { backgroundColor: c.accent },
-    stepLabel: { color: c.muted, fontSize: 12 },
+    stepLabel: { fontFamily: fonts.body, color: c.muted, fontSize: 12 },
     choices: { flexDirection: "row", gap: 12 },
     choice: {
       flex: 1,
@@ -533,15 +545,15 @@ const styles = (c: Colors) =>
       backgroundColor: c.surface,
       borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 12,
+      borderRadius: 24,
       padding: 16,
     },
     choiceActive: { borderColor: c.accent, backgroundColor: c.accentSoft },
-    choiceTitle: { color: c.text, fontSize: 18, fontWeight: "600" },
+    choiceTitle: { fontFamily: fonts.bold, color: c.text, fontSize: 18 },
     asset: {
       borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 12,
+      borderRadius: 24,
       padding: 16,
       gap: 12,
       backgroundColor: c.surface,
@@ -556,24 +568,25 @@ const styles = (c: Colors) =>
     photo: {
       width: "100%",
       height: 170,
-      borderRadius: 8,
+      borderRadius: 24,
       backgroundColor: c.background,
     },
     selfie: { height: 260 },
     privacy: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
     error: {
+      fontFamily: fonts.body,
       color: c.danger,
       backgroundColor: c.dangerSoft,
       padding: 14,
-      borderRadius: 10,
+      borderRadius: 24,
       fontSize: 14,
       lineHeight: 21,
       overflow: "hidden",
     },
     link: {
+      fontFamily: fonts.bold,
       color: c.accent,
       fontSize: 14,
-      fontWeight: "600",
       textAlign: "center",
     },
     login: { minHeight: 48, justifyContent: "center", alignItems: "center" },

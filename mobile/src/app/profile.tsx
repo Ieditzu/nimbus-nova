@@ -7,6 +7,7 @@ import type { Profile } from "../api/types";
 import { errorMessage } from "../lib/errors";
 import { Button, Header, Icon, Page, State, useData } from "../components/ui";
 import {
+  fonts,
   useTheme,
   type Colors,
   type ThemePreference,
@@ -272,7 +273,7 @@ function ProfileForm({ profile }: { profile: Profile }) {
 const styles = (c: Colors) =>
   StyleSheet.create({
     appearance: { gap: 12 },
-    sectionTitle: { color: c.text, fontSize: 16, fontWeight: "600" },
+    sectionTitle: { fontFamily: fonts.bold, color: c.text, fontSize: 16 },
     options: { flexDirection: "row", gap: 6 },
     option: {
       flex: 1,
@@ -280,13 +281,13 @@ const styles = (c: Colors) =>
       borderWidth: 1,
       borderColor: c.border,
       backgroundColor: c.surface,
-      borderRadius: 10,
+      borderRadius: 999,
       justifyContent: "center",
       alignItems: "center",
       padding: 8,
     },
     optionActive: { backgroundColor: c.accentSoft, borderColor: c.accent },
-    optionText: { color: c.muted, fontSize: 13, fontWeight: "500" },
+    optionText: { fontFamily: fonts.bold, color: c.muted, fontSize: 13 },
     optionTextActive: { color: c.accent },
     form: { gap: 20 },
     identity: {
@@ -305,14 +306,15 @@ const styles = (c: Colors) =>
       justifyContent: "center",
       backgroundColor: c.accentSoft,
     },
-    name: { color: c.text, fontSize: 19, fontWeight: "600" },
+    name: { fontFamily: fonts.bold, color: c.text, fontSize: 19 },
     field: { gap: 8 },
-    label: { color: c.text, fontSize: 14, fontWeight: "600" },
+    label: { fontFamily: fonts.bold, color: c.text, fontSize: 14 },
     optional: { color: c.muted, fontWeight: "400" },
     input: {
+      fontFamily: fonts.body,
       borderWidth: 1,
       borderColor: c.border,
-      borderRadius: 12,
+      borderRadius: 24,
       padding: 14,
       minHeight: 50,
       fontSize: 16,
@@ -320,13 +322,24 @@ const styles = (c: Colors) =>
       backgroundColor: c.surface,
     },
     textarea: { minHeight: 110, textAlignVertical: "top" },
-    help: { fontSize: 12, color: c.muted, lineHeight: 18 },
-    counter: { fontSize: 12, color: c.muted, textAlign: "right" },
+    help: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: c.muted,
+      lineHeight: 18,
+    },
+    counter: {
+      fontFamily: fonts.body,
+      fontSize: 12,
+      color: c.muted,
+      textAlign: "right",
+    },
     error: {
+      fontFamily: fonts.body,
       color: c.danger,
       backgroundColor: c.dangerSoft,
       padding: 14,
-      borderRadius: 10,
+      borderRadius: 24,
       overflow: "hidden",
       fontSize: 14,
       lineHeight: 21,
@@ -337,7 +350,7 @@ const styles = (c: Colors) =>
       alignItems: "center",
       padding: 14,
       backgroundColor: c.successSoft,
-      borderRadius: 10,
+      borderRadius: 24,
     },
-    successText: { color: c.success, fontSize: 14 },
+    successText: { fontFamily: fonts.body, color: c.success, fontSize: 14 },
   });
