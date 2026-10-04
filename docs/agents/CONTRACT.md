@@ -164,3 +164,7 @@ CI CNP reading normalizes whitespace, separators and MRZ padding without guessin
 Authenticated conversation responses include `other_user.phone_number` for the other participant. It is not exposed on public task lists, details, or account directories. Existing conversation membership checks apply.
 
 Account age policy: `volunteer_only` means under 16, computed from the verified birth date on registration, login and session reads. Ages 16–17 may publish and apply to paid jobs. Under 16 requires a guardian email and is restricted to unpaid volunteering; paid application and acceptance are rejected server-side. Zero-amount jobs are stored as volunteer jobs.
+
+Job types: optional `job_type` (`short_term`, `long_term`, `volunteer`) is accepted by `CreateTaskRequest` and returned in `TaskPublic` when set. The existing `category` field and its four values remain compatible. Volunteer requests require `amount_bani: 0`; new paid categories require a positive amount. Long-term jobs accept start/end periods up to 365 days; other categories retain the 12-hour limit. No request fields are renamed.
+
+Location selection adds optional `county` (canonical county name) and `locality_id` (SIRUTA code as a string) to `CreateTaskRequest` and `TaskPublic`. When provided, the API checks the county/city/code against the bundled INS SIRUTA S1 2026 list. Both fields remain absent on legacy public tasks with empty values. Source: https://data.gov.ro/dataset/siruta_s1-2026 (CC BY 4.0).

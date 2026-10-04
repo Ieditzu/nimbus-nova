@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { useAuth } from "../../auth/session";
-import type { Category, TaskPublic } from "../../api/types";
-import { categories, categoryLabel } from "../../lib/labels";
+import type { JobType, TaskPublic } from "../../api/types";
+import { jobCategories, jobTypeLabel } from "../../lib/labels";
 import { amountToBani, romanianDateTime } from "../../lib/job-form";
 import { errorMessage } from "../../lib/errors";
+import { LocationField } from "../../components/location-field";
+import { findLocation } from "../../lib/locations";
+import { ScheduleField } from "../../components/schedule-field";
 import { AuthField } from "../../components/auth-fields";
 import { Button, Header, Page, State } from "../../components/ui";
 import { useTheme } from "../../components/theme";
@@ -17,9 +20,12 @@ export default function NewJobScreen() {
   const { colors, isDark } = useTheme();
   const s = jobStyles(colors);
   const [title, setTitle] = useState("");
+  const [county, setCounty] = useState("");
+  const [localityId, setLocalityId] = useState("");
   const [city, setCity] = useState("");
-  const [category, setCategory] = useState<Category>("other");
+  const [jobType, setJobType] = useState<JobType>("short_term");
   const [date, setDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [amount, setAmount] = useState("");
@@ -35,8 +41,10 @@ export default function NewJobScreen() {
       if (task.poster_id !== session?.user.id || task.status !== "open") throw new Error("Poți edita doar anunțurile tale deschise.");
       const local = (value: string) => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Bucharest", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(value)).split(" ");
       const [day, begins] = local(task.starts_at);
-      setTitle(task.title); setCity(task.city); setCategory(task.category);
-      setDate(day); setStart(begins); setEnd(local(task.ends_at)[1]);
+      const place = findLocation(task.city, task.locality_id, task.county);
+      setCounty(place?.county ?? ""); setLocalityId(place?.id ?? "");
+      setTitle(task.title); setCity(task.city); setJobType(task.job_type ?? (task.amount_bani === 0 ? "volunteer" : "short_term"));
+      setDate(day); setEndDate(local(task.ends_at)[0]); setStart(begins); setEnd(local(task.ends_at)[1]);
       setAmount((task.amount_bani / 100).toFixed(2));
       setDescription(task.description); setSafety(task.safety_note); setExisting(task);
     }).catch((e: unknown) => { if (!cancelled) setError(errorMessage(e)); });
@@ -48,23 +56,24 @@ export default function NewJobScreen() {
     setBusy(true);
     try {
       const starts_at = romanianDateTime(date, start),
-        ends_at = romanianDateTime(date, end);
+        ends_at = romanianDateTime(jobType === "long_term" ? endDate : date, end);
       if (Date.parse(starts_at) <= Date.now())
         throw new Error("Alege o dată și o oră din viitor.");
       if (
         Date.parse(ends_at) <= Date.parse(starts_at) ||
-        Date.parse(ends_at) - Date.parse(starts_at) > 12 * 3600000
+        Date.parse(ends_at) - Date.parse(starts_at) > (jobType === "long_term" ? 365 * 24 : 12) * 3600000
       )
         throw new Error(
-          "Sfârșitul trebuie să fie după început, la cel mult 12 ore.",
+          jobType === "long_term" ? "Alege un sfârșit după început, la cel mult un an." : "Sfârșitul trebuie să fie după început, la cel mult 12 ore.",
         );
+      if (jobType !== "volunteer" && amountToBani(amount) === 0) throw new Error("Pentru un job plătit introdu o sumă mai mare decât zero.");
       const body = {
         title: title.trim(),
-        city: city.trim(),
-        category,
+        city: city.trim(), county, locality_id: localityId,
+        category: existing?.category ?? "other", job_type: jobType,
         starts_at,
         ends_at,
-        amount_bani: amountToBani(amount),
+        amount_bani: jobType === "volunteer" ? 0 : amountToBani(amount),
         description: description.trim(),
         safety_note: safety.trim(),
         photo_url: existing?.photo_url, sector: existing?.sector, lat: existing?.lat, lng: existing?.lng,
@@ -106,69 +115,34 @@ export default function NewJobScreen() {
       />
       <Text style={s.label}>Categorie</Text>
       <View style={s.row}>
-        {categories.map((value) => (
+        {jobCategories.map((value) => (
           <Pressable
             key={value}
             disabled={busy}
             accessibilityRole="radio"
-            accessibilityState={{ checked: category === value }}
-            onPress={() => setCategory(value)}
+            accessibilityState={{ checked: jobType === value }}
+            onPress={() => setJobType(value)}
             style={[
               s.chip,
               {
                 backgroundColor:
-                  category === value ? colors.accentSoft : colors.surface,
+                  jobType === value ? colors.accentSoft : colors.surface,
               },
             ]}
           >
-            <Text style={s.chipText}>{categoryLabel[value]}</Text>
+            <Text style={s.chipText}>{jobTypeLabel[value]}</Text>
           </Pressable>
         ))}
       </View>
-      <AuthField
-        label="Oraș"
-        value={city}
-        onChangeText={setCity}
-        editable={!busy}
-        maxLength={80}
-        placeholder="Orașul în care are loc sarcina"
-      />
-      <AuthField
-        label="Data (AAAA-LL-ZZ)"
-        value={date}
-        onChangeText={setDate}
-        editable={!busy}
-        placeholder="2026-10-15"
-        maxLength={10}
-      />
-      <AuthField
-        label="Ora de început (HH:MM)"
-        value={start}
-        onChangeText={setStart}
-        editable={!busy}
-        placeholder="09:00"
-        maxLength={5}
-      />
-      <AuthField
-        label="Ora de sfârșit (HH:MM)"
-        value={end}
-        onChangeText={setEnd}
-        editable={!busy}
-        placeholder="12:00"
-        maxLength={5}
-      />
-      <Text style={s.body}>
-        Orele sunt în fusul orar al României. Maximum 12 ore.
-      </Text>
-      <AuthField
-        label="Sumă propusă (lei)"
-        value={amount}
-        onChangeText={setAmount}
-        editable={!busy}
-        keyboardType="decimal-pad"
-        placeholder="150"
-        maxLength={7}
-      />
+      <LocationField county={county} city={city} disabled={busy} onChange={(nextCounty, nextCity, nextId) => { setCounty(nextCounty); setCity(nextCity); setLocalityId(nextId); }} />
+      <ScheduleField label="Data de început" mode="date" value={date} disabled={busy} onChange={setDate} />
+      <ScheduleField label="Ora de început" mode="time" value={start} date={date} disabled={busy} onChange={setStart} />
+      {jobType === "long_term" ? <ScheduleField label="Data de sfârșit" mode="date" value={endDate} minDate={date || undefined} disabled={busy} onChange={setEndDate} /> : null}
+      <ScheduleField label="Ora de sfârșit" mode="time" value={end} date={jobType === "long_term" ? endDate : date} disabled={busy} onChange={setEnd} />
+      <Text style={s.body}>{jobType === "long_term" ? "Alege perioada jobului. Orele sunt în fusul orar al României." : "Orele sunt în fusul orar al României. Maximum 12 ore."}</Text>
+      {jobType === "volunteer" ? <Text style={s.body}>Voluntariat fără plată. Nu trebuie să introduci un preț.</Text> : <AuthField
+        label="Sumă propusă (lei)" value={amount} onChangeText={setAmount} editable={!busy}
+        keyboardType="decimal-pad" placeholder="150" maxLength={7} />}
       <Text style={s.label}>Ce trebuie făcut</Text>
       <TextInput
         accessibilityLabel="Descriere"
@@ -199,12 +173,13 @@ export default function NewJobScreen() {
         disabled={
           busy ||
           title.trim().length < 3 ||
-          city.trim().length < 2 ||
+          city.trim().length < 2 || !county || !localityId ||
           description.trim().length < 10 ||
           !date ||
           !start ||
           !end ||
-          !amount
+          (jobType === "long_term" && !endDate) ||
+          (jobType !== "volunteer" && !amount)
         }
         onPress={() => void publish()}
       >

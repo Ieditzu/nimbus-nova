@@ -80,7 +80,7 @@ func (s *Store) mutateOwnedOpenTask(id, owner string, req *CreateTaskRequest) er
 			_, err = conn.ExecContext(ctx, `UPDATE tasks SET status='hidden' WHERE id=?`, id)
 			return err
 		}
-		_, err = conn.ExecContext(ctx, `UPDATE tasks SET title=?,category=?,city=?,photo_url=?,sector=?,lat=?,lng=?,starts_at=?,ends_at=?,amount_bani=?,description=?,safety_note=?,kind=CASE WHEN ?=0 THEN 'volunteer' ELSE 'paid' END WHERE id=?`, strings.TrimSpace(req.Title), strings.TrimSpace(req.Category), strings.TrimSpace(req.City), strings.TrimSpace(req.PhotoURL), strings.TrimSpace(req.Sector), coordOrZero(req.Lat), coordOrZero(req.Lng), strings.TrimSpace(req.StartsAt), strings.TrimSpace(req.EndsAt), req.AmountBani, strings.TrimSpace(req.Description), strings.TrimSpace(req.SafetyNote), req.AmountBani, id)
+		_, err = conn.ExecContext(ctx, `UPDATE tasks SET title=?,category=?,city=?,photo_url=?,sector=?,lat=?,lng=?,starts_at=?,ends_at=?,amount_bani=?,description=?,safety_note=?,kind=CASE WHEN ?=0 THEN 'volunteer' ELSE 'paid' END,county=?,locality_id=?,job_type=? WHERE id=?`, strings.TrimSpace(req.Title), strings.TrimSpace(req.Category), strings.TrimSpace(req.City), strings.TrimSpace(req.PhotoURL), strings.TrimSpace(req.Sector), coordOrZero(req.Lat), coordOrZero(req.Lng), strings.TrimSpace(req.StartsAt), strings.TrimSpace(req.EndsAt), req.AmountBani, strings.TrimSpace(req.Description), strings.TrimSpace(req.SafetyNote), req.AmountBani, strings.TrimSpace(req.County), strings.TrimSpace(req.LocalityID), strings.TrimSpace(req.JobType), id)
 		return err
 	})
 }

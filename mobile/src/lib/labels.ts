@@ -1,16 +1,18 @@
-import type { ApplicationStatus, Category, TaskStatus } from "../api/types";
+import type { ApplicationStatus, Category, JobType, TaskStatus } from "../api/types";
 export const categories: Category[] = [
   "event_setup",
   "light_moving",
   "shop_cover",
   "other",
 ];
+export const jobCategories: JobType[] = ["short_term", "long_term", "volunteer"];
 export const categoryLabel: Record<Category, string> = {
   event_setup: "Amenajare eveniment",
   light_moving: "Mutat obiecte ușoare",
   shop_cover: "Acoperire scurtă în magazin",
   other: "Altele",
 };
+export const jobTypeLabel: Record<JobType, string> = { short_term: "Joburi pe termen scurt", long_term: "Joburi pe termen lung", volunteer: "Voluntariat" };
 export const taskStatusLabel: Record<TaskStatus, string> = {
   open: "Deschisă",
   assigned: "Atribuită",

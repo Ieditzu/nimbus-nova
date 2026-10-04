@@ -5,7 +5,7 @@ import { useAuth } from "../../auth/session";
 import { api } from "../../api";
 import { formatBani, NovaError } from "../../api/client";
 import { errorMessage } from "../../lib/errors";
-import { categoryLabel, schedule, taskStatusLabel } from "../../lib/labels";
+import { categoryLabel, jobTypeLabel, schedule, taskStatusLabel } from "../../lib/labels";
 import { Badge, Button, Icon, Page, State, useData } from "../../components/ui";
 import { fonts, useTheme, type Colors } from "../../components/theme";
 
@@ -68,7 +68,7 @@ export default function TaskDetailScreen() {
       <State loading={loading} error={error} onRetry={() => void reload()} />
       {task && when ? (
         <>
-          <Badge>{categoryLabel[task.category]}</Badge>
+          <Badge>{task.job_type ? jobTypeLabel[task.job_type] : categoryLabel[task.category]}</Badge>
           <View style={s.headingBlock}>
             <Text accessibilityRole="header" style={s.title}>
               {task.title}
@@ -77,8 +77,8 @@ export default function TaskDetailScreen() {
           </View>
           <View style={s.facts}>
             <View style={s.pay}>
-              <Text style={s.amount}>{formatBani(task.amount_bani)}</Text>
-              <Text style={s.meta}>Sumă propusă</Text>
+              <Text style={s.amount}>{task.amount_bani === 0 ? "Voluntariat" : formatBani(task.amount_bani)}</Text>
+              <Text style={s.meta}>{task.amount_bani === 0 ? "Fără plată" : "Sumă propusă"}</Text>
             </View>
             <View style={s.fact}>
               <Icon name="location-outline" />
@@ -92,7 +92,7 @@ export default function TaskDetailScreen() {
               <Icon name="time-outline" />
               <Text style={s.factText}>{when.time}</Text>
             </View>
-            <Text style={s.note}>Sumă propusă de organizator.</Text>
+            <Text style={s.note}>{task.amount_bani === 0 ? "Participare voluntară, fără plată." : "Sumă propusă de organizator."}</Text>
           </View>
           <View style={s.section}>
             <Text style={s.sectionTitle}>Ce ai de făcut</Text>

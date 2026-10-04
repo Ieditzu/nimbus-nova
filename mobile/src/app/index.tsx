@@ -11,7 +11,7 @@ import {
 import { api } from "../api";
 import { formatBani } from "../api/client";
 import type { Category, TaskPublic } from "../api/types";
-import { categories, categoryLabel, schedule } from "../lib/labels";
+import { categories, categoryLabel, jobTypeLabel, schedule } from "../lib/labels";
 import {
   Button,
   Header,
@@ -177,7 +177,7 @@ function TaskCard({ task }: { task: TaskPublic }) {
     <Link href={{ pathname: "/task/[id]", params: { id: task.id } }} asChild>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${task.title}, ${formatBani(task.amount_bani)}, vezi detalii`}
+        accessibilityLabel={`${task.title}, ${task.amount_bani === 0 ? "Voluntariat" : formatBani(task.amount_bani)}, vezi detalii`}
         style={s.card}
       >
         <View style={[s.cardTop, { backgroundColor: sticker.color }]}>
@@ -186,7 +186,7 @@ function TaskCard({ task }: { task: TaskPublic }) {
             color={colors.surface === "#ffffff" ? "#ffffff" : sticker.color}
             size={44}
           />
-          <Text style={s.category}>{categoryLabel[task.category]}</Text>
+          <Text style={s.category}>{task.job_type ? jobTypeLabel[task.job_type] : categoryLabel[task.category]}</Text>
           <Icon name="arrow-forward" size={20} color={colors.stickerInk} />
         </View>
         <Text style={s.cardTitle}>{task.title}</Text>
@@ -210,7 +210,7 @@ function TaskCard({ task }: { task: TaskPublic }) {
         ) : null}
         <View style={s.cardBottom}>
           <View>
-            <Text style={s.price}>{formatBani(task.amount_bani)}</Text>
+            <Text style={s.price}>{task.amount_bani === 0 ? "Voluntariat" : formatBani(task.amount_bani)}</Text>
             <Text style={s.caption}>Sumă propusă</Text>
           </View>
           <Text style={s.details}>Vezi detalii</Text>

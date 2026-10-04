@@ -92,7 +92,7 @@ export default function ManageJobScreen() {
               {data.task.city} · {when.date}
             </Text>
             <Text style={s.body}>{when.time}</Text>
-            <Text style={s.price}>{formatBani(data.task.amount_bani)}</Text>
+            <Text style={s.price}>{data.task.amount_bani === 0 ? "Voluntariat" : formatBani(data.task.amount_bani)}</Text>
             <Text style={s.body}>{data.task.description}</Text>
           </View>
           {actionError ? (

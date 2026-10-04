@@ -19,6 +19,9 @@ type User struct {
 }
 
 type TaskPublic struct {
+	JobType      string  `json:"job_type,omitempty"`
+	County       string  `json:"county,omitempty"`
+	LocalityID   string  `json:"locality_id,omitempty"`
 	ID           string  `json:"id"`
 	PosterID     string  `json:"poster_id"`
 	PosterName   string  `json:"poster_name"`
@@ -41,6 +44,9 @@ type TaskPublic struct {
 }
 
 type CreateTaskRequest struct {
+	JobType     string   `json:"job_type"`
+	County      string   `json:"county"`
+	LocalityID  string   `json:"locality_id"`
 	Title       string   `json:"title"`
 	Category    string   `json:"category"`
 	City        string   `json:"city"`
@@ -202,6 +208,12 @@ func knownCategory(category string) bool {
 }
 
 func ValidateCreateTask(req CreateTaskRequest) *AppError {
+	if req.JobType != "" && req.JobType != "short_term" && req.JobType != "long_term" && req.JobType != "volunteer" {
+		return invalidInput("Alege termen scurt, termen lung sau voluntariat.")
+	}
+	if ae := validateTaskLocation(req); ae != nil {
+		return ae
+	}
 	title := strings.TrimSpace(req.Title)
 	if n := utf8.RuneCountInString(title); n < 3 || n > 80 {
 		return invalidInput(msgTitle)
@@ -221,8 +233,17 @@ func ValidateCreateTask(req CreateTaskRequest) *AppError {
 	if !end.After(start) {
 		return invalidInput(msgEnd)
 	}
-	if end.Sub(start) > 12*time.Hour {
+	if req.JobType == "long_term" && end.Sub(start) > 365*24*time.Hour {
+		return invalidInput("Perioada unui job pe termen lung poate fi de cel mult un an.")
+	}
+	if req.JobType != "long_term" && end.Sub(start) > 12*time.Hour {
 		return invalidInput(msgDuration)
+	}
+	if req.JobType == "volunteer" && req.AmountBani != 0 {
+		return invalidInput("Voluntariatul este fără plată.")
+	}
+	if (req.JobType == "short_term" || req.JobType == "long_term") && req.AmountBani <= 0 {
+		return invalidInput("Pentru un job plătit introdu o sumă mai mare decât zero.")
 	}
 	if req.AmountBani < 0 || req.AmountBani > 500000 {
 		return invalidInput(msgAmount)

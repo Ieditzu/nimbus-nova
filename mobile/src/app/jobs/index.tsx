@@ -67,7 +67,7 @@ export default function MyJobsScreen() {
               </Text>
               <Text style={s.body}>{when.time}</Text>
               <View style={s.row}>
-                <Text style={s.price}>{formatBani(task.amount_bani)}</Text>
+                <Text style={s.price}>{task.amount_bani === 0 ? "Voluntariat" : formatBani(task.amount_bani)}</Text>
                 <Text style={s.label}>Vezi aplicările →</Text>
               </View>
             </Pressable>

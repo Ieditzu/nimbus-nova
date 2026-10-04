@@ -227,6 +227,9 @@ func addColumns(db *sql.DB) error {
 		{"users", "guardian_email", "TEXT"},
 		{"users", "status", "TEXT NOT NULL DEFAULT 'active'"},
 		{"users", "created_at", "TEXT NOT NULL DEFAULT ''"},
+		{"tasks", "job_type", "TEXT NOT NULL DEFAULT ''"},
+		{"tasks", "county", "TEXT NOT NULL DEFAULT ''"},
+		{"tasks", "locality_id", "TEXT NOT NULL DEFAULT ''"},
 		{"tasks", "kind", "TEXT NOT NULL DEFAULT 'local_task'"},
 		{"tasks", "pay_status", "TEXT NOT NULL DEFAULT 'unpaid'"},
 		{"tasks", "partner_id", "TEXT"},
@@ -443,7 +446,7 @@ const taskSelect = `
 SELECT t.id, t.poster_id, pu.display_name, t.title, t.category, t.city,
        t.photo_url, t.sector, t.lat, t.lng,
        t.starts_at, t.ends_at, t.amount_bani, t.description, t.safety_note,
-       t.status, t.assignee_id, au.display_name, t.created_at
+       t.status, t.assignee_id, au.display_name, t.created_at, t.county, t.locality_id, t.job_type
 FROM tasks t
 JOIN users pu ON pu.id = t.poster_id
 LEFT JOIN users au ON au.id = t.assignee_id
@@ -456,7 +459,7 @@ func scanTask(sc interface{ Scan(...any) error }) (TaskPublic, error) {
 		&t.ID, &t.PosterID, &t.PosterName, &t.Title, &t.Category, &t.City,
 		&t.PhotoURL, &t.Sector, &t.Lat, &t.Lng,
 		&t.StartsAt, &t.EndsAt, &t.AmountBani, &t.Description, &t.SafetyNote,
-		&t.Status, &assigneeID, &assigneeName, &t.CreatedAt,
+		&t.Status, &assigneeID, &assigneeName, &t.CreatedAt, &t.County, &t.LocalityID, &t.JobType,
 	)
 	if err != nil {
 		return TaskPublic{}, err
@@ -582,9 +585,9 @@ func (s *Store) CreateTask(poster User, req CreateTaskRequest) (TaskPublic, erro
 	safety := strings.TrimSpace(req.SafetyNote)
 	category := strings.TrimSpace(req.Category)
 	_, err = s.db.Exec(`INSERT INTO tasks (
-		id, poster_id, title, category, city, photo_url, sector, lat, lng, starts_at, ends_at, amount_bani, description, safety_note, status, assignee_id, created_at, kind
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', NULL, ?, CASE WHEN ?=0 THEN 'volunteer' ELSE 'paid' END)`,
-		id, poster.ID, title, category, city, strings.TrimSpace(req.PhotoURL), strings.TrimSpace(req.Sector), coordOrZero(req.Lat), coordOrZero(req.Lng), starts, ends, req.AmountBani, description, safety, created, req.AmountBani)
+		id, poster_id, title, category, city, photo_url, sector, lat, lng, starts_at, ends_at, amount_bani, description, safety_note, status, assignee_id, created_at, kind, county, locality_id, job_type
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', NULL, ?, CASE WHEN ?=0 THEN 'volunteer' ELSE 'paid' END, ?, ?, ?)`,
+		id, poster.ID, title, category, city, strings.TrimSpace(req.PhotoURL), strings.TrimSpace(req.Sector), coordOrZero(req.Lat), coordOrZero(req.Lng), starts, ends, req.AmountBani, description, safety, created, req.AmountBani, strings.TrimSpace(req.County), strings.TrimSpace(req.LocalityID), strings.TrimSpace(req.JobType))
 	if err != nil {
 		return TaskPublic{}, errInternal
 	}
