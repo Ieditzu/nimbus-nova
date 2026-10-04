@@ -33,6 +33,23 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /v1/contracts/{id}/sign", s.handleSignContract)
 	mux.HandleFunc("GET /v1/events", s.handleListEvents)
 	mux.HandleFunc("POST /v1/events", s.handleCreateEvent)
+	mux.HandleFunc("GET /v1/tasks/search", s.handleSearchTasks)
+	mux.HandleFunc("POST /v1/tasks/{id}/cancel", s.handleCancelTask)
+	mux.HandleFunc("POST /v1/tasks/{id}/dispute", s.handleDispute)
+	mux.HandleFunc("GET /v1/me/ledger", s.handleMyLedger)
+	mux.HandleFunc("GET /v1/admin/ledger", s.handleAdminLedger)
+	mux.HandleFunc("GET /v1/me/contracts", s.handleMyContracts)
+	mux.HandleFunc("GET /v1/me/notifications", s.handleNotifications)
+	mux.HandleFunc("POST /v1/profiles/me/documents", s.handleCreateDocument)
+	mux.HandleFunc("GET /v1/partner/shifts", s.handlePartnerShifts)
+	mux.HandleFunc("POST /v1/partner/shifts", s.handlePartnerShifts)
+	mux.HandleFunc("GET /v1/admin/partners", s.handleAdminPartners)
+	mux.HandleFunc("POST /v1/admin/partners/{id}/activate", s.handleActivatePartner)
+	mux.HandleFunc("POST /v1/events/{id}/attend", s.handleAttend)
+	mux.HandleFunc("POST /v1/events/{id}/check-in", s.handleEventCheckIn)
+	mux.HandleFunc("POST /v1/events/{id}/complete", s.handleEventComplete)
+	mux.HandleFunc("GET /v1/users/{id}/reputation", s.handleReputation)
+	mux.HandleFunc("POST /v1/admin/disputes/{id}/resolve", s.handleResolveDispute)
 	return mux
 }
 
@@ -50,7 +67,6 @@ func requireRole(u User, role string) *AppError {
 	}
 	return nil
 }
-
 
 func tasksOrEmpty(in []TaskPublic) []TaskPublic {
 	if in == nil {
@@ -236,6 +252,9 @@ func (s *Server) handleApply(w http.ResponseWriter, r *http.Request) {
 		s.writeErr(w, err)
 		return
 	}
+	var posterID string
+	_ = s.store.db.QueryRow(`SELECT poster_id FROM tasks WHERE id = ?`, r.PathValue("id")).Scan(&posterID)
+	_ = s.store.Notify(posterID, "application_received", r.PathValue("id"))
 	writeJSON(w, http.StatusCreated, struct {
 		Application ApplicationView `json:"application"`
 	}{Application: app})
@@ -304,6 +323,9 @@ func (s *Server) handleAccept(w http.ResponseWriter, r *http.Request) {
 		s.writeErr(w, err)
 		return
 	}
+	if task.AssigneeID != nil {
+		_ = s.store.Notify(*task.AssigneeID, "application_accepted", task.ID)
+	}
 	writeJSON(w, http.StatusOK, struct {
 		Task TaskPublic `json:"task"`
 	}{Task: task})
@@ -326,6 +348,9 @@ func (s *Server) handleComplete(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.writeErr(w, err)
 		return
+	}
+	if task.AssigneeID != nil {
+		_ = s.store.Notify(*task.AssigneeID, "task_completed", task.ID)
 	}
 	writeJSON(w, http.StatusOK, struct {
 		Task TaskPublic `json:"task"`

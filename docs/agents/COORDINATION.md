@@ -57,7 +57,7 @@ Keep messages short. Include the commit SHA if you changed code. Do not paste se
 
 ## Still in git
 
-IRC is the live talk. Git is still the code. Pull `main` before editing. Own only your folder:
+IRC is the live talk. Git is still the code. Everyone commits and pushes `main`. Do not create a branch. Pull `main` immediately before you commit.
 
 | Path | Agent |
 | --- | --- |

@@ -53,7 +53,7 @@ func migrate(db *sql.DB) error {
 	_, err := db.Exec(`
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
-  role TEXT NOT NULL CHECK (role IN ('worker', 'poster', 'admin')),
+  role TEXT NOT NULL CHECK (role IN ('worker', 'poster', 'admin', 'partner_user', 'organizer', 'guardian')),
   display_name TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS profiles (
@@ -143,7 +143,54 @@ CREATE TABLE IF NOT EXISTS events (
 	if err != nil {
 		return err
 	}
-	return addColumns(db)
+	if err := addColumns(db); err != nil {
+		return err
+	}
+	_, err = db.Exec(`
+CREATE TABLE IF NOT EXISTS partners (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('prospect', 'active', 'paused')),
+  user_id TEXT
+);
+CREATE TABLE IF NOT EXISTS documents (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  kind TEXT NOT NULL,
+  storage_key TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS disputes (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL,
+  opener_id TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  task_id TEXT,
+  read_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS attendances (
+  id TEXT PRIMARY KEY,
+  event_id TEXT NOT NULL,
+  volunteer_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  UNIQUE (event_id, volunteer_id)
+);
+CREATE TABLE IF NOT EXISTS diplomas (
+  id TEXT PRIMARY KEY,
+  event_id TEXT NOT NULL,
+  volunteer_id TEXT NOT NULL,
+  code TEXT NOT NULL,
+  issued_at TEXT NOT NULL
+);
+`)
+	return err
 }
 
 func addColumns(db *sql.DB) error {
@@ -156,6 +203,7 @@ func addColumns(db *sql.DB) error {
 		{"users", "status", "TEXT NOT NULL DEFAULT 'active'"},
 		{"tasks", "kind", "TEXT NOT NULL DEFAULT 'local_task'"},
 		{"tasks", "pay_status", "TEXT NOT NULL DEFAULT 'unpaid'"},
+		{"tasks", "partner_id", "TEXT"},
 	}
 	for _, column := range columns {
 		exists, err := columnExists(db, column.table, column.name)
@@ -317,6 +365,12 @@ func (s *Store) SeedIfEmpty() error {
 func (s *Store) Reset() error {
 	return s.withImmediate(func(ctx context.Context, conn *sql.Conn) error {
 		for _, q := range []string{
+			`DELETE FROM diplomas`,
+			`DELETE FROM attendances`,
+			`DELETE FROM notifications`,
+			`DELETE FROM disputes`,
+			`DELETE FROM documents`,
+			`DELETE FROM partners`,
 			`DELETE FROM ledger_entries`,
 			`DELETE FROM payment_intents`,
 			`DELETE FROM contracts`,
@@ -783,6 +837,13 @@ func (s *Store) Complete(taskID, posterID string) (TaskPublic, error) {
 	}
 	if status != "assigned" {
 		return TaskPublic{}, errTaskNotAssigned
+	}
+	open, err := s.hasOpenDispute(taskID)
+	if err != nil {
+		return TaskPublic{}, errInternal
+	}
+	if open {
+		return TaskPublic{}, appErr(409, "dispute_open", "Sarcina are o dispută deschisă.")
 	}
 	if _, err := s.db.Exec(`UPDATE tasks SET status = 'completed' WHERE id = ? AND status = 'assigned'`, taskID); err != nil {
 		return TaskPublic{}, errInternal

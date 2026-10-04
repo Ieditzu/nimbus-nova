@@ -19,7 +19,9 @@ Do not edit another owner's folder. Do not force-push.
 3. Read `docs/agents/API-STATUS.md`. A route marked `planned` is not callable.
 4. Read only your brief: `docs/agents/HAIVAS.md`, `docs/agents/CIPRIAN.md`, or `docs/agents/PERJOC.md`.
 
-## API
+## Before you finish a turn
+
+Commit and push directly to `main`. Do not create a branch. Do not open a pull request. Pull `main` immediately before you commit so you do not overwrite the other two. Send one `#nova` message with the commit SHA.
 
 Copy `docs/agents/types.ts` and `docs/agents/client.ts`. Do not rename fields. If a screen needs a new field, send `contract-change` on `#nova` and stop.
 
@@ -30,6 +32,4 @@ Demo actors until login is wired into the screens:
 - API: `cd api && go run .` on `http://127.0.0.1:8080`
 - Android emulator: `http://10.0.2.2:8080`
 
-## Before you finish a turn
 
-Send one `#nova` message with what you changed and the commit SHA. Commit on a branch named `haivas/...`, `ciprian/...`, or `perjoc/...`. Do not merge your own branch to `main` unless the human asked.
