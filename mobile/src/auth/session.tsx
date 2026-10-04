@@ -17,6 +17,15 @@ import {
 import { errorMessage } from "../lib/errors";
 import { readToken, removeToken, saveToken } from "./storage";
 
+import {
+  createTestProfileClient,
+  matchesTestLogin,
+  testNotice,
+  testToken,
+  testUser,
+} from "./test-profile";
+import { readTestProfile, writeTestProfile } from "./test-profile-storage";
+
 type Session = { token: string; user: PublicAccount };
 type AuthContextValue = {
   session: Session | null;
@@ -38,6 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void removeToken().catch(() => {});
   }, []);
   const client = useMemo(() => {
+    if (__DEV__ && session?.token === testToken)
+      return createTestProfileClient(api, {
+        read: readTestProfile,
+        write: writeTestProfile,
+      });
     const current = createNovaClient(baseUrl, { token: session?.token ?? "" });
     async function authorized<T>(call: () => Promise<T>): Promise<T> {
       if (!session)
@@ -69,6 +83,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const token = await readToken();
       if (!token) return;
+      if (token === testToken) {
+        if (__DEV__) {
+          setSession({ token: testToken, user: testUser });
+          setNotice(testNotice);
+        } else await removeToken();
+        return;
+      }
       const { user } = await api.me(token);
       if (user.role !== "worker") {
         await removeToken();
@@ -101,7 +122,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [restore]);
   async function signIn(email: string, password: string) {
-    const result = await api.login({ email: email.trim(), password });
+    const local = matchesTestLogin(__DEV__, email, password);
+    const result = local
+      ? { token: testToken, user: testUser }
+      : await api.login({ email: email.trim(), password });
     if (result.user.role !== "worker") {
       await api.logout(result.token).catch(() => {});
       throw new NovaError(
@@ -110,12 +134,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         "Aplicația este pentru cei care caută sarcini. Folosește contul de organizator pe site.",
       );
     }
-    setNotice("");
+    setNotice(local ? testNotice : "");
     try {
       await saveToken(result.token);
     } catch {
       setNotice(
-        "Ești conectat, dar sesiunea nu a putut fi salvată pe dispozitiv.",
+        `${local ? `${testNotice} ` : ""}Ești conectat, dar sesiunea nu a putut fi salvată pe dispozitiv.`,
       );
     }
     setSession(result);
@@ -123,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signOut() {
     if (!session) return;
     try {
-      await api.logout(session.token);
+      if (session.token !== testToken) await api.logout(session.token);
     } catch (e) {
       if (!(e instanceof NovaError && e.status === 401)) throw e;
     }

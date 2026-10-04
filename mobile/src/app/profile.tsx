@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { testToken } from "../auth/test-profile";
 import { useAuth } from "../auth/session";
 import { AuthForm } from "../components/auth-form";
 import { NovaError } from "../api/client";
@@ -27,7 +28,11 @@ export default function ProfileScreen() {
       <Header
         title="Profil"
         subtitle={
-          session ? "Datele văzute de organizatori." : "Contul tău Nova."
+          session?.token === testToken
+            ? "Profil de test salvat pe dispozitiv."
+            : session
+              ? "Datele văzute de organizatori."
+              : "Contul tău Nova."
         }
       />
       {restoring ? (
