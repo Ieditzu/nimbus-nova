@@ -1309,3 +1309,53 @@ func TestListingPlaceFields(t *testing.T) {
 	status, _, raw = h.do(http.MethodGet, "/v1/tasks?lat=44&lng=26", "", nil, false)
 	h.errorCode(status, raw, 400, "invalid_input", "Pentru căutare în apropiere trimite lat, lng și radius_km.")
 }
+
+func TestProductionAdmin(t *testing.T) {
+	t.Setenv("NOVA_DEMO", "0")
+	t.Setenv("ADMIN_EMAIL", "admin@nimbusnova.cc")
+	t.Setenv("ADMIN_PASSWORD", "correct-horse")
+	dbPath := filepath.Join(t.TempDir(), "nova.db")
+	api, err := server.New(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(api.Handler())
+	t.Cleanup(func() {
+		srv.Close()
+		_ = api.Close()
+	})
+	h := &harness{t: t, URL: srv.URL, DB: api.DB(), srv: srv, api: api}
+	status, _, body := h.do(http.MethodPost, "/v1/demo/reset", "admin-1", map[string]any{}, true)
+	h.errorCode(status, body, 401, "demo_disabled", "Modul demo este oprit.")
+	status, raw := h.doBearer(http.MethodPost, "/v1/auth/login", "", map[string]any{"email": "admin@nimbusnova.cc", "password": "correct-horse"})
+	if status != 200 {
+		t.Fatalf("login %d %s", status, raw)
+	}
+	token := asMap(t, decode(t, raw))["token"].(string)
+	status, raw = h.doBearer(http.MethodGet, "/v1/admin/users", token, nil)
+	if status != 200 || !strings.Contains(string(raw), "admin@nimbusnova.cc") {
+		t.Fatalf("users %d %s", status, raw)
+	}
+	worker := ""
+	for _, item := range asMap(t, decode(t, raw))["users"].([]any) {
+		user := asMap(t, item)
+		if user["id"] == "worker-1" {
+			worker = "worker-1"
+		}
+	}
+	if worker == "" {
+		t.Fatal("missing seeded worker")
+	}
+	status, raw = h.doBearer(http.MethodPost, "/v1/admin/users/worker-1/suspend", token, map[string]any{})
+	if status != 200 {
+		t.Fatalf("suspend %d %s", status, raw)
+	}
+	status, raw = h.doBearer(http.MethodGet, "/v1/admin/logs", token, nil)
+	if status != 200 || !strings.Contains(string(raw), "user_suspend") {
+		t.Fatalf("logs %d %s", status, raw)
+	}
+	status, raw = h.doBearer(http.MethodPost, "/v1/demo/reset", token, map[string]any{})
+	if status != 404 {
+		t.Fatalf("reset %d %s", status, raw)
+	}
+}

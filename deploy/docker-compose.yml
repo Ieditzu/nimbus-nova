@@ -3,10 +3,15 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.api
+    env_file:
+      - path: deploy/production.env
+        required: false
     environment:
       PORT: "8080"
       DATABASE_PATH: /data/nova.db
-      NOVA_DEMO: "1"
+      NOVA_DEMO: "0"
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@nimbusnova.cc}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     volumes:
       - nova-data:/data
     restart: unless-stopped

@@ -3,6 +3,7 @@ package server
 import (
 	"math"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -26,6 +27,12 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /v1/applications/{id}/accept", s.handleAccept)
 	mux.HandleFunc("GET /v1/admin/tasks", s.handleAdminTasks)
 	mux.HandleFunc("POST /v1/admin/tasks/{id}/hide", s.handleHide)
+	mux.HandleFunc("POST /v1/admin/tasks/{id}/unhide", s.handleUnhide)
+	mux.HandleFunc("GET /v1/admin/users", s.handleAdminUsers)
+	mux.HandleFunc("POST /v1/admin/users/{id}/suspend", s.handleSuspendUser)
+	mux.HandleFunc("POST /v1/admin/users/{id}/activate", s.handleActivateUser)
+	mux.HandleFunc("GET /v1/admin/logs", s.handleAdminLogs)
+	mux.HandleFunc("GET /v1/admin/disputes", s.handleAdminDisputes)
 	mux.HandleFunc("POST /v1/demo/reset", s.handleReset)
 	mux.HandleFunc("POST /v1/auth/register", s.handleRegister)
 	mux.HandleFunc("POST /v1/auth/identity", s.handleStartIdentity)
@@ -481,6 +488,7 @@ func (s *Server) handleHide(w http.ResponseWriter, r *http.Request) {
 		s.writeErr(w, err)
 		return
 	}
+	s.audit(user.ID, "task_hide", task.ID, task.Title)
 	writeJSON(w, http.StatusOK, struct {
 		Task TaskPublic `json:"task"`
 	}{Task: task})
@@ -497,6 +505,10 @@ func (s *Server) handleReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !s.readEmptyObject(w, r) {
+		return
+	}
+	if os.Getenv("NOVA_DEMO") != "1" {
+		writeAppError(w, errNotFound)
 		return
 	}
 	if err := s.store.Reset(); err != nil {

@@ -1,6 +1,6 @@
 # Deploy
 
-Demo mode stays on until the site is live and login is wired. `NOVA_DEMO=1` is set in `docker-compose.yml`.
+Production runs with `NOVA_DEMO=0`. The live SQLite file stays in the `nova-data` volume. `deploy/production.env` holds the admin email and password and is not committed. Demo reset returns 404.
 
 The VPS already serves other sites on ports 80 and 443. This stack stays on localhost: the site on `8090`, the API on `8091`, and the phone web app on `8092`.
 

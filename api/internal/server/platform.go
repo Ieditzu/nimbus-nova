@@ -217,6 +217,7 @@ func (s *Server) handleActivatePartner(w http.ResponseWriter, r *http.Request) {
 		s.writeErr(w, err)
 		return
 	}
+	s.audit(user.ID, "partner_activate", r.PathValue("id"), "")
 	writeJSON(w, http.StatusOK, okBody{OK: true})
 }
 
@@ -311,6 +312,7 @@ func (s *Server) handleResolveDispute(w http.ResponseWriter, r *http.Request) {
 		s.writeErr(w, err)
 		return
 	}
+	s.audit(user.ID, "dispute_resolve", r.PathValue("id"), body.Result)
 	writeJSON(w, http.StatusOK, okBody{OK: true})
 }
 

@@ -2,6 +2,15 @@
 set -eu
 cd /opt/nimbus-nova
 mkdir -p /etc/nginx/ssl
+if [ ! -f deploy/production.env ]; then
+  pass=$(openssl rand -base64 18 | tr -d '\n')
+  printf 'ADMIN_EMAIL=admin@nimbusnova.cc\nADMIN_PASSWORD=%s\n' "$pass" > deploy/production.env
+  chmod 600 deploy/production.env
+fi
+set -a
+. ./deploy/production.env
+set +a
+export NOVA_DEMO=0
 openssl req -x509 -nodes -newkey rsa:2048 -days 825 \
   -keyout /etc/nginx/ssl/nimbusnova.cc.key \
   -out /etc/nginx/ssl/nimbusnova.cc.crt \

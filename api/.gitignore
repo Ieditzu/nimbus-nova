@@ -1,2 +1,4 @@
 nova.db
 *.db
+nova.db-shm
+nova.db-wal

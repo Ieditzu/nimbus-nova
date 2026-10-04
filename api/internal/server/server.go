@@ -14,7 +14,16 @@ func New(dbPath string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := st.ensureAdminTables(); err != nil {
+		_ = st.Close()
+		return nil, err
+	}
 	if err := st.SeedIfEmpty(); err != nil {
+		_ = st.Close()
+		return nil, err
+	}
+	email, password := adminEmailFromEnv()
+	if err := st.EnsureAdmin(email, password); err != nil {
 		_ = st.Close()
 		return nil, err
 	}
