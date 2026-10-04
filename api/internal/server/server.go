@@ -9,6 +9,7 @@ import (
 )
 
 type Server struct {
+	started time.Time
 	store   *Store
 	stop    context.CancelFunc
 	cleanup sync.WaitGroup
@@ -24,6 +25,10 @@ func New(dbPath string) (*Server, error) {
 		return nil, err
 	}
 	if err := st.ensureChatTables(); err != nil {
+		_ = st.Close()
+		return nil, err
+	}
+	if err := st.ensureAdminExtras(); err != nil {
 		_ = st.Close()
 		return nil, err
 	}
@@ -44,7 +49,7 @@ func New(dbPath string) (*Server, error) {
 		st.Close()
 		return nil, err
 	}
-	s := &Server{store: st}
+	s := &Server{store: st, started: time.Now()}
 	ctx, cancel := context.WithCancel(context.Background())
 	s.stop = cancel
 	s.cleanup.Add(1)

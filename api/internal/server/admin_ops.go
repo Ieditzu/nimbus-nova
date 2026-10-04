@@ -41,7 +41,7 @@ func (s *Store) EnsureAdmin(email, password string) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.db.Exec(`INSERT INTO users (id, role, display_name, email, password_hash, birth_date, volunteer_only, status) VALUES (?, 'admin', 'Moderator Nova', ?, ?, '1990-01-01', 0, 'active')`, id, email, string(hash))
+	_, err = s.db.Exec(`INSERT INTO users (id, role, display_name, email, password_hash, birth_date, volunteer_only, status, created_at) VALUES (?, 'admin', 'Moderator Nova', ?, ?, '1990-01-01', 0, 'active', ?)`, id, email, string(hash), NowRFC3339())
 	return err
 }
 
