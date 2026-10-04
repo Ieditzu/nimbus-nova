@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { ArrowRightIcon, XIcon } from '@phosphor-icons/react';
 import { ronToBani, toRfc3339 } from '../api/client';
 import { api } from '../api/instance';
@@ -47,6 +48,7 @@ export function TaskForm({ onCreated, onClose }: { onCreated: () => Promise<void
           <label className="field field-wide">Notă de siguranță <span className="optional">Opțional</span><input name="safety_note" maxLength={200} placeholder="De exemplu: Doar obiecte ușoare, fără acces în locuințe." /></label>
         </div>
       </fieldset>
+      <div className="legal-accept"><label><input type="checkbox" required disabled={busy} /> <span>Confirm că anunțul respectă Termenii și condițiile și nu conține date personale ale altor persoane.</span></label><p>Titlul, orașul, suma și descrierea pot fi vizibile public. Citește <Link to="/termeni" target="_blank" rel="noopener noreferrer">Termenii</Link> și <Link to="/confidentialitate" target="_blank" rel="noopener noreferrer">Nota de confidențialitate</Link>.</p></div>
       {error && <ErrorNotice message={error} />}
       <div className="form-bottom"><span>Sarcina va fi vizibilă în aplicația mobilă.</span><button className="button button-primary" type="submit" disabled={busy}>{busy ? 'Se publică...' : 'Publică sarcina'}<ArrowRightIcon size={18} aria-hidden="true" /></button></div>
     </form>

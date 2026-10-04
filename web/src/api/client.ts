@@ -1,4 +1,9 @@
 import type {
+  ChatMessage,
+  Conversation,
+  MessagePage,
+  IdentityVerification,
+  IdentityProof,
   ActorId,
   ApiErrorBody,
   ApplicationView,
@@ -22,6 +27,7 @@ export class NovaError extends Error {
 }
 
 export interface PublicAccount {
+  phone_number: string;
   id: string;
   role: string;
   display_name: string;
@@ -29,6 +35,11 @@ export interface PublicAccount {
 }
 
 export interface NovaClient {
+  updatePhone(phone_number: string): Promise<{ user: PublicAccount }>;
+  listConversations(): Promise<{ conversations: Conversation[] }>;
+  startTaskConversation(taskId: string, participant_id?: string): Promise<{ conversation: Conversation }>;
+  listMessages(id: string, after?: number, before?: number): Promise<MessagePage>;
+  sendMessage(id: string, text: string): Promise<{ message: ChatMessage }>;
   getHealth(): Promise<{ ok: true }>;
   listOpenTasks(query?: { category?: Category; city?: string; sector?: string; lat?: number; lng?: number; radius_km?: number }): Promise<{ tasks: TaskPublic[] }>;
   searchTasks(query?: { kind?: string; from?: string; to?: string; city?: string }): Promise<{ tasks: TaskPublic[] }>;
@@ -46,10 +57,10 @@ export interface NovaClient {
   putMyProfile(body: ProfileWrite): Promise<{ profile: Profile }>;
   applyToTask(taskId: string, body: { message: string }): Promise<{ application: ApplicationView }>;
   listMyApplications(): Promise<{ applications: ApplicationWithTask[] }>;
-  startIdentity(body: { email: string; kind: "ci" | "cei" }): Promise<{ verification: { id: string; email: string; kind: "ci" | "cei"; status: string; expires_at: string; checks?: { files: string; cnp: string; selfie: string; face_match: string } } }>;
-  uploadIdentityFile(id: string, body: { slot: "ci_front" | "ci_back" | "ci_scan_text" | "cei_front" | "cei_back" | "cei_pdf" | "selfie"; content_type: string; content_base64: string }): Promise<{ file: { id: string; slot: string; sha256: string } }>;
-  completeIdentity(id: string): Promise<{ verification: { id: string; status: string; checks: { files: string; cnp: string; selfie: string; face_match: string } }; proof: { token: string; expires_at: string; email: string } }>;
-  register(body: { role: "worker" | "poster"; email: string; password: string; display_name: string; birth_date?: string; identity_proof?: string; guardian_email?: string }): Promise<{ user: PublicAccount }>;
+  startIdentity(body: { email: string; kind: "ci" | "cei" }): Promise<{ verification: IdentityVerification }>;
+  uploadIdentityFile(id: string, body: { slot: "ci_front" | "ci_back" | "ci_scan_text" | "cei_front" | "cei_back" | "cei_pdf" | "selfie" | "selfie_video"; content_type: string; content_base64: string }): Promise<{ file: { id: string; slot: string; sha256: string } }>;
+  completeIdentity(id: string): Promise<{ verification: IdentityVerification; proof: IdentityProof | null }>;
+  register(body: { role: "worker" | "poster"; email: string; password: string; display_name: string; birth_date?: string; identity_proof?: string; guardian_email?: string; phone_number?: string }): Promise<{ user: PublicAccount }>;
   login(body: { email: string; password: string }): Promise<{ token: string; user: PublicAccount }>;
   logout(token: string): Promise<{ ok: true }>;
   me(token: string): Promise<{ user: PublicAccount }>;
@@ -85,6 +96,11 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
   }
 
   return {
+    updatePhone: (phone_number) => request("/v1/me/phone", { method: "PUT", body: JSON.stringify({ phone_number }) }),
+    listConversations: () => request("/v1/me/conversations"),
+    startTaskConversation: (taskId, participant_id) => request(`/v1/tasks/${encodeURIComponent(taskId)}/conversations`, { method: "POST", body: JSON.stringify(participant_id ? { participant_id } : {}) }),
+    listMessages: (id, after, before) => request(`/v1/conversations/${encodeURIComponent(id)}/messages${after !== undefined ? `?after=${after}` : before !== undefined ? `?before=${before}` : ""}`),
+    sendMessage: (id, text) => request(`/v1/conversations/${encodeURIComponent(id)}/messages`, { method: "POST", body: JSON.stringify({ text }) }),
     getHealth: () => request("/health", {}, false),
     listOpenTasks: (query = {}) => {
       const params = new URLSearchParams();

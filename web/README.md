@@ -1,5 +1,9 @@
 # Nimbus Nova website (Ciprian)
 
+## Legal pages (demo)
+
+`/confidentialitate` and `/termeni` are linked from the footer, registration, and task publishing. Registration requires accepting the terms and acknowledging the privacy notice; publishing requires confirmation that the listing follows the terms and contains no other person's private details. These checkboxes are enforced in the browser only; the API does not yet record acceptance or a document version. The pages explicitly say that the legal operator, private GDPR contact, complete retention rules, and final processor list must be filled in before a public launch. No company or contact address was invented for this demo.
+
 Vite + React + TypeScript task website. Romanian UI. `/` is a mobile-first public task feed; `/poster` manages the poster's tasks, and `/admin` is maintained by Haivas. Includes demo payment, cancellation, and dispute controls. Authentication UI remains a follow-up; the poster uses the seeded demo actor.
 
 ## Run locally

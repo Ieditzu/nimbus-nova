@@ -90,15 +90,16 @@ export interface ApiErrorBody {
 }
 
 export type IdentityKind = "ci" | "cei";
-export type IdentitySlot = "ci_front" | "ci_back" | "ci_scan_text" | "cei_front" | "cei_back" | "cei_pdf" | "selfie";
+export type IdentitySlot = "ci_front" | "ci_back" | "ci_scan_text" | "cei_front" | "cei_back" | "cei_pdf" | "selfie" | "selfie_video";
 
 export interface IdentityVerification {
   id: string;
   email: string;
   kind: IdentityKind;
-  status: "collecting" | "verified" | "consumed";
+  status: "collecting" | "processing" | "verified" | "consumed" | "review" | "rejected";
   expires_at: string;
-  checks?: { files: string; cnp: string; selfie: string; face_match: string };
+  checks?: { files: string; cnp: string; selfie: string; face_match: string; document?: string; pdf?: string };
+  message?: string;
 }
 
 export interface IdentityProof {
@@ -110,4 +111,28 @@ export interface IdentityProof {
 export interface Reputation {
   count: number;
   average: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  sequence: number;
+  conversation_id: string;
+  sender_id: string;
+  text: string;
+  created_at: string;
+}
+export interface Conversation {
+  id: string;
+  task_id: string;
+  task_title: string;
+  other_user: { id: string; display_name: string };
+  last_message: ChatMessage | null;
+  updated_at: string;
+}
+export interface MessagePage {
+  conversation: Conversation;
+  messages: ChatMessage[];
+  next_cursor: number;
+  previous_cursor: number;
+  has_more: boolean;
 }

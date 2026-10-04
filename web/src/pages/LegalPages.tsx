@@ -1,0 +1,37 @@
+import { Link } from 'react-router-dom';
+
+function LegalHeader({ label, title, intro }: { label: string; title: string; intro: string }) {
+  return <header className="legal-intro"><p className="eyebrow">{label} · versiune demo · 4 octombrie 2026</p><h1>{title}</h1><p>{intro}</p></header>;
+}
+
+export function PrivacyPage() {
+  return <main id="main-content" className="legal-page page-width">
+    <LegalHeader label="Date personale" title="Notă de confidențialitate" intro="Aici explicăm ce informații folosește demonstrația Nimbus Nova și ce trebuie clarificat înainte de lansarea publică." />
+    <div className="legal-alert" role="note"><strong>Proiect demonstrativ.</strong> Echipa nu a publicat încă denumirea legală și adresa de contact a operatorului, termenele complete de păstrare sau lista finală a furnizorilor. Aceste informații sunt necesare pentru o informare completă. Nu folosi date sau acte reale într-un test public până când nota este completată.</div>
+    <div className="legal-content">
+      <section><h2>Ce date folosim</h2><p>Pentru contul poster, site-ul poate primi nume, email, parolă, data nașterii introdusă în formular și datele necesare autentificării. Un anunț cuprinde titlu, categorie, oraș, interval, sumă, descriere și, opțional, o notă de siguranță. Pot apărea candidaturi, mesaje, recenzii și date despre starea sarcinii. Nu include în anunț numere de telefon, adrese exacte sau date personale ale altcuiva.</p><p>Verificarea identității din aplicația mobilă poate solicita imagini ale actului și selfie sau video. Backendul trimite verificarea către furnizorul de identitate configurat în regiunea UE. Site-ul de față nu cere aceste fișiere în formularul de sarcină.</p></section>
+      <section><h2>De ce și cui sunt vizibile</h2><p>Datele sunt folosite pentru a crea și administra conturi, a publica sarcini, a primi candidaturi, a gestiona colaborarea și a afișa recenzii. Numele afișat al autorului, orașul și conținutul anunțului pot fi văzute de vizitatori. Informațiile despre candidaturi și cont sunt folosite de participanții implicați și de administratorii platformei, în funcție de accesul lor.</p><p>Pentru prelucrările necesare folosirii serviciului nu cerem un „acord GDPR” general. Temeiul juridic precis pentru fiecare scop, furnizorii și eventualele transferuri trebuie documentate de operator înainte de lansare. Dacă vor fi adăugate marketing sau instrumente de analiză opționale, acestea vor necesita o alegere separată, acolo unde legea o cere.</p></section>
+      <section><h2>Ce se salvează în browser</h2><p>Preferința pentru tema deschisă/închisă și ID-urile anunțurilor salvate sunt păstrate local în browser. Datele sesiunii de poster, inclusiv tokenul de autentificare, sunt păstrate în stocarea sesiunii browserului. Aceste preferințe nu sunt folosite aici pentru publicitate. Ștergerea datelor site-ului din browser elimină preferințele locale, dar nu șterge automat datele din server.</p></section>
+      <section><h2>Păstrare și protecție</h2><p>Fișierele încărcate pentru verificarea identității sunt șterse la nivelul aplicației după finalizare, respingere sau expirarea sesiunii de verificare. Sesiunea de verificare expiră după 15 minute. Aceasta nu este o garanție de ștergere fizică a mediilor de stocare ori o declarație despre păstrarea la furnizor. Pentru conturi, sarcini, mesaje și recenzii nu este publicat încă un termen complet de păstrare; el trebuie stabilit înainte de utilizarea publică.</p></section>
+      <section><h2>Drepturile tale</h2><p>În funcție de situație, poți cere acces la date, rectificare, ștergere, restricționarea folosirii, portabilitate sau te poți opune prelucrării. Dacă un scop se va baza pe consimțământ, îl vei putea retrage fără a afecta prelucrarea anterioară. Ai dreptul să depui o plângere la <a href="https://www.dataprotection.ro/index.jsp" target="_blank" rel="noopener noreferrer">ANSPDCP</a>. Echipa trebuie să publice un canal privat de contact pentru aceste cereri înainte de lansare; nu trimite acte sau solicitări cu date personale într-un comentariu public.</p></section>
+      <section><h2>Actualizări</h2><p>Vom revizui această notă când sunt stabilite operatorul, contactul, perioadele de păstrare și furnizorii. Modificările importante vor fi comunicate înainte de folosirea publică a datelor pentru scopuri noi.</p></section>
+    </div>
+    <p className="legal-end">Vezi și <Link to="/termeni">Termenii și condițiile</Link>. <Link to="/">Înapoi la anunțuri</Link>.</p>
+  </main>;
+}
+
+export function TermsPage() {
+  return <main id="main-content" className="legal-page page-width">
+    <LegalHeader label="Reguli de folosire" title="Termeni și condiții" intro="Regulile de bază pentru folosirea demonstrației Nimbus Nova, scrise pe înțelesul tuturor." />
+    <div className="legal-alert" role="note"><strong>Versiune demo.</strong> Acești termeni descriu funcțiile demonstrative. Identitatea juridică a operatorului și canalul de contact trebuie completate înainte de lansarea publică; textul de aici nu înlocuiește un contract final.</div>
+    <div className="legal-content">
+      <section><h2>1. Ce este Nimbus Nova</h2><p>Nimbus Nova ajută o persoană să publice o sarcină scurtă și să primească interes din partea altor persoane. Platforma intermediază pașii afișați în interfață; publicarea nu garantează că cineva va accepta sau va finaliza sarcina.</p></section>
+      <section><h2>2. Cont și eligibilitate</h2><p>Publicarea de sarcini cere un cont poster. Autorul trebuie să ofere informații corecte și să păstreze confidențialitatea accesului la cont. Condițiile de vârstă și verificare a identității sunt aplicate de serviciul de înregistrare. Conturile de poster sunt destinate adulților; condițiile pentru lucrători sunt prezentate în fluxul lor de înregistrare.</p></section>
+      <section><h2>3. Anunțuri și conținut</h2><p>Descrie clar ce este de făcut, orașul, intervalul și suma propusă. Sarcinile sunt limitate la maximum 12 ore și la categoriile disponibile în formular. Nu publica date personale ale altora, conținut fals, ofensator sau sarcini care cer activități ilegale ori nesigure. Administratorii pot ascunde anunțuri care încalcă aceste reguli.</p></section>
+      <section><h2>4. Candidaturi și încheiere</h2><p>Autorul poate vedea candidaturile, alege o persoană, marca sarcina ca finalizată și lăsa o recenzie. Folosește informațiile primite doar pentru sarcina în cauză. Dacă apare o problemă, folosește funcțiile de anulare sau dispută atunci când sunt disponibile.</p></section>
+      <section><h2>5. Sume și plăți</h2><p>Suma din anunț este propusă de autor. Interfața și răspunsul serverului arată separat eventualele operațiuni de plată și comisioane. Nu considera o sumă afișată ca dovadă a unei plăți efectuate; verifică starea tranzacției în fluxul disponibil. Această demonstrație nu stabilește singură un raport de muncă.</p></section>
+      <section><h2>6. Date și schimbări</h2><p>Modul în care sunt folosite datele este explicat în <Link to="/confidentialitate">Nota de confidențialitate</Link>. Funcțiile și acești termeni pot fi actualizați pe parcursul dezvoltării. Pentru o lansare publică, echipa va trebui să publice operatorul, contactul și data intrării în vigoare a versiunii finale.</p></section>
+    </div>
+    <p className="legal-end"><Link to="/">Înapoi la anunțuri</Link>.</p>
+  </main>;
+}

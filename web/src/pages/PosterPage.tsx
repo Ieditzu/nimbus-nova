@@ -73,6 +73,8 @@ function PosterLogin({ onReady }: { onReady: (user: PosterAccount) => void }) {
       <label className="field">Email<input value={email} onChange={event => setEmail(event.target.value)} type="email" required autoComplete="username" /></label>
       <label className="field">Parolă<input value={password} onChange={event => setPassword(event.target.value)} type="password" required minLength={8} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /></label>
       {mode === 'register' && <label className="field">Data nașterii<input value={birthDate} onChange={event => setBirthDate(event.target.value)} type="date" required /></label>}
+      {mode === 'register' && <div className="legal-accept"><label><input type="checkbox" required /> <span>Accept Termenii și condițiile și confirm că am citit Nota de confidențialitate.</span></label><p>Citește <Link to="/termeni" target="_blank" rel="noopener noreferrer">Termenii și condițiile</Link> și <Link to="/confidentialitate" target="_blank" rel="noopener noreferrer">Nota de confidențialitate</Link>. Acesta este un demo; nu trimite acte reale până la completarea informațiilor despre operator.</p></div>}
+      {mode === 'login' && <p className="legal-inline">Despre datele contului: <Link to="/confidentialitate">Nota de confidențialitate</Link>.</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="form-bottom">
         <button className="button button-secondary" type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}>{mode === 'login' ? 'Nu am cont' : 'Am deja cont'}</button>

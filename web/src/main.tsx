@@ -3,6 +3,7 @@ import { hydrateRoot, createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import './styles.css';
 import './feed.css';
+import './legal.css';
 import App from './App';
 
 export { api } from './api/instance';
