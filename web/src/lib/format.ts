@@ -1,4 +1,4 @@
-export const amountCaption = 'Sumă propusă. În acest demo nu se încasează plata.';
+export const amountCaption = 'Sumă propusă, confirmată de server.';
 const day = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Bucharest' });
 const time = new Intl.DateTimeFormat('ro-RO', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Bucharest' });
 export function formatInterval(start: string, end: string): string {

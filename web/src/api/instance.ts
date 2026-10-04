@@ -1,4 +1,5 @@
-import { createNovaClient } from './client';
+import { createNovaClient, type NovaClient } from './client';
+import { posterToken } from './session';
 
 export function apiBaseUrl(): string {
   if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
@@ -9,4 +10,14 @@ export function apiBaseUrl(): string {
   return 'http://127.0.0.1:8080';
 }
 
-export const api = createNovaClient(apiBaseUrl(), 'poster-1');
+function liveClient() {
+  return createNovaClient(apiBaseUrl(), { token: posterToken() });
+}
+
+export const api: NovaClient = new Proxy({} as NovaClient, {
+  get(_target, prop) {
+    const client = liveClient();
+    const value = client[prop as keyof NovaClient];
+    return typeof value === 'function' ? value.bind(client) : value;
+  },
+});

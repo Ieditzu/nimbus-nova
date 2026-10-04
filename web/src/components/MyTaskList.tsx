@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { ArrowsClockwiseIcon, ArrowUpRightIcon, CaretDownIcon, ClipboardTextIcon, MagnifyingGlassIcon, MapPinIcon, CalendarBlankIcon, SquaresFourIcon, ListIcon } from '@phosphor-icons/react';
 import { api } from '../api/instance';
+import { posterToken } from '../api/session';
 import { formatBani } from '../api/client';
 import type { Category, TaskPublic, TaskStatus } from '../api/types';
 import { amountCaption, errorMessage, formatInterval } from '../lib/format';
@@ -15,6 +16,12 @@ export function useMyTasks() {
   const requestId = useRef(0);
   const refresh = useCallback(async () => {
     const current = ++requestId.current;
+    if (!posterToken()) {
+      setTasks([]);
+      setLoading(false);
+      setError('');
+      return;
+    }
     setLoading(true); setError('');
     try { const data = await api.listMyTasks(); if (current === requestId.current) setTasks(data.tasks); }
     catch (failure) { if (current === requestId.current) setError(errorMessage(failure)); }

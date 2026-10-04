@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { CheckCircleIcon, StarIcon } from '@phosphor-icons/react';
 import { api } from '../api/instance';
+import { posterAccount } from '../api/session';
 import type { ApplicationView, Review, TaskPublic } from '../api/types';
 import { errorMessage } from '../lib/format';
 import { ApplicationList } from './ApplicationList';
@@ -52,7 +53,7 @@ export function TaskDetail({ task, onChanged, onNotice }: { task: TaskPublic; on
       setReviewAttempt(value => value + 1);
     } catch (failure) { setActionError(errorMessage(failure)); } finally { setBusy(false); }
   }
-  const reviewed = reviews.some(review => review.author_id === 'poster-1');
+  const reviewed = reviews.some(review => review.author_id === posterAccount()?.id);
   return <div className="task-detail" id={`details-${task.id}`}>
     <div className="task-description"><div><h3>Despre sarcină</h3><p>{task.description}</p>{task.safety_note && <p className="safety-note"><strong>Notă de siguranță:</strong> {task.safety_note}</p>}{task.assignee_name && <p className="assignee"><CheckCircleIcon size={18} aria-hidden="true" />Persoana aleasă: <strong>{task.assignee_name}</strong></p>}</div><button className="button button-secondary" disabled={busy || task.status !== 'assigned'} onClick={() => void act('complete')}><CheckCircleIcon size={19} aria-hidden="true" />Finalizează</button></div>
     {actionError && <ErrorNotice message={actionError} />}
