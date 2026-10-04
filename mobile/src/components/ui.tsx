@@ -1,4 +1,11 @@
-import { useCallback, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Link, useFocusEffect, usePathname } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -117,6 +124,9 @@ export function Header({
     </View>
   );
 }
+const PageScrollContext = createContext<() => void>(() => {});
+export const usePageScroll = () => useContext(PageScrollContext);
+
 export function Page({
   children,
   onRefresh,
@@ -129,12 +139,19 @@ export function Page({
   footer?: ReactNode;
 }) {
   const { colors } = useTheme();
+  const scroll = useRef<ScrollView>(null);
+  const scrollToTop = useCallback(() => {
+    requestAnimationFrame(() =>
+      scroll.current?.scrollTo({ y: 0, animated: false }),
+    );
+  }, []);
   return (
     <SafeAreaView
       style={[s.safe, { backgroundColor: colors.background }]}
       edges={["top", "left", "right", "bottom"]}
     >
       <ScrollView
+        ref={scroll}
         automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={s.content}
@@ -149,7 +166,9 @@ export function Page({
           ) : undefined
         }
       >
-        {children}
+        <PageScrollContext.Provider value={scrollToTop}>
+          {children}
+        </PageScrollContext.Provider>
       </ScrollView>
       {footer ? (
         <View

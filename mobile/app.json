@@ -24,7 +24,23 @@
     "plugins": [
       "expo-router",
       "expo-system-ui",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Nova folosește camera pentru actul de identitate și selfie.",
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Nova importă doar fotografiile actului pe care le alegi.",
+          "cameraPermission": "Nova folosește camera pentru actul de identitate și selfie.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "scheme": "nova"
   }
