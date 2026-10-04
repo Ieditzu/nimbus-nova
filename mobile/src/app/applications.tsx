@@ -1,3 +1,4 @@
+import { formatBani } from "../api/client";
 import { useCallback, useState } from "react";
 import {
   RefreshControl,
@@ -7,11 +8,18 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { listMyApplications } from "../api/client";
-import { amount, applicationStatusLabel, taskStatusLabel } from "../api/format";
-import { BottomNav, Brand, palette, State, useData } from "../components/ui";
+import { api } from "../api";
+import { applicationStatusLabel, taskStatusLabel } from "../lib/labels";
+import {
+  BottomNav,
+  Brand,
+  Button,
+  palette,
+  State,
+  useData,
+} from "../components/ui";
 export default function MyApplicationsScreen() {
-  const load = useCallback(() => listMyApplications(), []);
+  const load = useCallback(() => api.listMyApplications(), []);
   const { data, loading, error, reload } = useData(load);
   const [refreshing, setRefreshing] = useState(false);
   async function refresh() {
@@ -44,6 +52,13 @@ export default function MyApplicationsScreen() {
             Urmărește răspunsul pentru fiecare sarcină. Trage în jos pentru
             actualizare.
           </Text>
+          <Button
+            variant="outline"
+            disabled={refreshing}
+            onPress={() => void refresh()}
+          >
+            {refreshing ? "Se încarcă..." : "Actualizează"}
+          </Button>
           <State
             loading={loading}
             error={error}
@@ -60,7 +75,7 @@ export default function MyApplicationsScreen() {
                 <Text style={s.badge}>
                   {applicationStatusLabel[app.status]}
                 </Text>
-                <Text style={s.price}>{amount(app.task.amount_bani)}</Text>
+                <Text style={s.price}>{formatBani(app.task.amount_bani)}</Text>
               </View>
               <Text style={s.cardTitle}>{app.task.title}</Text>
               <Text style={s.meta}>⌖ {app.task.city}</Text>

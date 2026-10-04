@@ -1,12 +1,14 @@
+import { formatBani, NovaError } from "../../api/client";
 import { useCallback, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { StyleSheet, Text, TextInput, View } from "react-native";
-import { ApiError, applyToTask, getTask } from "../../api/client";
-import { amount, categoryLabel, interval } from "../../api/format";
+import { api } from "../../api";
+import { errorMessage } from "../../lib/errors";
+import { categoryLabel, interval } from "../../lib/labels";
 import { Button, Page, palette, State, useData } from "../../components/ui";
 export default function TaskDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const load = useCallback(() => getTask(id), [id]);
+  const load = useCallback(() => api.getTask(id), [id]);
   const { data, loading, error, reload } = useData(load);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -15,14 +17,14 @@ export default function TaskDetailScreen() {
     setActionError("");
     setBusy(true);
     try {
-      await applyToTask(id, message.trim());
+      await api.applyToTask(id, { message: message.trim() });
       router.push("/applications");
     } catch (e) {
-      if (e instanceof ApiError && e.code === "profile_required") {
+      if (e instanceof NovaError && e.code === "profile_required") {
         router.push("/profile");
         return;
       }
-      setActionError(e instanceof Error ? e.message : "A apărut o eroare.");
+      setActionError(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -38,6 +40,7 @@ export default function TaskDetailScreen() {
         <>
           <Text style={s.category}>{categoryLabel[task.category]}</Text>
           <Text style={s.title}>{task.title}</Text>
+          <Text style={s.body}>Publicată de {task.poster_name}</Text>
           <View style={s.card}>
             <Text style={s.label}>DETALIILE SARCINII</Text>
             <View style={s.row}>
@@ -60,7 +63,7 @@ export default function TaskDetailScreen() {
               <Text style={s.icon}>◈</Text>
               <View>
                 <Text style={s.detailLabel}>Sumă propusă</Text>
-                <Text style={s.detail}>{amount(task.amount_bani)}</Text>
+                <Text style={s.detail}>{formatBani(task.amount_bani)}</Text>
               </View>
             </View>
             <Text style={s.note}>
@@ -99,7 +102,7 @@ export default function TaskDetailScreen() {
             }
             onPress={() => void apply()}
           >
-            {busy ? "Se trimite..." : "Aplică la sarcină →"}
+            {busy ? "Se trimite..." : "Aplică"}
           </Button>
           <Text style={s.disclaimer}>
             Demo pentru adulți. Fără angajare sau plată prin Nova.

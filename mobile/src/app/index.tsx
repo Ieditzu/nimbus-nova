@@ -1,3 +1,4 @@
+import { formatBani } from "../api/client";
 import { useCallback, useState } from "react";
 import { Link } from "expo-router";
 import {
@@ -10,8 +11,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { listTasks } from "../api/client";
-import { amount, categories, categoryLabel, interval } from "../api/format";
+import { api } from "../api";
+import { categories, categoryLabel, interval } from "../lib/labels";
 import type { Category, TaskPublic } from "../api/types";
 import { BottomNav, Brand, palette, State, useData } from "../components/ui";
 export default function TaskListScreen() {
@@ -19,7 +20,7 @@ export default function TaskListScreen() {
   const [city, setCity] = useState("București");
   const [appliedCity, setAppliedCity] = useState("București");
   const load = useCallback(
-    () => listTasks(category, appliedCity),
+    () => api.listOpenTasks({ category, city: appliedCity }),
     [category, appliedCity],
   );
   const { data, loading, error, reload } = useData(load);
@@ -146,7 +147,7 @@ function TaskCard({ task }: { task: TaskPublic }) {
         ) : null}
         <View style={s.cardBottom}>
           <View>
-            <Text style={s.price}>{amount(task.amount_bani)}</Text>
+            <Text style={s.price}>{formatBani(task.amount_bani)}</Text>
             <Text style={s.caption}>Sumă propusă</Text>
           </View>
           <Text style={s.details}>Vezi detalii →</Text>

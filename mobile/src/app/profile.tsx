@@ -1,11 +1,12 @@
 import { useCallback, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
-import { getProfile, saveProfile } from "../api/client";
+import { api } from "../api";
+import { errorMessage } from "../lib/errors";
 import type { Profile } from "../api/types";
 import { Button, Brand, Page, palette, State, useData } from "../components/ui";
 export default function ProfileScreen() {
-  const load = useCallback(() => getProfile(), []);
-  const { data, loading, error, reload } = useData(load, 0);
+  const load = useCallback(() => api.getMyProfile(), []);
+  const { data, loading, error, reload } = useData(load);
   return (
     <Page>
       <Brand />
@@ -47,7 +48,7 @@ function ProfileForm({
     setSaveError("");
     setSaved(false);
     try {
-      await saveProfile({
+      await api.putMyProfile({
         skills: skills
           .split(",")
           .map((s) => s.trim())
@@ -59,7 +60,7 @@ function ProfileForm({
       setSaved(true);
       await onSaved();
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : "A apărut o eroare.");
+      setSaveError(errorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -111,7 +112,7 @@ function ProfileForm({
       ) : null}
       {saved ? <Text style={s.success}>Profilul a fost salvat.</Text> : null}
       <Button disabled={busy} onPress={() => void save()}>
-        {busy ? "Se salvează..." : "Salvează profilul →"}
+        {busy ? "Se salvează..." : "Salvează profilul"}
       </Button>
     </View>
   );

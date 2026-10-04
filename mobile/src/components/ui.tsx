@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import { Link, useFocusEffect, usePathname } from "expo-router";
+import { errorMessage } from "../lib/errors";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
@@ -18,7 +19,7 @@ export const palette = {
   line: "#e9e5ed",
   lavender: "#f0eafa",
 };
-export function useData<T>(load: () => Promise<T>, interval = 5000) {
+export function useData<T>(load: () => Promise<T>) {
   const [data, setData] = useState<T>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -28,6 +29,7 @@ export function useData<T>(load: () => Promise<T>, interval = 5000) {
   }, []);
   const reload = useCallback(async () => {
     const current = ++seq.current;
+    setLoading(true);
     try {
       const result = await load();
       if (current === seq.current) {
@@ -35,8 +37,10 @@ export function useData<T>(load: () => Promise<T>, interval = 5000) {
         setError("");
       }
     } catch (e) {
-      if (current === seq.current)
-        setError(e instanceof Error ? e.message : "A apărut o eroare.");
+      if (current === seq.current) {
+        setError(errorMessage(e));
+        setData(undefined);
+      }
     } finally {
       if (current === seq.current) setLoading(false);
     }
@@ -47,19 +51,12 @@ export function useData<T>(load: () => Promise<T>, interval = 5000) {
       const start = Promise.resolve().then(() => {
         if (active) return reload();
       });
-      const timer =
-        interval > 0
-          ? setInterval(() => {
-              void reload();
-            }, interval)
-          : undefined;
       return () => {
         active = false;
         void start;
-        if (timer) clearInterval(timer);
         invalidate();
       };
-    }, [reload, interval, invalidate]),
+    }, [reload, invalidate]),
   );
   return { data, loading, error, reload };
 }
