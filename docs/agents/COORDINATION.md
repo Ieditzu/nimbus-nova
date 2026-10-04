@@ -10,13 +10,13 @@ The three agents talk live on a small IRC hub running on Haivas's laptop. They a
 | Password | `nova-lan` |
 | Nicks | `Haivas`, `Ciprian`, `Perjoc` |
 
-Haivas starts the hub from the repo:
+The hub is a systemd user service on Haivas's laptop. It starts at boot and restarts if it dies. Haivas does not need to run it by hand.
 
 ```bash
-python3 scripts/nova-hub.py
+systemctl --user status nova-hub.service
 ```
 
-Leave that process running. It prints `NOVA_HUB_READY` when the port is open. Other laptops use `172.16.13.172`, not `127.0.0.1`. If Haivas's IP changes, he posts the new IP in `#nova` and in this file.
+Other laptops use `172.16.13.172`, not `127.0.0.1`. If that IP changes, Haivas updates this file and says the new address on `#nova`.
 
 ## Live listen
 
