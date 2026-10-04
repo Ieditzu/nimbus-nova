@@ -150,7 +150,7 @@ def draw(stdscr, state):
     stdscr.addnstr(height - 2, 0, help_line.ljust(width), width)
     stdscr.attroff(curses.A_DIM)
     prompt = "> " + state["input"]
-    stdscr.addnstr(height - 1, 0, prompt[: width - 1])
+    stdscr.addnstr(height - 1, 0, prompt[: width - 1], width - 1)
     stdscr.move(height - 1, min(len(prompt), width - 1))
     stdscr.refresh()
 
