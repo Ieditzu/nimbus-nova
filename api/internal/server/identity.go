@@ -14,9 +14,13 @@ import (
 
 const identityTTL = 15 * time.Minute
 
-var identitySlots = map[string][]string{
-	"ci":  {"ci_front", "ci_back", "ci_scan_text", "selfie"},
+var identityRequired = map[string][]string{
+	"ci":  {"ci_front", "ci_back", "selfie"},
 	"cei": {"cei_front", "cei_back", "cei_pdf", "selfie"},
+}
+
+var identityOptional = map[string][]string{
+	"ci": {"ci_scan_text"},
 }
 
 func (s *Server) handleStartIdentity(w http.ResponseWriter, r *http.Request) {
@@ -85,7 +89,8 @@ func (s *Store) StartIdentity(email, kind string) (map[string]any, error) {
 	if err != nil {
 		return nil, errInternal
 	}
-	return identityView(id, email, kind, "collecting", expires, nil), nil
+	checks := map[string]string{"files": "pending", "cnp": "pending", "selfie": "pending", "face_match": "not_available"}
+	return identityView(id, email, kind, "collecting", expires, checks), nil
 }
 
 func (s *Store) AddIdentityFile(sessionID, slot, contentType, encoded string) (map[string]any, error) {
@@ -139,7 +144,7 @@ func (s *Store) CompleteIdentity(sessionID string) (map[string]any, map[string]a
 	if err != nil {
 		return nil, nil, err
 	}
-	for _, slot := range identitySlots[session.kind] {
+	for _, slot := range identityRequired[session.kind] {
 		if _, ok := files[slot]; !ok {
 			return nil, nil, appErr(409, "files_missing", "Lipsesc fișierele necesare pentru verificare.")
 		}
@@ -147,6 +152,9 @@ func (s *Store) CompleteIdentity(sessionID string) (map[string]any, map[string]a
 	source := files["cei_pdf"]
 	if session.kind == "ci" {
 		source = files["ci_scan_text"]
+	}
+	if len(source) == 0 {
+		return nil, nil, appErr(422, "document_unreadable", "CNP-ul nu a putut fi citit din document.")
 	}
 	birth, ok := firstValidCNP(source)
 	if !ok {
@@ -230,6 +238,14 @@ func (s *Store) identitySession(id string) (identityRow, error) {
 	return row, nil
 }
 
+func identityView(id, email, kind, status, expires string, checks map[string]string) map[string]any {
+	view := map[string]any{"id": id, "email": email, "kind": kind, "status": status, "expires_at": expires}
+	if checks != nil {
+		view["checks"] = checks
+	}
+	return view
+}
+
 func (s *Store) identityBodies(sessionID string) (map[string][]byte, error) {
 	rows, err := s.db.Query(`SELECT slot, body FROM identity_files WHERE session_id = ?`, sessionID)
 	if err != nil {
@@ -248,16 +264,13 @@ func (s *Store) identityBodies(sessionID string) (map[string][]byte, error) {
 	return out, rows.Err()
 }
 
-func identityView(id, email, kind, status, expires string, checks map[string]string) map[string]any {
-	view := map[string]any{"id": id, "email": email, "kind": kind, "status": status, "expires_at": expires}
-	if checks != nil {
-		view["checks"] = checks
-	}
-	return view
-}
-
 func validSlot(kind, slot string) bool {
-	for _, item := range identitySlots[kind] {
+	for _, item := range identityRequired[kind] {
+		if item == slot {
+			return true
+		}
+	}
+	for _, item := range identityOptional[kind] {
 		if item == slot {
 			return true
 		}

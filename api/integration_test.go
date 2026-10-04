@@ -1243,7 +1243,7 @@ func TestIdentityProof(t *testing.T) {
 	}, false)
 	h.errorCode(status, body, 409, "identity_required", "Verifică identitatea înainte de cont.")
 	status, _, body = h.do(http.MethodPost, "/v1/auth/identity", "", map[string]any{"email": "minor@example.com", "kind": "cei"}, false)
-	if status != 201 {
+	if status != 201 || !strings.Contains(string(body), "not_available") {
 		t.Fatalf("start %d %s", status, body)
 	}
 	id := asMap(t, asMap(t, decode(t, body))["verification"])["id"].(string)
