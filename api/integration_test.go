@@ -34,6 +34,7 @@ type harness struct {
 
 func start(t *testing.T) *harness {
 	t.Helper()
+	t.Setenv("NOVA_DEMO", "1")
 	dbPath := filepath.Join(t.TempDir(), "nova.db")
 	api, err := server.New(dbPath)
 	if err != nil {
@@ -957,4 +958,158 @@ func TestDemoFlow(t *testing.T) {
 	}
 	status, _, body = h.do(http.MethodGet, "/v1/tasks", "", nil, false)
 	h.equalFixture(status, body, 200, "task-list.json")
+}
+
+func (h *harness) doBearer(method, path, token string, body any) (int, []byte) {
+	h.t.Helper()
+	var rdr io.Reader
+	if body != nil {
+		buf, err := json.Marshal(body)
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		rdr = bytes.NewReader(buf)
+	}
+	req, err := http.NewRequest(method, h.URL+path, rdr)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	defer res.Body.Close()
+	payload, err := io.ReadAll(res.Body)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	return res.StatusCode, payload
+}
+
+func TestAuthAndDemoHeader(t *testing.T) {
+	h := start(t)
+	status, _, body := h.do(http.MethodPost, "/v1/tasks", "poster-1", cloneMap(t, "create-task-request.json"), true)
+	if status != 201 {
+		t.Fatalf("demo create %d %s", status, body)
+	}
+	t.Setenv("NOVA_DEMO", "0")
+	status, _, body = h.do(http.MethodPost, "/v1/tasks", "poster-1", cloneMap(t, "create-task-request.json"), true)
+	h.errorCode(status, body, 401, "demo_disabled", "Modul demo este oprit.")
+	t.Setenv("NOVA_DEMO", "1")
+
+	reg := map[string]any{
+		"role": "poster", "email": "andrei@example.com", "password": "correct-horse",
+		"display_name": "Andrei Popescu", "birth_date": "2000-01-01",
+	}
+	status, payload := h.doBearer(http.MethodPost, "/v1/auth/register", "", reg)
+	if status != 201 {
+		t.Fatalf("register %d %s", status, payload)
+	}
+	user := asMap(t, asMap(t, decode(t, payload))["user"])
+	if user["role"] != "poster" || user["display_name"] != "Andrei Popescu" || user["volunteer_only"] != false || !strings.HasPrefix(user["id"].(string), "user_") {
+		t.Fatalf("user %#v", user)
+	}
+	if _, ok := user["email"]; ok || strings.Contains(string(payload), "password") {
+		t.Fatalf("secret leaked %s", payload)
+	}
+	status, payload = h.doBearer(http.MethodPost, "/v1/auth/register", "", map[string]any{
+		"role": "worker", "email": "minor@example.com", "password": "correct-horse",
+		"display_name": "Minor Pop", "birth_date": "2015-01-01",
+	})
+	h.errorCode(status, payload, 400, "invalid_input", "Un minor are nevoie de emailul tutorelui.")
+	status, payload = h.doBearer(http.MethodPost, "/v1/auth/login", "", map[string]any{"email": "andrei@example.com", "password": "wrong-password"})
+	h.errorCode(status, payload, 401, "invalid_credentials", "Email sau parolă incorectă.")
+	status, payload = h.doBearer(http.MethodPost, "/v1/auth/login", "", map[string]any{"email": "andrei@example.com", "password": "correct-horse"})
+	if status != 200 {
+		t.Fatalf("login %d %s", status, payload)
+	}
+	token := asMap(t, decode(t, payload))["token"].(string)
+	if len(token) != 64 {
+		t.Fatalf("token %s", token)
+	}
+	status, payload = h.doBearer(http.MethodGet, "/v1/me", token, nil)
+	if status != 200 || asMap(t, asMap(t, decode(t, payload))["user"])["id"] != user["id"] {
+		t.Fatalf("me %d %s", status, payload)
+	}
+	status, payload = h.doBearer(http.MethodPost, "/v1/auth/logout", token, map[string]any{})
+	if status != 200 {
+		t.Fatalf("logout %d %s", status, payload)
+	}
+	status, payload = h.doBearer(http.MethodGet, "/v1/me", token, nil)
+	h.errorCode(status, payload, 401, "invalid_token", "Token invalid.")
+	status, _, body = h.do(http.MethodPost, "/v1/contracts/framework", "poster-1", map[string]any{}, true)
+	h.equalFixture(status, body, 403, "error-forbidden.json")
+}
+
+func TestPayLedgerAndContract(t *testing.T) {
+	h := start(t)
+	status, _, body := h.do(http.MethodPost, "/v1/contracts/framework", "worker-1", map[string]any{}, true)
+	if status != 200 || asMap(t, asMap(t, decode(t, body))["contract"])["status"] != "signed" {
+		t.Fatalf("framework %d %s", status, body)
+	}
+	status, body = h.apply("task_seed_event_setup", "Pot ajunge.")
+	if status != 201 {
+		t.Fatalf("apply %d %s", status, body)
+	}
+	appID := asMap(t, asMap(t, decode(t, body))["application"])["id"].(string)
+	status, _, body = h.do(http.MethodPost, "/v1/applications/"+appID+"/accept", "poster-1", map[string]any{}, true)
+	if status != 200 {
+		t.Fatalf("accept %d %s", status, body)
+	}
+	var workOrders int
+	if err := h.DB.QueryRow(`SELECT COUNT(*) FROM contracts WHERE task_id='task_seed_event_setup' AND kind='work_order' AND status='signed'`).Scan(&workOrders); err != nil || workOrders != 1 {
+		t.Fatalf("work order %d %v", workOrders, err)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/tasks/task_seed_event_setup/pay", "worker-1", map[string]any{}, true)
+	h.equalFixture(status, body, 403, "error-forbidden.json")
+	status, _, body = h.do(http.MethodPost, "/v1/tasks/task_seed_event_setup/pay", "poster-1", map[string]any{}, true)
+	if status != 200 {
+		t.Fatalf("pay %d %s", status, body)
+	}
+	payment := asMap(t, asMap(t, decode(t, body))["payment"])
+	if payment["pay_status"] != "held" || payment["amount_bani"] != json.Number("10000") || payment["platform_fee_bani"] != json.Number("1500") || payment["worker_payout_bani"] != json.Number("8500") || payment["provider"] != "simulated" {
+		t.Fatalf("payment %#v", payment)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/tasks/task_seed_event_setup/complete", "poster-1", map[string]any{}, true)
+	if status != 200 || asMap(t, asMap(t, decode(t, body))["task"])["status"] != "completed" {
+		t.Fatalf("complete %s", body)
+	}
+	var debit, credit int
+	if err := h.DB.QueryRow(`SELECT COALESCE(SUM(amount_bani),0) FROM ledger_entries WHERE task_id='task_seed_event_setup' AND direction='debit'`).Scan(&debit); err != nil || debit != 10000 {
+		t.Fatalf("debit %d %v", debit, err)
+	}
+	if err := h.DB.QueryRow(`SELECT COALESCE(SUM(amount_bani),0) FROM ledger_entries WHERE task_id='task_seed_event_setup' AND direction='credit'`).Scan(&credit); err != nil || credit != 10000 {
+		t.Fatalf("credit %d %v", credit, err)
+	}
+	if _, err := h.DB.Exec(`UPDATE tasks SET kind='volunteer', status='assigned', assignee_id='worker-1', pay_status='unpaid' WHERE id='task_seed_shop_cover'`); err != nil {
+		t.Fatal(err)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/tasks/task_seed_shop_cover/pay", "poster-1", map[string]any{}, true)
+	h.errorCode(status, body, 409, "volunteer_unpaid", "Sarcina de voluntariat nu se plătește.")
+}
+
+func TestEventsHaveNoMoney(t *testing.T) {
+	h := start(t)
+	status, _, body := h.do(http.MethodGet, "/v1/events", "", nil, false)
+	if status != 200 {
+		t.Fatalf("events %d %s", status, body)
+	}
+	events := asMap(t, decode(t, body))["events"].([]any)
+	if len(events) != 1 || asMap(t, events[0])["id"] != "event_seed_cartier" {
+		t.Fatalf("seed event %s", body)
+	}
+	if _, ok := asMap(t, events[0])["amount_bani"]; ok {
+		t.Fatalf("money field on event %s", body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/events", "poster-1", map[string]any{
+		"title": "Alt eveniment", "city": "București", "starts_at": "2026-10-07T09:00:00+03:00",
+		"ends_at": "2026-10-07T11:00:00+03:00", "slots": 4, "min_age": 14, "description": "Fără plată.",
+	}, true)
+	h.equalFixture(status, body, 403, "error-forbidden.json")
 }

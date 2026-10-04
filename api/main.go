@@ -9,6 +9,9 @@ import (
 )
 
 func main() {
+	if os.Getenv("NOVA_DEMO") == "" {
+		_ = os.Setenv("NOVA_DEMO", "1")
+	}
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

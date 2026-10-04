@@ -83,15 +83,9 @@ Validation limits, first failure wins: title 3–80, category one of the four va
 
 ## Labels
 
-| Value | Romanian |
-| --- | --- |
-| `event_setup` | Amenajare eveniment |
-| `light_moving` | Mutat obiecte ușoare |
-| `shop_cover` | Acoperire scurtă în magazin |
-| `other` | Altele |
-| `open` | Deschisă |
-| `assigned` | Atribuită |
-| `completed` | Finalizată |
+## Later routes
+
+Check [API-STATUS.md](API-STATUS.md) before mounting a screen. A route marked `live` may be called. A route marked `planned` must not be mounted. Fee rule when pay is used: the poster is charged `amount_bani`. The worker payout is `amount_bani` minus the 15 percent platform fee, rounded half away from zero. Nova keeps the fee. Clients display the server numbers. They do not calculate a second fee.
 | `hidden` | Ascunsă |
 | `pending` | În așteptare |
 | `accepted` | Acceptată |

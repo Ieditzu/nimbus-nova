@@ -11,9 +11,10 @@ import (
 )
 
 type User struct {
-	ID          string
-	Role        string
-	DisplayName string
+	ID             string
+	Role           string
+	DisplayName    string
+	VolunteerOnly  bool
 }
 
 type TaskPublic struct {
@@ -161,12 +162,12 @@ func invalidInput(message string) *AppError {
 var zoneEEST = time.FixedZone("EEST", 3*3600)
 
 func NowRFC3339() string {
-	return time.Now().In(zoneEEST).Format("2006-01-02T15:04:05Z07:00")
+	return time.Now().In(zoneEEST).Format("2006-01-02T15:04:05.000Z07:00")
 }
 
 func NewID(prefix string) (string, error) {
 	switch prefix {
-	case "task_", "app_", "rev_":
+	case "task_", "app_", "rev_", "user_", "con_", "pay_", "led_", "evt_":
 	default:
 		return "", errors.New("invalid id prefix")
 	}

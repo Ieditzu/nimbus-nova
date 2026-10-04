@@ -97,8 +97,100 @@ CREATE TABLE IF NOT EXISTS reviews (
   created_at TEXT NOT NULL,
   UNIQUE (task_id, author_id)
 );
+CREATE TABLE IF NOT EXISTS sessions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS contracts (
+  id TEXT PRIMARY KEY,
+  worker_id TEXT NOT NULL REFERENCES users(id),
+  kind TEXT NOT NULL CHECK (kind IN ('framework', 'work_order')),
+  parent_id TEXT,
+  task_id TEXT,
+  version INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL CHECK (status IN ('draft', 'signed', 'completed', 'cancelled')),
+  signed_at TEXT
+);
+CREATE TABLE IF NOT EXISTS payment_intents (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL REFERENCES tasks(id),
+  provider TEXT NOT NULL,
+  status TEXT NOT NULL,
+  amount_bani INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS ledger_entries (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL,
+  account TEXT NOT NULL,
+  direction TEXT NOT NULL,
+  amount_bani INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS events (
+  id TEXT PRIMARY KEY,
+  organizer_id TEXT NOT NULL REFERENCES users(id),
+  title TEXT NOT NULL,
+  city TEXT NOT NULL,
+  starts_at TEXT NOT NULL,
+  ends_at TEXT NOT NULL,
+  slots INTEGER NOT NULL,
+  min_age INTEGER NOT NULL,
+  description TEXT NOT NULL
+);
 `)
-	return err
+	if err != nil {
+		return err
+	}
+	return addColumns(db)
+}
+
+func addColumns(db *sql.DB) error {
+	columns := []struct{ table, name, decl string }{
+		{"users", "email", "TEXT"},
+		{"users", "password_hash", "TEXT"},
+		{"users", "birth_date", "TEXT"},
+		{"users", "volunteer_only", "INTEGER NOT NULL DEFAULT 0"},
+		{"users", "guardian_email", "TEXT"},
+		{"users", "status", "TEXT NOT NULL DEFAULT 'active'"},
+		{"tasks", "kind", "TEXT NOT NULL DEFAULT 'local_task'"},
+		{"tasks", "pay_status", "TEXT NOT NULL DEFAULT 'unpaid'"},
+	}
+	for _, column := range columns {
+		exists, err := columnExists(db, column.table, column.name)
+		if err != nil {
+			return err
+		}
+		if exists {
+			continue
+		}
+		if _, err := db.Exec(`ALTER TABLE ` + column.table + ` ADD COLUMN ` + column.name + ` ` + column.decl); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func columnExists(db *sql.DB, table, name string) (bool, error) {
+	rows, err := db.Query(`PRAGMA table_info(` + table + `)`)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid int
+		var col, typ string
+		var notNull, pk int
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &col, &typ, &notNull, &dflt, &pk); err != nil {
+			return false, err
+		}
+		if col == name {
+			return true, nil
+		}
+	}
+	return false, rows.Err()
 }
 
 type seedTask struct {
@@ -166,6 +258,12 @@ func insertSeed(ctx context.Context, ex execer) error {
 			return err
 		}
 	}
+	if _, err := ex.ExecContext(ctx, `INSERT INTO contracts (id, worker_id, kind, parent_id, task_id, version, status, signed_at) VALUES ('contract_seed_maria', 'worker-1', 'framework', NULL, NULL, 1, 'signed', '2026-10-04T12:00:00+03:00')`); err != nil {
+		return err
+	}
+	if _, err := ex.ExecContext(ctx, `INSERT INTO events (id, organizer_id, title, city, starts_at, ends_at, slots, min_age, description) VALUES ('event_seed_cartier', 'admin-1', 'Amenajare de cartier', 'București', '2026-10-06T09:00:00+03:00', '2026-10-06T12:00:00+03:00', 10, 14, 'Ajutor la un eveniment public. Fără plată.')`); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -219,6 +317,11 @@ func (s *Store) SeedIfEmpty() error {
 func (s *Store) Reset() error {
 	return s.withImmediate(func(ctx context.Context, conn *sql.Conn) error {
 		for _, q := range []string{
+			`DELETE FROM ledger_entries`,
+			`DELETE FROM payment_intents`,
+			`DELETE FROM contracts`,
+			`DELETE FROM sessions`,
+			`DELETE FROM events`,
 			`DELETE FROM reviews`,
 			`DELETE FROM applications`,
 			`DELETE FROM tasks`,
@@ -636,6 +739,28 @@ func (s *Store) Accept(applicationID, posterID string) (TaskPublic, error) {
 		if _, err := conn.ExecContext(ctx, `UPDATE tasks SET status = 'assigned', assignee_id = ? WHERE id = ?`, workerID, taskID); err != nil {
 			return errInternal
 		}
+		var kind string
+		if err := conn.QueryRowContext(ctx, `SELECT kind FROM tasks WHERE id = ?`, taskID).Scan(&kind); err != nil {
+			return errInternal
+		}
+		if kind == "volunteer" {
+			return nil
+		}
+		var frameworkID string
+		err = conn.QueryRowContext(ctx, `SELECT id FROM contracts WHERE worker_id = ? AND kind = 'framework' AND status = 'signed'`, workerID).Scan(&frameworkID)
+		if err == sql.ErrNoRows {
+			return errContractRequired
+		}
+		if err != nil {
+			return errInternal
+		}
+		workID, err := NewID("con_")
+		if err != nil {
+			return errInternal
+		}
+		if _, err := conn.ExecContext(ctx, `INSERT INTO contracts (id, worker_id, kind, parent_id, task_id, version, status, signed_at) VALUES (?, ?, 'work_order', ?, ?, 1, 'signed', ?)`, workID, workerID, frameworkID, taskID, NowRFC3339()); err != nil {
+			return errInternal
+		}
 		return nil
 	})
 	if err != nil {
@@ -661,6 +786,9 @@ func (s *Store) Complete(taskID, posterID string) (TaskPublic, error) {
 	}
 	if _, err := s.db.Exec(`UPDATE tasks SET status = 'completed' WHERE id = ? AND status = 'assigned'`, taskID); err != nil {
 		return TaskPublic{}, errInternal
+	}
+	if err := s.releaseIfHeld(taskID); err != nil {
+		return TaskPublic{}, err
 	}
 	return s.taskByID(taskID)
 }

@@ -24,6 +24,15 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /v1/admin/tasks", s.handleAdminTasks)
 	mux.HandleFunc("POST /v1/admin/tasks/{id}/hide", s.handleHide)
 	mux.HandleFunc("POST /v1/demo/reset", s.handleReset)
+	mux.HandleFunc("POST /v1/auth/register", s.handleRegister)
+	mux.HandleFunc("POST /v1/auth/login", s.handleLogin)
+	mux.HandleFunc("POST /v1/auth/logout", s.handleLogout)
+	mux.HandleFunc("GET /v1/me", s.handleMe)
+	mux.HandleFunc("POST /v1/tasks/{id}/pay", s.handlePay)
+	mux.HandleFunc("POST /v1/contracts/framework", s.handleFrameworkContract)
+	mux.HandleFunc("POST /v1/contracts/{id}/sign", s.handleSignContract)
+	mux.HandleFunc("GET /v1/events", s.handleListEvents)
+	mux.HandleFunc("POST /v1/events", s.handleCreateEvent)
 	return mux
 }
 

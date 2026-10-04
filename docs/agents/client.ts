@@ -21,6 +21,13 @@ export class NovaError extends Error {
   }
 }
 
+export interface PublicAccount {
+  id: string;
+  role: string;
+  display_name: string;
+  volunteer_only: boolean;
+}
+
 export interface NovaClient {
   getHealth(): Promise<{ ok: true }>;
   listOpenTasks(query?: { category?: Category; city?: string }): Promise<{ tasks: TaskPublic[] }>;
@@ -36,6 +43,14 @@ export interface NovaClient {
   putMyProfile(body: ProfileWrite): Promise<{ profile: Profile }>;
   applyToTask(taskId: string, body: { message: string }): Promise<{ application: ApplicationView }>;
   listMyApplications(): Promise<{ applications: ApplicationWithTask[] }>;
+  register(body: { role: "worker" | "poster"; email: string; password: string; display_name: string; birth_date: string; guardian_email?: string }): Promise<{ user: PublicAccount }>;
+  login(body: { email: string; password: string }): Promise<{ token: string; user: PublicAccount }>;
+  logout(token: string): Promise<{ ok: true }>;
+  me(token: string): Promise<{ user: PublicAccount }>;
+  pay(taskId: string): Promise<{ payment: { task_id: string; pay_status: string; amount_bani: number; platform_fee_bani: number; worker_payout_bani: number; provider: string } }>;
+  frameworkContract(): Promise<{ contract: { id: string; worker_id: string; kind: string; status: string } }>;
+  signContract(id: string): Promise<{ contract: { id: string; status: string } }>;
+  listEvents(): Promise<{ events: Array<{ id: string; title: string; city: string; starts_at: string; ends_at: string; slots: number; min_age: number; description: string }> }>;
 }
 
 export function createNovaClient(baseUrl: string, actor: ActorId): NovaClient {
@@ -80,6 +95,14 @@ export function createNovaClient(baseUrl: string, actor: ActorId): NovaClient {
     applyToTask: (taskId, body) =>
       request(`/v1/tasks/${taskId}/applications`, { method: "POST", body: JSON.stringify(body) }),
     listMyApplications: () => request("/v1/me/applications"),
+    register: (body) => request("/v1/auth/register", { method: "POST", body: JSON.stringify(body) }, false),
+    login: (body) => request("/v1/auth/login", { method: "POST", body: JSON.stringify(body) }, false),
+    logout: (token) => request("/v1/auth/logout", { method: "POST", body: "{}", headers: { Authorization: "Bearer " + token } }, false),
+    me: (token) => request("/v1/me", { headers: { Authorization: "Bearer " + token } }, false),
+    pay: (taskId) => request(`/v1/tasks/${taskId}/pay`, { method: "POST", body: "{}" }),
+    frameworkContract: () => request("/v1/contracts/framework", { method: "POST", body: "{}" }),
+    signContract: (id) => request(`/v1/contracts/${id}/sign`, { method: "POST", body: "{}" }),
+    listEvents: () => request("/v1/events", {}, false),
   };
 }
 

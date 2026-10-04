@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -71,7 +72,27 @@ func readJSON(r *http.Request, dest any, emptyAsObject bool) *AppError {
 }
 
 func (s *Server) currentUser(r *http.Request) (User, *AppError) {
+	if strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
+		token, ae := bearerToken(r)
+		if ae != nil {
+			return User{}, ae
+		}
+		u, err := s.store.UserByToken(token)
+		if err != nil {
+			if ae, ok := asAppError(err); ok {
+				return User{}, ae
+			}
+			return User{}, errInternal
+		}
+		return *u, nil
+	}
 	id := strings.TrimSpace(r.Header.Get("X-Demo-Actor"))
+	if os.Getenv("NOVA_DEMO") != "1" {
+		if id != "" {
+			return User{}, errDemoDisabled
+		}
+		return User{}, errMissingActor
+	}
 	if id == "" {
 		return User{}, errMissingActor
 	}
