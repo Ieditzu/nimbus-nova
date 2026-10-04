@@ -90,7 +90,7 @@ export interface ApiErrorBody {
 }
 
 export type IdentityKind = "ci" | "cei";
-export type IdentitySlot = "ci_front" | "ci_back" | "ci_scan_text" | "cei_front" | "cei_back" | "cei_pdf" | "selfie";
+export type IdentitySlot = "ci_front" | "ci_back" | "ci_scan_text" | "cei_front" | "cei_back" | "cei_pdf" | "selfie" | "selfie_video";
 
 export interface IdentityVerification {
   id: string;

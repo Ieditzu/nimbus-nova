@@ -17,6 +17,7 @@ export const slotLabels: Record<CaptureSlot, string> = {
   cei_back: "CEI · verso",
   cei_pdf: "PDF din RO CEI Reader",
   selfie: "Selfie",
+  selfie_video: "Video selfie",
 };
 
 export function secureIdentityUrl(baseUrl: string): boolean {

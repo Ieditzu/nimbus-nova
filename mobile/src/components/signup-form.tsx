@@ -21,6 +21,7 @@ import { submitIdentity } from "../identity/submit";
 import { IdentityError } from "../identity/errors";
 import { errorMessage } from "../lib/errors";
 import { AuthField, PasswordField } from "./auth-fields";
+import { SelfieVideo } from "./selfie-video";
 import { CameraCapture } from "./camera-capture";
 import { fonts, useTheme, type Colors } from "./theme";
 import { Button, Icon, usePageScroll } from "./ui";
@@ -194,7 +195,7 @@ export function SignupForm({
             ? "Completează datele contului, apoi verifică-ți identitatea."
             : step === 1
               ? "Alege actul românesc pe care îl ai. Fotografiile trebuie să fie clare, fără reflexii."
-              : "Fă un selfie pentru comparația cu fotografia din act."}
+              : "Filmează un selfie scurt urmând indicațiile pentru mișcarea capului."}
         </Text>
       </View>
       <View accessibilityLabel={`Pasul ${step + 1} din 3`} style={s.steps}>
@@ -350,7 +351,7 @@ export function SignupForm({
             slot="selfie"
             asset={assets.selfie}
             busy={busy}
-            action="Deschide camera"
+            action="Filmează selfie-ul"
             onChoose={() => {
               setError("");
               setCameraSlot("selfie");
@@ -358,13 +359,13 @@ export function SignupForm({
             onRemove={() => updateAsset("selfie")}
           />
           <Text style={s.help}>
-            Privește camera, fără ochelari de soare. Folosește un loc bine
-            luminat.
+            Privește camera, apoi întoarce ușor capul la stânga și la dreapta.
+            Filmarea durează 8 secunde și nu înregistrează sunet.
           </Text>
           <View style={s.privacy}>
             <Icon name="lock-closed-outline" size={18} />
             <Text style={[s.help, s.grow]}>
-              Fotografiile actului și selfie-ul sunt trimise către ID Analyzer
+              Fotografiile actului și filmarea selfie sunt trimise către ID Analyzer
               în regiunea UE pentru verificare. Copiile temporare de pe telefon
               se șterg când închizi înscrierea.
             </Text>
@@ -423,11 +424,13 @@ export function SignupForm({
       >
         <Text style={s.link}>Ai deja cont? Conectează-te</Text>
       </Pressable>
-      {cameraSlot ? (
+      {cameraSlot === "selfie" ? (
+        <SelfieVideo onCapture={(asset) => { updateAsset("selfie", asset); setCameraSlot(null); }} onClose={() => setCameraSlot(null)} />
+      ) : cameraSlot ? (
         <CameraCapture
           key={cameraSlot}
           title={slotLabels[cameraSlot]}
-          selfie={cameraSlot === "selfie"}
+          selfie={false}
           onCapture={(asset) => {
             updateAsset(cameraSlot, asset);
             setCameraSlot(null);
@@ -458,6 +461,7 @@ function AssetCard({
   const { colors } = useTheme();
   const s = styles(colors);
   const pdf = slot === "cei_pdf";
+  const video = asset?.contentType.startsWith("video/");
   return (
     <View style={s.asset}>
       <View style={s.assetHeader}>
@@ -475,7 +479,7 @@ function AssetCard({
           </Pressable>
         ) : null}
       </View>
-      {asset && !pdf ? (
+      {asset && !pdf && !video ? (
         <Image
           accessibilityLabel={`Previzualizare ${slotLabels[slot]}`}
           source={{ uri: asset.uri }}
@@ -485,7 +489,7 @@ function AssetCard({
       ) : null}
       {asset ? (
         <Text numberOfLines={2} style={s.help}>
-          {pdf ? `${asset.name} · ` : ""}
+          {video ? "Filmarea selfie este pregătită · " : pdf ? `${asset.name} · ` : ""}
           {(asset.size / 1_000_000).toFixed(1)} MB
         </Text>
       ) : (
@@ -493,7 +497,7 @@ function AssetCard({
           {pdf
             ? "Fișier PDF original · maximum 2 MB"
             : slot === "selfie"
-              ? "Fotografiază-te acum, folosind camera frontală."
+              ? "Filmează-te cu camera frontală și urmează indicațiile pentru mișcarea capului."
               : "Actul întreg, cu toate colțurile vizibile."}
         </Text>
       )}
@@ -514,7 +518,7 @@ function AssetCard({
             ? "Înlocuiește PDF-ul"
             : action === "Importă fotografia"
               ? "Înlocuiește fotografia"
-              : "Refă fotografia"
+              : slot === "selfie" ? "Refă filmarea" : "Refă fotografia"
           : action}
       </Button>
       {onCapture ? (

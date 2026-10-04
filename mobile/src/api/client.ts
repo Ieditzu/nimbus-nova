@@ -58,7 +58,7 @@ export interface NovaClient {
   applyToTask(taskId: string, body: { message: string }): Promise<{ application: ApplicationView }>;
   listMyApplications(): Promise<{ applications: ApplicationWithTask[] }>;
   startIdentity(body: { email: string; kind: "ci" | "cei" }): Promise<{ verification: IdentityVerification }>;
-  uploadIdentityFile(id: string, body: { slot: "ci_front" | "ci_back" | "ci_scan_text" | "cei_front" | "cei_back" | "cei_pdf" | "selfie"; content_type: string; content_base64: string }): Promise<{ file: { id: string; slot: string; sha256: string } }>;
+  uploadIdentityFile(id: string, body: { slot: "ci_front" | "ci_back" | "ci_scan_text" | "cei_front" | "cei_back" | "cei_pdf" | "selfie" | "selfie_video"; content_type: string; content_base64: string }): Promise<{ file: { id: string; slot: string; sha256: string } }>;
   completeIdentity(id: string): Promise<{ verification: IdentityVerification; proof: IdentityProof | null }>;
   register(body: { role: "worker" | "poster"; email: string; password: string; display_name: string; birth_date?: string; identity_proof?: string; guardian_email?: string; phone_number?: string }): Promise<{ user: PublicAccount }>;
   login(body: { email: string; password: string }): Promise<{ token: string; user: PublicAccount }>;

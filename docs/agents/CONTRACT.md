@@ -150,3 +150,7 @@ Adult workers can now publish and manage their own tasks without changing their 
 `Conversation` includes `id`, `task_id`, `task_title`, `other_user: { id, display_name }`, `last_message: ChatMessage | null`, and `updated_at`. `ChatMessage` includes `id`, integer `sequence`, `conversation_id`, `sender_id`, `text`, and `created_at`. Copy the shared client/types verbatim.
 
 The supplied test login is now a real hashed-password account only when both `NOVA_DEMO=1` and `NOVA_TEST_ACCOUNT=1` are set. Its phone is initially empty. No mobile authentication shortcut or fake bearer token remains. Production should leave `NOVA_TEST_ACCOUNT` unset. CI/CEI identity provider availability is unchanged by this feature.
+
+### Guided selfie video
+
+The phone now captures an eight-second silent selfie video, with prompts to face forward, turn gently left/right, and return forward. `selfie_video` is an optional upload slot for CI and CEI and replaces the required `selfie` photograph when supplied. It accepts `video/mp4`, `video/quicktime`, or `video/webm`, up to 8 MB. Existing photograph clients remain compatible. The backend sends the original video as `faceVideo` to ID Analyzer EU and requires the same face-match/liveness result; following UI prompts alone does not establish identity or prove that every prompted movement was independently validated. Videos are deleted with the other temporary session files after completion/rejection/expiry.

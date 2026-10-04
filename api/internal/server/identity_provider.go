@@ -161,6 +161,10 @@ func (p *identityProvider) scan(ctx context.Context, kind string, files map[stri
 			"thresholds": map[string]float64{"face": 0.5, "faceLiveness": 0.2, "faceRecapture": 0.5},
 		},
 	}
+	if len(files["selfie_video"]) > 0 {
+		delete(body, "face")
+		body["faceVideo"] = encoded("selfie_video")
+	}
 	var result identityScan
 	err := p.request(ctx, http.MethodPost, "/scan", body, &result)
 	if err == nil && !result.Success {

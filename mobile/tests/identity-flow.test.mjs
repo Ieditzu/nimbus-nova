@@ -197,3 +197,17 @@ test("CI and CEI return a proof only after their required files and real checks 
     assert.deepEqual(f.calls.at(-1), ["complete", "session-1"]);
   }
 });
+
+test("video selfie uploads to the video slot and keeps provider rejection blocking", async () => {
+ const f=fixture("cei");
+ f.input.assets.selfie.contentType="video/mp4";
+ await verifyIdentityFlow(f.input,f.services);
+ const slots=f.calls.filter(c=>c[0]==="upload").map(c=>c[2].slot);
+ assert.deepEqual(slots,["cei_front","cei_back","cei_pdf","selfie_video"]);
+ const rejected=fixture();
+ rejected.input.assets.selfie.contentType="video/webm";
+ rejected.completed.verification.status="rejected";
+ rejected.completed.verification.message="Verificarea de prezență nu a trecut.";
+ rejected.completed.proof=null;
+ await assert.rejects(verifyIdentityFlow(rejected.input,rejected.services),/prezență/);
+});

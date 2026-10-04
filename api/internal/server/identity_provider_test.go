@@ -63,12 +63,18 @@ func identityHarness(t *testing.T, response identityScan, scanStatus int, delay 
 		if json.NewDecoder(r.Body).Decode(&payload) != nil {
 			t.Error("invalid scan payload")
 		}
-		for _, field := range []string{"document", "documentBack", "face"} {
+		fields := []string{"document", "documentBack"}
+		if payload["faceVideo"] != nil {
+			fields = append(fields, "faceVideo")
+		} else {
+			fields = append(fields, "face")
+		}
+		for _, field := range fields {
 			if _, err := base64.StdEncoding.DecodeString(payload[field].(string)); err != nil {
 				t.Error("provider expects plain base64, not data URI")
 			}
 		}
-		if payload["restrictCountry"] != "RO" || payload["restrictType"] != "I" || payload["face"] == nil || payload["documentBack"] == nil {
+		if payload["restrictCountry"] != "RO" || payload["restrictType"] != "I" || (payload["face"] == nil && payload["faceVideo"] == nil) || payload["documentBack"] == nil {
 			t.Error("document/face constraints missing")
 		}
 		overrides := payload["profileOverride"].(map[string]any)
@@ -450,5 +456,38 @@ func TestProviderDateFormats(t *testing.T) {
 		if _, err := parseProviderDate(input); err == nil {
 			t.Fatalf("invalid date accepted: %q", input)
 		}
+	}
+}
+
+func TestSelfieVideoCanReplacePhotoAndIsForwarded(t *testing.T) {
+	s, api, calls := identityHarness(t, scanFixture(), 200, 0)
+	id := collectIdentity(t, api, "ci", nil)
+	if _, err := s.DB().Exec("DELETE FROM identity_files WHERE session_id=? AND slot='selfie'", id); err != nil {
+		t.Fatal(err)
+	}
+	video := append([]byte{0, 0, 0, 24}, []byte("ftypisomsynthetic-test-video")...)
+	status, body := identityRequest(t, api, "/v1/auth/identity/"+id+"/files", map[string]any{"slot": "selfie_video", "content_type": "video/mp4", "content_base64": base64.StdEncoding.EncodeToString(video)})
+	if status != 201 {
+		t.Fatalf("video upload %d %v", status, body)
+	}
+	status, body = identityRequest(t, api, "/v1/auth/identity/"+id+"/complete", map[string]any{})
+	if status != 200 || body["proof"] == nil || calls.Load() != 1 {
+		t.Fatalf("video complete %d %v", status, body)
+	}
+	var remaining int
+	s.DB().QueryRow("SELECT COUNT(*) FROM identity_files WHERE session_id=?", id).Scan(&remaining)
+	if remaining != 0 {
+		t.Fatal("video retained after verification")
+	}
+}
+func TestVideoFileFormatBounds(t *testing.T) {
+	if magicOK("selfie_video", []byte("not a video")) {
+		t.Fatal("invalid video accepted")
+	}
+	if !magicOK("selfie_video", []byte{0x1a, 0x45, 0xdf, 0xa3, 0, 0, 0, 0, 0, 0, 0, 0}) {
+		t.Fatal("webm rejected")
+	}
+	if validIdentityType("selfie_video", "image/jpeg") {
+		t.Fatal("video slot accepts photographs")
 	}
 }

@@ -43,6 +43,11 @@ export async function verifyIdentityFlow(
     throw new IdentityError(
       "Adaugă toate fotografiile și documentele necesare.",
     );
+  const uploadAssets = { ...assets };
+  if (assets.selfie?.contentType.startsWith("video/")) {
+    slots[slots.length - 1] = "selfie_video";
+    uploadAssets.selfie_video = assets.selfie;
+  }
   assertActive();
   const normalizedEmail = email.toLowerCase().trim();
   progress("Se pornește verificarea...");
@@ -72,7 +77,7 @@ export async function verifyIdentityFlow(
     assertActive();
     const slot = slots[i];
     progress(`Se trimite ${slotLabels[slot]} (${i + 1}/${slots.length})...`);
-    const asset = assets[slot]!;
+    const asset = uploadAssets[slot]!;
     const content_base64 = await readAsset(asset);
     assertActive();
     await client.uploadIdentityFile(verification.id, {

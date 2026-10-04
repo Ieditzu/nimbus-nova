@@ -26,7 +26,8 @@ var identityRequired = map[string][]string{
 }
 
 var identityOptional = map[string][]string{
-	"ci": {"ci_scan_text"},
+	"ci":  {"ci_scan_text", "selfie_video"},
+	"cei": {"selfie_video"},
 }
 
 func (s *Server) handleStartIdentity(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +49,7 @@ func (s *Server) handleStartIdentity(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleIdentityFile(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, 2_800_000)
+	r.Body = http.MaxBytesReader(w, r.Body, 11_000_000)
 	var body struct {
 		Slot        string `json:"slot"`
 		ContentType string `json:"content_type"`
@@ -131,8 +132,12 @@ func (s *Store) AddIdentityFile(sessionID, slot, contentType, encoded string) (m
 	if !validIdentityType(slot, contentType) {
 		return nil, invalidInput("Tipul fișierului nu este acceptat pentru acest slot.")
 	}
+	limit := 2_000_000
+	if slot == "selfie_video" {
+		limit = 8_000_000
+	}
 	raw, err := base64.StdEncoding.DecodeString(strings.TrimSpace(encoded))
-	if err != nil || len(raw) < 8 || len(raw) > 2_000_000 {
+	if err != nil || len(raw) < 8 || len(raw) > limit {
 		return nil, invalidInput("Fișierul nu este un base64 valid sau este prea mare.")
 	}
 	if !magicOK(slot, raw) {
@@ -191,7 +196,7 @@ func (s *Store) CompleteIdentity(sessionID string) (map[string]any, map[string]a
 		return nil, nil, err
 	}
 	for _, slot := range identityRequired[session.kind] {
-		if _, ok := files[slot]; !ok {
+		if _, ok := files[slot]; !ok && !(slot == "selfie" && len(files["selfie_video"]) > 0) {
 			s.db.Exec(`UPDATE identity_sessions SET status='collecting' WHERE id=? AND status='processing'`, sessionID)
 			return nil, nil, appErr(409, "files_missing", "Lipsesc fișierele necesare pentru verificare.")
 		}
@@ -375,6 +380,8 @@ func validSlot(kind, slot string) bool {
 
 func validIdentityType(slot, contentType string) bool {
 	switch slot {
+	case "selfie_video":
+		return contentType == "video/mp4" || contentType == "video/webm" || contentType == "video/quicktime"
 	case "cei_pdf":
 		return contentType == "application/pdf"
 	case "ci_scan_text":
@@ -386,6 +393,8 @@ func validIdentityType(slot, contentType string) bool {
 
 func magicOK(slot string, raw []byte) bool {
 	switch slot {
+	case "selfie_video":
+		return (len(raw) >= 12 && string(raw[4:8]) == "ftyp") || (len(raw) >= 4 && bytes.Equal(raw[:4], []byte{0x1a, 0x45, 0xdf, 0xa3}))
 	case "cei_pdf":
 		return strings.HasPrefix(string(raw), "%PDF")
 	case "ci_scan_text":

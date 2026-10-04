@@ -10,7 +10,7 @@ import { photoSize } from "./photo-size";
 export type IdentityAsset = {
   uri: string;
   name: string;
-  contentType: "image/jpeg" | "application/pdf";
+  contentType: "image/jpeg" | "application/pdf" | "video/mp4" | "video/webm" | "video/quicktime";
   size: number;
 };
 
@@ -156,19 +156,33 @@ export async function importReaderPdf(): Promise<IdentityAsset | null> {
   }
 }
 
+export async function prepareSelfieVideo(uri: string, contentType: IdentityAsset["contentType"] = "video/mp4"): Promise<IdentityAsset> {
+  try {
+    if (Platform.OS !== "web") {
+      const destination = new File(privateDirectory(), `${Date.now()}-${Math.random().toString(36).slice(2)}.${contentType === "video/quicktime" ? "mov" : "mp4"}`);
+      new File(uri).move(destination);
+      uri = destination.uri;
+    }
+    const size = Platform.OS === "web" ? (await (await fetch(uri)).blob()).size : new File(uri).size;
+    if (size < 12 || size > 8_000_000) throw new IdentityError("Filmarea nu s-a salvat sau depășește 8 MB. Încearcă din nou.");
+    return { uri, name: "selfie-video", size, contentType };
+  } catch (error) { removeCacheCopy(uri); throw error; }
+}
+
 export async function assetBase64(asset: IdentityAsset): Promise<string> {
+  const limit = asset.contentType.startsWith("video/") ? 8_000_000 : MAX_IDENTITY_BYTES;
   if (Platform.OS !== "web") {
     const file = new File(asset.uri);
-    if (!file.exists || file.size < 8 || file.size > MAX_IDENTITY_BYTES)
+    if (!file.exists || file.size < 8 || file.size > limit)
       throw new IdentityError(
         "Fișierul nu mai este disponibil. Selectează-l din nou.",
       );
     return file.base64();
   }
   const blob = await (await fetch(asset.uri)).blob();
-  if (blob.size < 8 || blob.size > MAX_IDENTITY_BYTES)
+  if (blob.size < 8 || blob.size > limit)
     throw new IdentityError(
-      "Fișierul nu mai este disponibil sau depășește 2 MB.",
+      "Fișierul nu mai este disponibil sau depășește limita.",
     );
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
