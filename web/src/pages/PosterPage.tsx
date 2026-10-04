@@ -64,11 +64,14 @@ function PosterLogin({ onReady }: { onReady: (user: PosterAccount) => void }) {
     }
   }
 
-  return <main className="dashboard page-width" id="main-content">
-    <form className="workspace-content" onSubmit={submit}>
-      <p className="eyebrow">Cont poster</p>
-      <h1>{mode === 'login' ? 'Intră în spațiul tău' : 'Creează un cont poster'}</h1>
-      <p>Site-ul folosește contul tău, nu un actor demo.</p>
+  return <main className="pl" id="main-content">
+    <div className="lp-wrap pl-wrap">
+    <div className="pl-copy">
+      <p className="lp-pill">✦ Cont poster</p>
+      <h1 className="lp-display">{mode === 'login' ? <>Intră în<br />spațiul tău</> : <>Creează<br />un cont</>}</h1>
+      <p className="lp-lead">Publici sarcini, primești candidaturi și plătești prin Nova. Site-ul folosește contul tău real.</p>
+    </div>
+    <form className="pl-card" onSubmit={submit}>
       {mode === 'register' && <label className="field">Nume<input value={displayName} onChange={event => setDisplayName(event.target.value)} required minLength={2} autoComplete="name" /></label>}
       <label className="field">Email<input value={email} onChange={event => setEmail(event.target.value)} type="email" required autoComplete="username" /></label>
       <label className="field">Parolă<input value={password} onChange={event => setPassword(event.target.value)} type="password" required minLength={8} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /></label>
@@ -81,5 +84,6 @@ function PosterLogin({ onReady }: { onReady: (user: PosterAccount) => void }) {
         <button className="button button-primary" type="submit" disabled={busy}>{busy ? 'Se verifică…' : mode === 'login' ? 'Intră' : 'Creează contul'}</button>
       </div>
     </form>
+    </div>
   </main>;
 }

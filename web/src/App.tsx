@@ -1,9 +1,10 @@
-import { lazy, Suspense, useEffect, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
-import { ArrowUpRightIcon } from '@phosphor-icons/react';
+import { ListIcon, XIcon } from '@phosphor-icons/react';
 import { Health } from './components/Health';
 import { ThemeToggle } from './components/ThemeToggle';
 import LandingPage from './pages/LandingPage';
+import './pages/site.css';
 import NotFoundPage from './pages/NotFoundPage';
 import { PrivacyPage, TermsPage } from './pages/LegalPages';
 const ExplorePage = lazy(() => import('./pages/ExplorePage'));
@@ -45,28 +46,49 @@ function Metadata() {
   return null;
 }
 
-/** Shared header and footer for the working pages. Landing and admin bring their own chrome. */
+/** Shared header and footer for the working pages, in the landing's visual language. Landing and admin bring their own chrome. */
 function SiteFrame({ children }: { children: ReactNode }) {
-  return <>
-    <a className="skip-link" href="#main-content">Mergi la conținut</a>
-    <header className="site-header"><div className="page-width header-inner">
-      <Link to="/" className="brand" aria-label="Nimbus Nova, pagina principală"><span className="brand-mark" aria-hidden="true">n</span><span>Nimbus Nova</span></Link>
-      <nav aria-label="Navigare principală">
-        <NavLink to="/" end>Acasă</NavLink>
-        <NavLink to="/explore">Explorează</NavLink>
-        <NavLink to="/poster">Sarcinile mele<ArrowUpRightIcon size={16} aria-hidden="true" /></NavLink>
-      </nav>
-      <ThemeToggle />
-    </div></header>
+  const [menu, setMenu] = useState(false);
+  const { pathname } = useLocation();
+  useEffect(() => setMenu(false), [pathname]);
+  return <div className="st">
+    <a className="lp-skip" href="#main-content">Mergi la conținut</a>
+    <header className="lp-nav">
+      <div className="lp-nav-pill">
+        <Link className="lp-brand" to="/" aria-label="Nimbus Nova, pagina principală"><span className="lp-brand-mark" aria-hidden="true">N</span><span>Nova</span></Link>
+        <nav className="lp-links" aria-label="Navigare principală">
+          <NavLink to="/" end>Acasă</NavLink>
+          <NavLink to="/explore">Explorează</NavLink>
+          <NavLink to="/poster">Sarcinile mele</NavLink>
+        </nav>
+        <ThemeToggle />
+        <Link className="lp-btn is-small lp-nav-cta" to="/poster?new=1">Postează</Link>
+        <button type="button" className="lp-menu-btn" aria-expanded={menu} aria-controls="st-sheet" aria-label={menu ? 'Închide meniul' : 'Deschide meniul'} onClick={() => setMenu(value => !value)}>
+          {menu ? <XIcon size={20} aria-hidden="true" /> : <ListIcon size={20} aria-hidden="true" />}
+        </button>
+      </div>
+      {menu && <nav id="st-sheet" className="lp-sheet" aria-label="Meniu">
+        <Link to="/">Acasă</Link>
+        <Link to="/explore">Explorează</Link>
+        <Link to="/poster">Sarcinile mele</Link>
+        <Link to="/poster?new=1" className="lp-btn">Postează o sarcină</Link>
+      </nav>}
+    </header>
     {children}
-    <footer className="site-footer"><div className="page-width footer-inner">
-      <Link className="footer-brand" to="/">Nimbus Nova</Link>
-      <p>Sarcini scurte, prin contul tău.</p>
-      <nav className="footer-legal" aria-label="Informații legale"><Link to="/confidentialitate">Confidențialitate</Link><Link to="/termeni">Termeni și condiții</Link></nav>
-      <Health />
-      <span>© {new Date().getFullYear()} Nimbus Nova</span>
-    </div></footer>
-  </>;
+    <footer className="lp-footer">
+      <div className="lp-wrap lp-footer-inner">
+        <Link className="lp-brand" to="/"><span className="lp-brand-mark" aria-hidden="true">N</span><span>Nimbus Nova</span></Link>
+        <nav aria-label="Linkuri">
+          <Link to="/explore">Explorează</Link>
+          <Link to="/poster">Sarcinile mele</Link>
+          <Link to="/confidentialitate">Confidențialitate</Link>
+          <Link to="/termeni">Termeni și condiții</Link>
+        </nav>
+        <Health />
+        <p>© {new Date().getFullYear()} Nimbus Nova · Sarcini scurte, prin contul tău.</p>
+      </div>
+    </footer>
+  </div>;
 }
 
 export default function App() {

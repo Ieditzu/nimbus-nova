@@ -2,7 +2,6 @@ import { StrictMode } from 'react';
 import { hydrateRoot, createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import './styles.css';
-import './feed.css';
 import './legal.css';
 import './not-found.css';
 import App from './App';

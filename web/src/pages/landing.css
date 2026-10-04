@@ -4,7 +4,7 @@
 
 /* Nova landing. Same sticker-on-paper language as the phone app and the download page:
    flat pastels, 1px ink outlines, Anton display type, no shadows. Motion is opt-out via prefers-reduced-motion. */
-.lp {
+.lp, .st {
   --lp-paper: #ffffff;
   --lp-gray: #ececec;
   --lp-surface: #ffffff;
@@ -33,7 +33,7 @@
   line-height: 1.5;
   overflow-x: clip;
 }
-:root[data-theme="dark"] .lp {
+:root[data-theme="dark"] .lp, :root[data-theme="dark"] .st {
   --lp-paper: #141418;
   --lp-gray: #1b1c22;
   --lp-surface: #1f2026;
