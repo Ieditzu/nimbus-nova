@@ -14,27 +14,44 @@ CODEX = Path.home() / ".codex" / "config.toml"
 OMP = Path.home() / ".omp" / "agent" / "mcp.json"
 
 
-def codex_block(host):
-    return f"""
-[mcp_servers.nova]
-command = "python3"
-args = ["{SCRIPT}"]
-startup_timeout_sec = 20
-tool_timeout_sec = 120
+def toml_literal(value):
+    return "'" + str(value).replace("'", "''") + "'"
 
-[mcp_servers.nova.env]
-NOVA_HOST = "{host}"
-"""
+
+def codex_block(host):
+    script = SCRIPT.as_posix()
+    command = Path(sys.executable).name
+    return (
+        "[mcp_servers.nova]\n"
+        f"command = {toml_literal(command)}\n"
+        f"args = [{toml_literal(script)}]\n"
+        "startup_timeout_sec = 20\n"
+        "tool_timeout_sec = 120\n"
+        "\n"
+        "[mcp_servers.nova.env]\n"
+        f"NOVA_HOST = {toml_literal(host)}\n"
+    )
 
 
 def register_codex(host):
     if not CODEX.exists():
         return "codex config not found"
     text = CODEX.read_text()
-    if "[mcp_servers.nova]" in text:
-        return "codex already registered"
-    CODEX.write_text(text.rstrip() + "\n" + codex_block(host))
-    return "codex registered"
+    block = codex_block(host)
+    start = text.find("[mcp_servers.nova]")
+    if start == -1:
+        CODEX.write_text(text.rstrip() + "\n\n" + block)
+        return "codex registered"
+    end = text.find("\n[", start + 1)
+    env = text.find("[mcp_servers.nova.env]", start)
+    if env != -1:
+        end = text.find("\n[", env + 1)
+        if end == -1:
+            end = len(text)
+    elif end == -1:
+        end = len(text)
+    CODEX.write_text(text[:start].rstrip() + "\n\n" + block + text[end:].lstrip("\n"))
+    return "codex nova block rewritten"
 
 
 def register_omp(host, nick):
