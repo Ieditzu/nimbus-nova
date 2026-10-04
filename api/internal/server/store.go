@@ -12,7 +12,8 @@ import (
 )
 
 type Store struct {
-	db *sql.DB
+	db       *sql.DB
+	identity *identityProvider
 }
 
 func sqliteDSN(dbPath string) string {
@@ -36,7 +37,7 @@ func openStore(dbPath string) (*Store, error) {
 		_ = db.Close()
 		return nil, err
 	}
-	return &Store{db: db}, nil
+	return &Store{db: db, identity: newIdentityProvider()}, nil
 }
 
 func (s *Store) Close() error {
@@ -144,9 +145,6 @@ CREATE TABLE IF NOT EXISTS events (
 	if err != nil {
 		return err
 	}
-	if err := addColumns(db); err != nil {
-		return err
-	}
 	_, err = db.Exec(`
 CREATE TABLE IF NOT EXISTS partners (
   id TEXT PRIMARY KEY,
@@ -211,13 +209,18 @@ CREATE TABLE IF NOT EXISTS identity_files (
   UNIQUE (session_id, slot)
 );
 `)
-	return err
+	if err != nil {
+		return err
+	}
+	return addColumns(db)
 }
 
 func addColumns(db *sql.DB) error {
 	columns := []struct{ table, name, decl string }{
 		{"users", "email", "TEXT"},
 		{"users", "phone_number", "TEXT NOT NULL DEFAULT ''"},
+		{"identity_sessions", "checks_json", "TEXT NOT NULL DEFAULT '{}'"},
+		{"identity_sessions", "verified_provider", "TEXT NOT NULL DEFAULT ''"},
 		{"users", "password_hash", "TEXT"},
 		{"users", "birth_date", "TEXT"},
 		{"users", "volunteer_only", "INTEGER NOT NULL DEFAULT 0"},

@@ -40,6 +40,7 @@ export function identityApproved(
       checks?.cnp === "passed" &&
       checks?.selfie === "passed" &&
       checks?.face_match === "passed" &&
+      checks?.document === "passed" &&
       typeof result.proof?.token === "string" &&
       result.proof.token.trim().length > 0 &&
       typeof result.proof.email === "string" &&

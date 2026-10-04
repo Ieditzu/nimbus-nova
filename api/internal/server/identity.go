@@ -1,11 +1,17 @@
 package server
 
 import (
+	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
+	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"net/http"
 	"strings"
 	"time"
@@ -24,6 +30,7 @@ var identityOptional = map[string][]string{
 }
 
 func (s *Server) handleStartIdentity(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 2048)
 	var body struct {
 		Email string `json:"email"`
 		Kind  string `json:"kind"`
@@ -41,6 +48,7 @@ func (s *Server) handleStartIdentity(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleIdentityFile(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 2_800_000)
 	var body struct {
 		Slot        string `json:"slot"`
 		ContentType string `json:"content_type"`
@@ -79,6 +87,19 @@ func (s *Store) StartIdentity(email, kind string) (map[string]any, error) {
 	if kind != "ci" && kind != "cei" {
 		return nil, invalidInput("Tipul trebuie să fie ci sau cei.")
 	}
+	if err := s.identity.ready(context.Background()); err != nil {
+		return nil, err
+	}
+	if err := s.pruneIdentityFiles(); err != nil {
+		return nil, errInternal
+	}
+	var recent int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM identity_sessions WHERE email=? AND created_at>?`, email, time.Now().Add(-time.Hour).In(zoneEEST).Format(time.RFC3339)).Scan(&recent); err != nil {
+		return nil, errInternal
+	}
+	if recent >= 10 {
+		return nil, appErr(429, "identity_rate_limit", "Prea multe încercări de verificare. Reîncearcă peste o oră.")
+	}
 	id, err := NewID("idn_")
 	if err != nil {
 		return nil, errInternal
@@ -89,7 +110,7 @@ func (s *Store) StartIdentity(email, kind string) (map[string]any, error) {
 	if err != nil {
 		return nil, errInternal
 	}
-	checks := map[string]string{"files": "pending", "cnp": "pending", "selfie": "pending", "face_match": "not_available"}
+	checks := map[string]string{"files": "pending", "cnp": "pending", "selfie": "pending", "face_match": "pending", "document": "pending"}
 	return identityView(id, email, kind, "collecting", expires, checks), nil
 }
 
@@ -97,6 +118,9 @@ func (s *Store) AddIdentityFile(sessionID, slot, contentType, encoded string) (m
 	session, err := s.identitySession(sessionID)
 	if err != nil {
 		return nil, err
+	}
+	if session.expires.Before(time.Now()) {
+		return nil, appErr(409, "proof_expired", "Verificarea a expirat.")
 	}
 	if session.status != "collecting" {
 		return nil, appErr(409, "identity_closed", "Verificarea nu mai acceptă fișiere.")
@@ -120,9 +144,19 @@ func (s *Store) AddIdentityFile(sessionID, slot, contentType, encoded string) (m
 	if err != nil {
 		return nil, errInternal
 	}
-	_, err = s.db.Exec(`INSERT INTO identity_files (id, session_id, slot, content_type, size, sha256, body) VALUES (?, ?, ?, ?, ?, ?, ?)
+	err = s.withImmediate(func(ctx context.Context, conn *sql.Conn) error {
+		var collecting int
+		if err := conn.QueryRowContext(ctx, `SELECT COUNT(*) FROM identity_sessions WHERE id=? AND status='collecting' AND expires_at>?`, sessionID, time.Now().In(zoneEEST).Format(time.RFC3339)).Scan(&collecting); err != nil {
+			return err
+		}
+		if collecting != 1 {
+			return appErr(409, "identity_closed", "Verificarea nu mai acceptă fișiere.")
+		}
+		_, err = conn.ExecContext(ctx, `INSERT INTO identity_files (id, session_id, slot, content_type, size, sha256, body) VALUES (?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(session_id, slot) DO UPDATE SET id = excluded.id, content_type = excluded.content_type, size = excluded.size, sha256 = excluded.sha256, body = excluded.body`,
-		id, sessionID, slot, contentType, len(raw), digest, raw)
+			id, sessionID, slot, contentType, len(raw), digest, raw)
+		return err
+	})
 	if err != nil {
 		return nil, errInternal
 	}
@@ -137,48 +171,101 @@ func (s *Store) CompleteIdentity(sessionID string) (map[string]any, map[string]a
 	if session.expires.Before(time.Now()) {
 		return nil, nil, appErr(409, "proof_expired", "Verificarea a expirat.")
 	}
-	if session.status == "verified" || session.status == "consumed" {
-		return nil, nil, appErr(409, "identity_closed", "Dovada a fost deja emisă.")
+	if session.status != "collecting" {
+		return nil, nil, appErr(409, "identity_closed", "Verificarea nu mai acceptă fișiere.")
+	}
+	if err := s.identity.ready(context.Background()); err != nil {
+		return nil, nil, err
+	}
+	claimed, err := s.db.Exec(`UPDATE identity_sessions SET status='processing' WHERE id=? AND status='collecting'`, sessionID)
+	if err != nil {
+		return nil, nil, errInternal
+	}
+	count, _ := claimed.RowsAffected()
+	if count != 1 {
+		return nil, nil, appErr(409, "identity_closed", "Verificarea nu mai acceptă fișiere.")
 	}
 	files, err := s.identityBodies(sessionID)
 	if err != nil {
+		s.closeIdentity(sessionID, "rejected", nil)
 		return nil, nil, err
 	}
 	for _, slot := range identityRequired[session.kind] {
 		if _, ok := files[slot]; !ok {
+			s.db.Exec(`UPDATE identity_sessions SET status='collecting' WHERE id=? AND status='processing'`, sessionID)
 			return nil, nil, appErr(409, "files_missing", "Lipsesc fișierele necesare pentru verificare.")
 		}
 	}
-	source := files["cei_pdf"]
-	if session.kind == "ci" {
-		source = files["ci_scan_text"]
+	checks := map[string]string{"files": "passed", "cnp": "pending", "selfie": "pending", "face_match": "pending", "document": "pending"}
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	scan, err := s.identity.scan(ctx, session.kind, files)
+	if err != nil {
+		s.closeIdentity(sessionID, "rejected", checks)
+		return nil, nil, err
 	}
-	if len(source) == 0 {
-		return nil, nil, appErr(422, "document_unreadable", "CNP-ul nu a putut fi citit din document.")
+	birth, ae := validateScannedIdentity(ctx, session.kind, files, scan, checks)
+	if ae != nil {
+		status := "rejected"
+		if scan.Decision == "review" {
+			status = "review"
+		}
+		if err := s.closeIdentity(sessionID, status, checks); err != nil {
+			return nil, nil, errInternal
+		}
+		view := identityView(session.id, session.email, session.kind, status, session.expires.Format(time.RFC3339), checks)
+		view["message"] = ae.Message
+		return view, nil, nil
 	}
-	birth, ok := firstValidCNP(source)
-	if !ok {
-		return nil, nil, appErr(422, "document_unreadable", "CNP-ul nu a putut fi citit din document.")
+	if time.Now().After(session.expires) {
+		s.closeIdentity(sessionID, "rejected", checks)
+		return nil, nil, appErr(409, "proof_expired", "Verificarea a expirat.")
 	}
 	token, hash, err := newProofToken()
 	if err != nil {
+		s.closeIdentity(sessionID, "rejected", checks)
 		return nil, nil, errInternal
 	}
-	_, err = s.db.Exec(`UPDATE identity_sessions SET status = 'verified', birth_date = ?, proof_hash = ? WHERE id = ?`, birth.Format("2006-01-02"), hash, sessionID)
+	encoded, _ := json.Marshal(checks)
+	err = s.withImmediate(func(ctx context.Context, conn *sql.Conn) error {
+		result, err := conn.ExecContext(ctx, `UPDATE identity_sessions SET status='verified',birth_date=?,proof_hash=?,checks_json=?,verified_provider=? WHERE id=? AND status='processing'`, birth.Format("2006-01-02"), hash, string(encoded), verifiedIdentityProvider, sessionID)
+		if err != nil {
+			return err
+		}
+		count, _ := result.RowsAffected()
+		if count != 1 {
+			return errInternal
+		}
+		_, err = conn.ExecContext(ctx, `DELETE FROM identity_files WHERE session_id=?`, sessionID)
+		return err
+	})
 	if err != nil {
+		s.closeIdentity(sessionID, "rejected", checks)
 		return nil, nil, errInternal
 	}
-	checks := map[string]string{"files": "passed", "cnp": "passed", "selfie": "passed", "face_match": "not_available"}
-	view := identityView(session.id, session.email, session.kind, "verified", session.expires.Format(time.RFC3339), checks)
-	proof := map[string]any{"token": token, "expires_at": session.expires.Format(time.RFC3339), "email": session.email}
-	return view, proof, nil
+	return identityView(session.id, session.email, session.kind, "verified", session.expires.Format(time.RFC3339), checks), map[string]any{"token": token, "expires_at": session.expires.Format(time.RFC3339), "email": session.email}, nil
+}
+func (s *Store) closeIdentity(id, status string, checks map[string]string) error {
+	encoded, _ := json.Marshal(checks)
+	return s.withImmediate(func(ctx context.Context, conn *sql.Conn) error {
+		_, err := conn.ExecContext(ctx, `UPDATE identity_sessions SET status=?,proof_hash=NULL,checks_json=?,verified_provider='' WHERE id=? AND status='processing'`, status, string(encoded), id)
+		if err != nil {
+			return err
+		}
+		_, err = conn.ExecContext(ctx, `DELETE FROM identity_files WHERE session_id=?`, id)
+		return err
+	})
+}
+func (s *Store) pruneIdentityFiles() error {
+	_, err := s.db.Exec(`DELETE FROM identity_files WHERE session_id IN (SELECT id FROM identity_sessions WHERE expires_at<? OR status NOT IN ('collecting','processing'))`, time.Now().In(zoneEEST).Format(time.RFC3339))
+	return err
 }
 
 func (s *Store) lookupIdentityProof(email, token string) (string, time.Time, bool, error) {
 	sum := sha256.Sum256([]byte(token))
 	hash := hex.EncodeToString(sum[:])
-	var id, status, birthText, expiresText string
-	err := s.db.QueryRow(`SELECT id, status, COALESCE(birth_date, ''), expires_at FROM identity_sessions WHERE email = ? AND proof_hash = ?`, email, hash).Scan(&id, &status, &birthText, &expiresText)
+	var id, status, birthText, expiresText, checksText string
+	err := s.db.QueryRow(`SELECT id, status, COALESCE(birth_date, ''), expires_at,checks_json FROM identity_sessions WHERE email = ? AND proof_hash = ? AND verified_provider = ?`, email, hash, verifiedIdentityProvider).Scan(&id, &status, &birthText, &expiresText, &checksText)
 	if err == sql.ErrNoRows {
 		return "", time.Time{}, false, appErr(409, "identity_required", "Verifică identitatea înainte de cont.")
 	}
@@ -194,6 +281,15 @@ func (s *Store) lookupIdentityProof(email, token string) (string, time.Time, boo
 	}
 	if status != "verified" {
 		return "", time.Time{}, false, appErr(409, "identity_required", "Verifică identitatea înainte de cont.")
+	}
+	var checks map[string]string
+	if json.Unmarshal([]byte(checksText), &checks) != nil {
+		return "", time.Time{}, false, errInternal
+	}
+	for _, check := range []string{"files", "cnp", "selfie", "face_match", "document"} {
+		if checks[check] != "passed" {
+			return "", time.Time{}, false, appErr(409, "identity_required", "Verifică identitatea înainte de cont.")
+		}
 	}
 	birth, err := time.Parse("2006-01-02", birthText)
 	if err != nil {
@@ -214,7 +310,6 @@ func (s *Store) markIdentityConsumed(id string) error {
 	}
 	return nil
 }
-
 
 type identityRow struct {
 	id, email, kind, status string
@@ -296,7 +391,8 @@ func magicOK(slot string, raw []byte) bool {
 	case "ci_scan_text":
 		return len(strings.TrimSpace(string(raw))) >= 13
 	default:
-		return (len(raw) > 8 && raw[0] == 0x89 && raw[1] == 'P') || (len(raw) > 3 && raw[0] == 0xff && raw[1] == 0xd8)
+		config, format, err := image.DecodeConfig(bytes.NewReader(raw))
+		return err == nil && (format == "jpeg" || format == "png") && config.Width > 0 && config.Height > 0 && config.Width <= 12000 && config.Height <= 12000 && config.Width*config.Height <= 40_000_000
 	}
 }
 

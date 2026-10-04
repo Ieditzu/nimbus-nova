@@ -1,12 +1,17 @@
 package server
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
+	"sync"
+	"time"
 )
 
 type Server struct {
-	store *Store
+	store   *Store
+	stop    context.CancelFunc
+	cleanup sync.WaitGroup
 }
 
 func New(dbPath string) (*Server, error) {
@@ -35,7 +40,28 @@ func New(dbPath string) (*Server, error) {
 		_ = st.Close()
 		return nil, err
 	}
-	return &Server{store: st}, nil
+	if err := st.pruneIdentityFiles(); err != nil {
+		st.Close()
+		return nil, err
+	}
+	s := &Server{store: st}
+	ctx, cancel := context.WithCancel(context.Background())
+	s.stop = cancel
+	s.cleanup.Add(1)
+	go func() {
+		defer s.cleanup.Done()
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				st.pruneIdentityFiles()
+			}
+		}
+	}()
+	return s, nil
 }
 
 func (s *Server) Handler() http.Handler {
@@ -45,6 +71,10 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) Close() error {
 	if s == nil || s.store == nil {
 		return nil
+	}
+	if s.stop != nil {
+		s.stop()
+		s.cleanup.Wait()
 	}
 	return s.store.Close()
 }

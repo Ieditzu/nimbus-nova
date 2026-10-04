@@ -130,7 +130,7 @@ export function SignupForm({
         proofRef.current = result;
       }
       if (!alive.current) return;
-      if (!identityApproved(result, email))
+      if (!identityApproved(result, email) || !result.proof)
         throw new IdentityError("Verificarea a expirat. Încearcă din nou.");
       setProgress("Se creează contul...");
       await api.register({

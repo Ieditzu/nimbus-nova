@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
@@ -145,29 +146,18 @@ func (s *Store) Register(req registerRequest) (publicUser, *AppError) {
 	if n := len([]rune(name)); n < 2 || n > 80 {
 		return publicUser{}, invalidInput("Numele trebuie să aibă între 2 și 80 de caractere.")
 	}
-	var birth time.Time
-	var volunteer bool
-	if role == "worker" {
-		if strings.TrimSpace(req.IdentityProof) == "" {
-			return publicUser{}, appErr(409, "identity_required", "Verifică identitatea înainte de cont.")
-		}
-		proofID, parsed, minor, err := s.lookupIdentityProof(email, strings.TrimSpace(req.IdentityProof))
-		if err != nil {
-			if ae, ok := asAppError(err); ok {
-				return publicUser{}, ae
-			}
-			return publicUser{}, errInternal
-		}
-		birth, volunteer = parsed, minor
-		req.IdentityProof = proofID
-	} else {
-		parsed, err := time.Parse("2006-01-02", strings.TrimSpace(req.BirthDate))
-		if err != nil {
-			return publicUser{}, invalidInput("Data nașterii trebuie să fie YYYY-MM-DD.")
-		}
-		birth = parsed
-		volunteer = time.Now().In(zoneEEST).Before(birth.AddDate(18, 0, 0))
+	if strings.TrimSpace(req.IdentityProof) == "" {
+		return publicUser{}, appErr(409, "identity_required", "Verifică identitatea înainte de cont.")
 	}
+	proofID, birth, volunteer, err := s.lookupIdentityProof(email, strings.TrimSpace(req.IdentityProof))
+	if err != nil {
+		if ae, ok := asAppError(err); ok {
+			return publicUser{}, ae
+		}
+		return publicUser{}, errInternal
+	}
+	req.IdentityProof = proofID
+
 	if volunteer {
 		if role != "worker" {
 			return publicUser{}, invalidInput("Un minor nu poate fi poster.")
@@ -195,16 +185,25 @@ func (s *Store) Register(req registerRequest) (publicUser, *AppError) {
 	if volunteer {
 		flag = 1
 	}
-	_, err = s.db.Exec(`INSERT INTO users (id, role, display_name, email, password_hash, birth_date, volunteer_only, guardian_email, status, phone_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
-		id, role, name, email, string(hash), birth.Format("2006-01-02"), flag, strings.TrimSpace(req.GuardianEmail), phone)
+	err = s.withImmediate(func(ctx context.Context, conn *sql.Conn) error {
+		result, err := conn.ExecContext(ctx, `UPDATE identity_sessions SET status='consumed' WHERE id=? AND email=? AND status='verified' AND verified_provider=? AND expires_at>?`, req.IdentityProof, email, verifiedIdentityProvider, time.Now().In(zoneEEST).Format(time.RFC3339))
+		if err != nil {
+			return err
+		}
+		count, _ := result.RowsAffected()
+		if count != 1 {
+			return appErr(409, "proof_used", "Dovada de identitate a fost folosită.")
+		}
+		_, err = conn.ExecContext(ctx, `INSERT INTO users (id,role,display_name,email,password_hash,birth_date,volunteer_only,guardian_email,status,phone_number) VALUES(?,?,?,?,?,?,?,?,'active',?)`, id, role, name, email, string(hash), birth.Format("2006-01-02"), flag, strings.TrimSpace(req.GuardianEmail), phone)
+		return err
+	})
 	if err != nil {
+		if ae, ok := asAppError(err); ok {
+			return publicUser{}, ae
+		}
 		return publicUser{}, errInternal
 	}
-	if role == "worker" {
-		if err := s.markIdentityConsumed(req.IdentityProof); err != nil {
-			return publicUser{}, errInternal
-		}
-	}
+
 	return publicUser{ID: id, Role: role, DisplayName: name, VolunteerOnly: volunteer, PhoneNumber: phone}, nil
 }
 

@@ -94,7 +94,8 @@ export async function verifyIdentityFlow(
         "Verificarea facială nu este disponibilă momentan. Contul nu a fost creat. Reîncearcă mai târziu.",
       );
     throw new IdentityError(
-      "Identitatea nu a fost confirmată. Verifică fotografiile și încearcă din nou.",
+      result.verification?.message ??
+        "Identitatea nu a fost confirmată. Verifică fotografiile și încearcă din nou.",
     );
   }
   return result;

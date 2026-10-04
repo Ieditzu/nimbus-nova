@@ -13,7 +13,7 @@ import (
 
 func account(t *testing.T, h *harness, email, phone string) (string, string) {
 	t.Helper()
-	status, raw := h.doBearer(http.MethodPost, "/v1/auth/register", "", map[string]any{"role": "poster", "email": email, "password": "workflow-password-42", "display_name": "Workflow Person", "birth_date": "2000-01-01", "phone_number": phone})
+	status, raw := h.doBearer(http.MethodPost, "/v1/auth/register", "", map[string]any{"role": "poster", "email": email, "password": "workflow-password-42", "display_name": "Workflow Person", "identity_proof": verifiedProofFixture(t, h, email), "phone_number": phone})
 	if status != 201 {
 		t.Fatalf("register %d %s", status, raw)
 	}

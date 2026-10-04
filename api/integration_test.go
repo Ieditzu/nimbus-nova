@@ -2,8 +2,9 @@ package main_test
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"database/sql"
-	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/Ieditzu/nimbus-nova/api/internal/server"
 )
@@ -36,6 +38,7 @@ type harness struct {
 func start(t *testing.T) *harness {
 	t.Helper()
 	t.Setenv("NOVA_DEMO", "1")
+	t.Setenv("IDANALYZER_KEY", "")
 	dbPath := filepath.Join(t.TempDir(), "nova.db")
 	api, err := server.New(dbPath)
 	if err != nil {
@@ -1002,6 +1005,7 @@ func TestAuthAndDemoHeader(t *testing.T) {
 	reg := map[string]any{
 		"role": "poster", "email": "andrei@example.com", "password": "correct-horse",
 		"display_name": "Andrei Popescu", "birth_date": "2000-01-01",
+		"identity_proof": verifiedProofFixture(t, h, "andrei@example.com"),
 	}
 	status, payload := h.doBearer(http.MethodPost, "/v1/auth/register", "", reg)
 	if status != 201 {
@@ -1229,49 +1233,15 @@ func TestPlatformRoutes(t *testing.T) {
 	}
 }
 
-func TestIdentityProof(t *testing.T) {
+func TestIdentityUnavailableCannotIssueProof(t *testing.T) {
 	h := start(t)
-	png := base64.StdEncoding.EncodeToString([]byte{0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0})
-	pdf := base64.StdEncoding.EncodeToString([]byte("%PDF-1.4\n5150315400013\n%%EOF"))
-	status, _, body := h.do(http.MethodPost, "/v1/auth/register", "", map[string]any{
-		"role": "worker", "email": "minor@example.com", "password": "correct-horse", "display_name": "Minor Pop",
-	}, false)
-	h.errorCode(status, body, 409, "identity_required", "Verifică identitatea înainte de cont.")
-	status, _, body = h.do(http.MethodPost, "/v1/auth/identity", "", map[string]any{"email": "minor@example.com", "kind": "cei"}, false)
-	if status != 201 || !strings.Contains(string(body), "not_available") {
-		t.Fatalf("start %d %s", status, body)
+	status, _, body := h.do(http.MethodPost, "/v1/auth/identity", "", map[string]any{"email": "new@example.test", "kind": "ci"}, false)
+	if status != 503 || !strings.Contains(string(body), "identity_unavailable") {
+		t.Fatalf("unconfigured identity %d %s", status, body)
 	}
-	id := asMap(t, asMap(t, decode(t, body))["verification"])["id"].(string)
-	for _, slot := range []string{"cei_front", "cei_back", "selfie"} {
-		status, _, body = h.do(http.MethodPost, "/v1/auth/identity/"+id+"/files", "", map[string]any{"slot": slot, "content_type": "image/png", "content_base64": png}, false)
-		if status != 201 {
-			t.Fatalf("file %s %d %s", slot, status, body)
-		}
-	}
-	status, _, body = h.do(http.MethodPost, "/v1/auth/identity/"+id+"/files", "", map[string]any{"slot": "cei_pdf", "content_type": "application/pdf", "content_base64": pdf}, false)
-	if status != 201 {
-		t.Fatalf("pdf %d %s", status, body)
-	}
-	status, _, body = h.do(http.MethodPost, "/v1/auth/identity/"+id+"/complete", "", map[string]any{}, false)
-	if status != 200 || !strings.Contains(string(body), "not_available") {
-		t.Fatalf("complete %d %s", status, body)
-	}
-	proof := asMap(t, asMap(t, decode(t, body))["proof"])["token"].(string)
-	status, _, body = h.do(http.MethodPost, "/v1/auth/register", "", map[string]any{
-		"role": "worker", "email": "minor@example.com", "password": "correct-horse", "display_name": "Minor Pop", "identity_proof": proof,
-	}, false)
-	h.errorCode(status, body, 400, "invalid_input", "Un minor are nevoie de emailul tutorelui.")
-	status, _, body = h.do(http.MethodPost, "/v1/auth/register", "", map[string]any{
-		"role": "worker", "email": "minor@example.com", "password": "correct-horse", "display_name": "Minor Pop", "identity_proof": proof, "guardian_email": "parent@example.com",
-	}, false)
-	if status != 201 || !strings.Contains(string(body), `"volunteer_only":true`) {
-		t.Fatalf("register %d %s", status, body)
-	}
-	status, _, body = h.do(http.MethodPost, "/v1/auth/register", "", map[string]any{
-		"role": "worker", "email": "other@example.com", "password": "correct-horse", "display_name": "Alt Worker", "identity_proof": proof, "guardian_email": "parent@example.com",
-	}, false)
+	status, _, body = h.do(http.MethodPost, "/v1/auth/register", "", map[string]any{"role": "worker", "email": "new@example.test", "password": "correct-horse", "display_name": "New Person", "identity_proof": "made-up"}, false)
 	if status != 409 {
-		t.Fatalf("reuse %d %s", status, body)
+		t.Fatalf("fake proof %d %s", status, body)
 	}
 }
 
@@ -1353,4 +1323,16 @@ func TestProductionAdmin(t *testing.T) {
 	if status != 404 {
 		t.Fatalf("reset %d %s", status, raw)
 	}
+}
+
+// This is test-owned database setup, never a production verification endpoint.
+func verifiedProofFixture(t *testing.T, h *harness, email string) string {
+	t.Helper()
+	token := "synthetic-verified-proof-" + email
+	hash := sha256.Sum256([]byte(token))
+	_, err := h.DB.Exec(`INSERT INTO identity_sessions(id,email,kind,status,birth_date,proof_hash,expires_at,created_at,checks_json,verified_provider) VALUES(?,?,'ci','verified','2000-01-01',?,?,?,?,'idanalyzer-v2-eu')`, "synthetic-"+email, email, hex.EncodeToString(hash[:]), time.Now().Add(time.Hour).In(time.FixedZone("fixture", 3*3600)).Format(time.RFC3339), time.Now().Format(time.RFC3339), `{"files":"passed","cnp":"passed","selfie":"passed","face_match":"passed","document":"passed"}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return token
 }

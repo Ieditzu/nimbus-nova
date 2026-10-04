@@ -15,8 +15,10 @@ Public hosts, proxied through Cloudflare to `185.211.5.32`:
 - `https://nimbusnova.cc` and `https://www.nimbusnova.cc` are the landing site.
 - `https://app.nimbusnova.cc` is the phone web app. It calls `https://api.nimbusnova.cc`.
 - `https://admin.nimbusnova.cc` is the admin panel.
-- `https://api.nimbusnova.cc` is the API. Demo mode stays on.
+- `https://api.nimbusnova.cc` is the API. Demo mode stays off.
 
 A push to `main` runs `.github/workflows/deploy.yml`. That ships the tree to the VPS over the deploy key and rebuilds the containers. Do not put the deploy private key in git.
 
 Do not point the website at `http://127.0.0.1:8080` in production. Leave `VITE_API_BASE_URL` unset so the browser uses the public origin.
+
+The GitHub Actions secret `IDANALYZER_KEY` configures the EU identity service. Deployment writes it to ignored, private `deploy/identity.env` with `IDANALYZER_REGION=eu`; only the API runtime receives it. Do not put it in Expo/Vite public environment variables, Git or build artifacts. Set the secret using `gh secret set IDANALYZER_KEY --repo Ieditzu/nimbus-nova` and paste the value at its prompt. The API runtime includes Poppler for CEI PDF text extraction. Provider availability and credits are checked before collecting document uploads.

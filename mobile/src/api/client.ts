@@ -2,6 +2,8 @@ import type {
   ChatMessage,
   Conversation,
   MessagePage,
+  IdentityVerification,
+  IdentityProof,
   ActorId,
   ApiErrorBody,
   ApplicationView,
@@ -55,9 +57,9 @@ export interface NovaClient {
   putMyProfile(body: ProfileWrite): Promise<{ profile: Profile }>;
   applyToTask(taskId: string, body: { message: string }): Promise<{ application: ApplicationView }>;
   listMyApplications(): Promise<{ applications: ApplicationWithTask[] }>;
-  startIdentity(body: { email: string; kind: "ci" | "cei" }): Promise<{ verification: { id: string; email: string; kind: "ci" | "cei"; status: string; expires_at: string; checks?: { files: string; cnp: string; selfie: string; face_match: string } } }>;
+  startIdentity(body: { email: string; kind: "ci" | "cei" }): Promise<{ verification: IdentityVerification }>;
   uploadIdentityFile(id: string, body: { slot: "ci_front" | "ci_back" | "ci_scan_text" | "cei_front" | "cei_back" | "cei_pdf" | "selfie"; content_type: string; content_base64: string }): Promise<{ file: { id: string; slot: string; sha256: string } }>;
-  completeIdentity(id: string): Promise<{ verification: { id: string; status: string; checks: { files: string; cnp: string; selfie: string; face_match: string } }; proof: { token: string; expires_at: string; email: string } }>;
+  completeIdentity(id: string): Promise<{ verification: IdentityVerification; proof: IdentityProof | null }>;
   register(body: { role: "worker" | "poster"; email: string; password: string; display_name: string; birth_date?: string; identity_proof?: string; guardian_email?: string; phone_number?: string }): Promise<{ user: PublicAccount }>;
   login(body: { email: string; password: string }): Promise<{ token: string; user: PublicAccount }>;
   logout(token: string): Promise<{ ok: true }>;

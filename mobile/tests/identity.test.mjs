@@ -14,6 +14,7 @@ function result() {
         cnp: "passed",
         selfie: "passed",
         face_match: "passed",
+    document: "passed",
       },
     },
     proof: {
@@ -29,7 +30,7 @@ test("a backend verified status with no face matching cannot create an account",
   assert.equal(identityApproved(value, email, now), false);
 });
 test("every identity check must pass", () => {
-  for (const check of ["files", "cnp", "selfie", "face_match"]) {
+  for (const check of ["files", "cnp", "selfie", "face_match", "document"]) {
     for (const state of [
       "failed",
       "pending",

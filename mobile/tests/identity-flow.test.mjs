@@ -11,6 +11,7 @@ function fixture(kind = "ci") {
     cnp: "passed",
     selfie: "passed",
     face_match: "passed",
+    document: "passed",
   };
   const started = {
     id: "session-1",

@@ -5,3 +5,8 @@ api/nova.db
 api/nova.db-shm
 api/nova.db-wal
 scripts/__pycache__
+
+deploy/production.env
+deploy/identity.env
+mobile/node_modules
+mobile/.env.local

@@ -96,9 +96,10 @@ export interface IdentityVerification {
   id: string;
   email: string;
   kind: IdentityKind;
-  status: "collecting" | "verified" | "consumed";
+  status: "collecting" | "processing" | "verified" | "consumed" | "review" | "rejected";
   expires_at: string;
-  checks?: { files: string; cnp: string; selfie: string; face_match: string };
+  checks?: { files: string; cnp: string; selfie: string; face_match: string; document?: string; pdf?: string };
+  message?: string;
 }
 
 export interface IdentityProof {

@@ -7,6 +7,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare private identity configuration
+        env:
+          IDANALYZER_KEY: ${{ secrets.IDANALYZER_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          key = os.environ.get("IDANALYZER_KEY", "").strip()
+          if any(c in key for c in "\r\n"):
+              raise SystemExit("Invalid identity secret format")
+          path = Path("deploy/identity.env")
+          path.touch(mode=0o600)
+          path.write_text("IDANALYZER_REGION=eu\nIDANALYZER_KEY=" + key + "\n")
+          PY
       - name: Ship to the VPS
         env:
           SSH_KEY: ${{ secrets.VPS_SSH_KEY }}

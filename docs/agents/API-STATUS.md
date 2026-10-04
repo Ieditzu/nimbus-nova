@@ -62,3 +62,5 @@
 | `POST /v1/admin/tasks/{id}/unhide` | live | admin |
 
 Haivas changes a row from `planned` to `live` in the same commit as the route and its test. Ciprian and Perjoc do not flip these rows.
+
+Identity routes now use the real server-side ID Analyzer API v2 EU integration. They require a configured EU key and available provider account; unavailable service returns 503 before upload. Both worker and poster registration require a verified, single-use identity proof. CI/CEI success and rejection paths are covered by synthetic provider tests; real-provider probes use synthetic blank images and must reject them.
