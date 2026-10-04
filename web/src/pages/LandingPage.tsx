@@ -137,23 +137,23 @@ const steps = [
   { title: 'Postezi sarcina', copy: 'Titlu, oraș, interval de cel mult 12 ore și suma propusă. Durează câteva minute.', tone: 'blue' },
   { title: 'Oamenii aplică', copy: 'Cei cu timp liber văd sarcina în aplicația Nova și îți scriu de ce sunt potriviți.', tone: 'mint' },
   { title: 'Alegi și vorbești', copy: 'Accepți o candidatură și discuți detaliile în chatul privat din aplicație.', tone: 'yellow' },
-  { title: 'Plătești prin Nova', copy: 'Nova ține banii până la finalizare, apoi îi eliberează. La final lăsați recenzii.', tone: 'lavender' },
+  { title: 'Plata ajunge la lucrător', copy: 'Banii merg la cel care a făcut sarcina, nu la Nova. Nova doar vă pune în legătură și își ia comisionul. La final lăsați recenzii.', tone: 'lavender' },
 ];
 
 const safety = [
   { icon: IdentificationCardIcon, title: 'Identitate verificată', copy: 'CI sau CEI și un selfie, înainte de a deschide un cont.' },
-  { icon: HandCoinsIcon, title: 'Banii stau la Nova', copy: 'Plata e reținută până la predare. Dacă apare o problemă, o dispută o rezolvă un moderator.' },
+  { icon: HandCoinsIcon, title: 'Banii ajung direct la lucrător', copy: 'Nova nu ține banii, doar face legătura și își ia comisionul. Dacă apare o problemă, un moderator te ajută să o rezolvi.' },
   { icon: ChatCircleDotsIcon, title: 'Chat privat', copy: 'Discuți în aplicație, fără să-ți dai numărul sau adresa de la început.' },
   { icon: LockKeyIcon, title: 'Limite din start', copy: 'Fără numerar, fără acces la domiciliu, fără condus. Doar sarcini scurte, în spații publice.' },
 ];
 
 const faq = [
-  { q: 'Cine poate posta sarcini?', a: 'Orice adult cu cont verificat. La înscriere verificăm identitatea cu un act european și un selfie. Minorii nu pot posta.' },
+  { q: 'Cine poate posta sarcini?', a: 'Oricine are cel puțin 16 ani și un cont verificat. La înscriere verificăm identitatea cu un act european și un selfie. Sub 16 ani nu se pot posta sarcini.' },
   { q: 'Unde aplică oamenii?', a: 'În aplicația mobilă Nova. Site-ul este pentru cei care postează: publici, primești candidaturi, accepți, plătești și dai recenzii.' },
-  { q: 'Cât costă?', a: `Publici gratuit. Când sarcina e plătită, Nova reține ${FEE_PERCENT}% din suma propusă, iar restul ajunge la lucrător. Poți vedea calculul mai sus.` },
+  { q: 'Cât costă?', a: `Publici gratuit. Când sarcina e plătită, Nova își ia ${FEE_PERCENT}% din suma propusă, iar restul ajunge la lucrător. Poți vedea calculul mai sus.` },
   { q: 'Ce fel de sarcini sunt permise?', a: 'Sarcini scurte, de cel mult 12 ore, în spații publice: amenajări de evenimente, mutat obiecte ușoare, acoperire într-un stand sau magazin. Fără numerar, fără acces la domiciliu și fără condus.' },
-  { q: 'Ce fac dacă ceva nu merge bine?', a: 'Deschide o dispută din sarcina respectivă. Un moderator Nova citește ambele părți și decide: eliberează plata, o returnează sau o împarte.' },
-  { q: 'Pot participa și minorii?', a: 'Doar la evenimente de voluntariat, fără plată și cu emailul unui tutore. Sarcinile plătite sunt numai pentru adulți.' },
+  { q: 'Ce fac dacă ceva nu merge bine?', a: 'Deschide o dispută din sarcina respectivă. Un moderator Nova citește ambele părți și propune o soluție.' },
+  { q: 'Pot participa și cei sub 16 ani?', a: 'Da, la voluntariat, fără plată și cu emailul unui tutore. De la 16 ani poți face și sarcini plătite.' },
 ];
 
 /* -------------------------------------------------------------------- page */
@@ -187,7 +187,7 @@ export default function LandingPage() {
 
     <div className="lp-marquee" aria-hidden="true">
       <div className="lp-marquee-track">
-        {[0, 1].map(copy => <span key={copy}>Sarcini scurte <i>✦</i> Oameni aproape <i>✦</i> Banii stau la Nova <i>✦</i> Doar pentru adulți <i>✦</i> Postează în câteva minute <i>✦</i>&nbsp;</span>)}
+        {[0, 1].map(copy => <span key={copy}>Sarcini scurte <i>✦</i> Oameni aproape <i>✦</i> Plată directă <i>✦</i> De la 16 ani <i>✦</i> Postează în câteva minute <i>✦</i>&nbsp;</span>)}
       </div>
     </div>
 
@@ -230,7 +230,7 @@ export default function LandingPage() {
         </h1>
         <Ribbon className="is-hero" />
         <p className="lp-tagline lp-rise" style={delay(520)}>Omul din mijloc dintre cine are timp și cine are o sarcină scurtă.</p>
-        <p className="lp-sub lp-rise" style={delay(620)}>Postezi în câteva minute. Oamenii din orașul tău aplică din aplicație. Nova ține banii și predă lucrarea.</p>
+        <p className="lp-sub lp-rise" style={delay(620)}>Postezi în câteva minute. Oamenii din orașul tău aplică din aplicație. Nova face legătura între voi.</p>
         <div className="lp-actions lp-rise" style={delay(720)}>
           <Link className="lp-btn" to="/poster?new=1">Postează o sarcină<ArrowRightIcon size={18} aria-hidden="true" /></Link>
           <Link className="lp-btn is-ghost" to="/explore">Vezi sarcinile deschise</Link>
@@ -325,7 +325,7 @@ export default function LandingPage() {
             <ul>
               <li>Sarcini scurte, de la două ore</li>
               <li>Chat privat cu cel care a postat</li>
-              <li>Banii ajung la tine prin Nova</li>
+              <li>Banii ajung direct la tine</li>
             </ul>
             <a className="lp-btn is-dark" href={APP_URL} target="_blank" rel="noopener noreferrer"><DeviceMobileIcon size={18} aria-hidden="true" />Deschide aplicația<ArrowUpRightIcon size={16} aria-hidden="true" /></a>
           </article>
@@ -338,7 +338,7 @@ export default function LandingPage() {
           <div data-reveal>
             <p className="lp-eyebrow">Tarif</p>
             <h2 className="lp-display">Vezi exact<br />unde merg banii</h2>
-            <p className="lp-lead">Tu propui suma. Nova reține {FEE_PERCENT}% când sarcina se plătește, iar restul ajunge la lucrător. Fără taxe ascunse.</p>
+            <p className="lp-lead">Tu propui suma. Nova își ia {FEE_PERCENT}% din suma propusă, iar restul ajunge la lucrător. Fără taxe ascunse.</p>
           </div>
           <div className="lp-calc-card" data-reveal style={delay(120)}>
             <label htmlFor="lp-amount">Suma propusă</label>
@@ -371,7 +371,7 @@ export default function LandingPage() {
               </li>;
             })}
           </ul>
-          <p className="lp-adults" data-reveal><ShieldCheckIcon size={20} weight="fill" aria-hidden="true" />Sarcinile plătite sunt doar pentru adulți.</p>
+          <p className="lp-adults" data-reveal><ShieldCheckIcon size={20} weight="fill" aria-hidden="true" />Sarcini plătite de la 16 ani. Sub 16 ani, doar voluntariat.</p>
         </div>
       </section>
 

@@ -7,6 +7,8 @@ import { formatBani, NovaError } from "../../api/client";
 import { errorMessage } from "../../lib/errors";
 import { categoryLabel, schedule, taskStatusLabel } from "../../lib/labels";
 import { Badge, Button, Icon, Page, State, useData } from "../../components/ui";
+import { TaskRoute } from "../../components/task-route";
+import { hasLocation } from "../../lib/geo";
 import { fonts, useTheme, type Colors } from "../../components/theme";
 
 export default function TaskDetailScreen() {
@@ -14,7 +16,12 @@ export default function TaskDetailScreen() {
   const { session, restoring, client } = useAuth();
   const s = styles(colors);
   const { id } = useLocalSearchParams<{ id: string }>();
-  const load = useCallback(() => api.getTask(id), [id]);
+  // The signed-in client sends the token, so the accepted worker gets exact coordinates.
+  const token = session?.token;
+  const load = useCallback(
+    () => (token ? client.getTask(id) : api.getTask(id)),
+    [id, token, client],
+  );
   const { data, loading, error, reload } = useData(load);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -98,6 +105,12 @@ export default function TaskDetailScreen() {
             <Text style={s.sectionTitle}>Ce ai de făcut</Text>
             <Text style={s.body}>{task.description}</Text>
           </View>
+          {session &&
+          task.status === "assigned" &&
+          task.assignee_id === session.user.id &&
+          hasLocation(task) ? (
+            <TaskRoute dest={{ lat: task.lat, lng: task.lng }} />
+          ) : null}
           {task.safety_note ? (
             <View style={s.safety}>
               <View style={s.fact}>

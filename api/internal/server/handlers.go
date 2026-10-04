@@ -149,7 +149,7 @@ func (s *Server) handleListTasks(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, struct {
 		Tasks []TaskPublic `json:"tasks"`
-	}{Tasks: tasksOrEmpty(tasks)})
+	}{Tasks: tasksOrEmpty(redactTasks(tasks, s.optionalViewerID(r)))})
 }
 
 func parseNear(r *http.Request) (*nearQuery, *AppError) {
@@ -194,7 +194,7 @@ func (s *Server) handleGetTask(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, struct {
 		Task TaskPublic `json:"task"`
-	}{Task: task})
+	}{Task: redactTask(task, s.optionalViewerID(r))})
 }
 
 func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
@@ -355,6 +355,9 @@ func (s *Server) handleMyApplications(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.writeErr(w, err)
 		return
+	}
+	for i := range apps {
+		apps[i].Task = redactTask(apps[i].Task, user.ID)
 	}
 	writeJSON(w, http.StatusOK, struct {
 		Applications []ApplicationWithTask `json:"applications"`

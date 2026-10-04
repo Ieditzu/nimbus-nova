@@ -1,7 +1,7 @@
 import { useFonts } from "expo-font";
 import { Anton_400Regular } from "@expo-google-fonts/anton/400Regular";
-import { Inter_500Medium } from "@expo-google-fonts/inter/500Medium";
-import { Inter_700Bold } from "@expo-google-fonts/inter/700Bold";
+import { Manrope_500Medium } from "@expo-google-fonts/manrope/500Medium";
+import { Manrope_800ExtraBold } from "@expo-google-fonts/manrope/800ExtraBold";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BottomNav } from "../components/ui";
@@ -13,8 +13,8 @@ import { ThemeProvider, useTheme } from "../components/theme";
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     Anton_400Regular,
-    Inter_500Medium,
-    Inter_700Bold,
+    Manrope_500Medium,
+    Manrope_800ExtraBold,
   });
   if (!loaded && !error) return null;
   return (

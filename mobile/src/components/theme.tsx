@@ -12,8 +12,8 @@ import { useColorScheme } from "react-native";
 export type ThemePreference = "dark" | "light" | "system";
 // Slush-inspired paper grounds and a shared sticker palette. Status colors stay semantic.
 export const fonts = {
-  body: "Inter_500Medium",
-  bold: "Inter_700Bold",
+  body: "Manrope_500Medium",
+  bold: "Manrope_800ExtraBold",
   display: "Anton_400Regular",
 };
 const light = {

@@ -118,7 +118,7 @@ export default function ExplorePage() {
           : visible.length === 0 ? <div className="ex-state"><p>{tasks.length ? 'Nu am găsit anunțuri pentru aceste filtre.' : 'Nu sunt anunțuri deschise acum.'}</p><button type="button" className="ex-link" onClick={reset}>Șterge filtrele</button></div>
           : <div className={`ex-grid ex-grid-${columns}`}>{visible.map(task => <ListingCard key={task.id} task={task} reputation={reputations[task.poster_id]} saved={savedIds.includes(task.id)} onSave={() => toggleSaved(task.id)} />)}</div>}
       </section>
-      <section className="ex-about"><h2 className="lp-display">Câteva ore pot face diferența</h2><p>Omul din mijloc dintre cine are timp și cine are o sarcină scurtă. Nova ia cererea, alege omul, ține banii și predă lucrarea. Publici pe site. Oamenii aplică din aplicație.</p></section>
+      <section className="ex-about"><h2 className="lp-display">Câteva ore pot face diferența</h2><p>Omul din mijloc dintre cine are timp și cine are o sarcină scurtă. Nova face legătura între voi, iar banii ajung direct la cel care face sarcina. Publici pe site. Oamenii aplică din aplicație.</p></section>
     </div>
   </main>;
 }
