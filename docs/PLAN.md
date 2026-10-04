@@ -1,6 +1,6 @@
-# Nimbus Nova integration plan
+# Nimbus Nova API slice
 
-Contract version: `2026-10-04.1`. This file plus `docs/fixtures/` is the only interface between the Go API, the website, the mobile app, and the admin view. If a screen needs a field or route that is not written here, add it to this file and the fixtures in the same change before using it. Clients must not invent JSON names, status codes, or headers.
+The platform is [PLATFORM.md](PLATFORM.md). This file is only the marketplace slice that already runs. Contract version: `2026-10-04.1`. This file plus `docs/fixtures/` is the current interface between the Go API, the website, the mobile app, and the admin view. If a screen needs a field or route that is not written here or in [PLATFORM.md](PLATFORM.md), add it there before using it. Clients must not invent JSON names, status codes, or headers.
 
 The announced challenge is **man in the middle**, in the Uber / eMAG sense: a platform that sits between two sides. It is not a network man-in-the-middle attack. Public slogan "CONNECT THE DOTS" is still not the challenge. Rules: [VNU-HACK-RULES.md](VNU-HACK-RULES.md) and [vnu-hack-2026-regulament.pdf](vnu-hack-2026-regulament.pdf). Do not submit project-specific code written before the official start as competition work.
 

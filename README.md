@@ -1,9 +1,10 @@
 # nimbus-nova
 
-Nimbus Nova is the middleman for a short task: one side posts it, the other side applies, and both meet only through the platform. The announced VNU Hack challenge is "man in the middle", in the Uber / eMAG sense. The Go API and its integration tests implement the shared contract.
+Nimbus Nova is the company in the middle between people with free time and people who need a short task. The full platform is in the platform plan. The Go API currently implements the first marketplace slice.
 
 - [Official regulation (PDF, local copy)](docs/vnu-hack-2026-regulament.pdf)
 - [Rules and compliance checklist](docs/VNU-HACK-RULES.md)
-- [In-depth integration plan](docs/PLAN.md)
+- [Full platform plan](docs/PLATFORM.md)
+- [Running API contract](docs/PLAN.md)
 - [Contract fixtures](docs/fixtures/)
 - [API and integration tests](api/)
