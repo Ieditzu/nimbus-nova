@@ -20,6 +20,7 @@ function Navigation() {
       <Stack
         screenOptions={{
           headerShown: false,
+          animation: "none",
           contentStyle: { backgroundColor: colors.background },
         }}
       >
