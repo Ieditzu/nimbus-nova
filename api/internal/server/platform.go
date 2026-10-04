@@ -46,7 +46,7 @@ func (s *Server) handleSearchTasks(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, struct {
 		Tasks []TaskPublic `json:"tasks"`
-	}{Tasks: tasksOrEmpty(tasks)})
+	}{Tasks: tasksOrEmpty(redactTasks(tasks, user.ID))})
 }
 
 func (s *Server) handleDispute(w http.ResponseWriter, r *http.Request) {

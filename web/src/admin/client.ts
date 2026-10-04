@@ -140,7 +140,7 @@ export type AdminSystem = {
 };
 
 export type AdminUserDetail = {
-  user: AdminUser & { phone_number: string; birth_date: string; guardian_email: string; created_at: string };
+  user: AdminUser & { phone_number: string; birth_date: string; guardian_email: string; created_at: string; identity_verified: boolean };
   profile: Profile | null;
   tasks_posted: TaskPublic[];
   tasks_assigned: TaskPublic[];
@@ -215,6 +215,11 @@ export const adminApi = {
   setUserStatus: (token: string, userId: string, status: 'active' | 'suspended') =>
     post(token, `/v1/admin/users/${id(userId)}/${status === 'suspended' ? 'suspend' : 'activate'}`),
   revokeSessions: (token: string, userId: string) => post<{ ok: true; revoked: number }>(token, `/v1/admin/users/${id(userId)}/revoke-sessions`),
+  updateUser: (token: string, userId: string, patch: Partial<{ display_name: string; email: string; phone_number: string; birth_date: string; guardian_email: string; role: string; identity_verified: boolean }>) =>
+    call<AdminUserDetail>(token, `/v1/admin/users/${id(userId)}`, { method: 'PUT', body: JSON.stringify(patch) }),
+  updateProfile: (token: string, userId: string, profile: { skills: string[]; city: string; availability: string; bio: string }) =>
+    call<AdminUserDetail>(token, `/v1/admin/users/${id(userId)}/profile`, { method: 'PUT', body: JSON.stringify(profile) }),
+  setUserPassword: (token: string, userId: string, password: string) => post(token, `/v1/admin/users/${id(userId)}/password`, { password }),
   tasks: (token: string) => call<{ tasks: TaskPublic[] }>(token, '/v1/admin/tasks'),
   task: (token: string, taskId: string) => call<AdminTaskDetail>(token, `/v1/admin/tasks/${id(taskId)}`),
   hideTask: (token: string, taskId: string) => post(token, `/v1/admin/tasks/${id(taskId)}/hide`),

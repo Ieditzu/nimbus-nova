@@ -9,6 +9,8 @@ import { errorMessage } from "../../lib/errors";
 import { LocationField } from "../../components/location-field";
 import { findLocation } from "../../lib/locations";
 import { ScheduleField } from "../../components/schedule-field";
+import { LocationPicker } from "../../components/location-picker";
+import { hasLocation, type Place } from "../../lib/geo";
 import { Button, Header, Page, State } from "../../components/ui";
 import { fonts, useTheme } from "../../components/theme";
 import { jobStyles } from "../../components/job-ui";
@@ -30,6 +32,7 @@ export default function NewJobScreen() {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [safety, setSafety] = useState("");
+  const [place, setPlace] = useState<Place | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -46,6 +49,7 @@ export default function NewJobScreen() {
       setDate(day); setEndDate(local(task.ends_at)[0]); setStart(begins); setEnd(local(task.ends_at)[1]);
       setAmount((task.amount_bani / 100).toFixed(2));
       setDescription(task.description); setSafety(task.safety_note); setExisting(task);
+      if (hasLocation(task)) setPlace({ lat: task.lat, lng: task.lng, label: "Locația salvată a sarcinii" });
     }).catch((e: unknown) => { if (!cancelled) setError(errorMessage(e)); });
     return () => { cancelled = true; };
   }, [id, client, session?.user.id]);
@@ -75,7 +79,8 @@ export default function NewJobScreen() {
         amount_bani: jobType === "volunteer" ? 0 : amountToBani(amount),
         description: description.trim(),
         safety_note: safety.trim(),
-        photo_url: existing?.photo_url, sector: existing?.sector, lat: existing?.lat, lng: existing?.lng,
+        photo_url: existing?.photo_url, sector: existing?.sector,
+        ...(place ? { lat: place.lat, lng: place.lng } : {}),
       };
       const result = id ? await client.updateTask(id, body) : await client.createTask(body);
       router.replace({
@@ -147,6 +152,9 @@ export default function NewJobScreen() {
         <TextInput accessibilityLabel="Detalii de siguranță (opțional)" value={safety} onChangeText={setSafety} editable={!busy} maxLength={200}
           placeholder="Un detaliu de siguranță? (opțional)" placeholderTextColor={colors.muted} keyboardAppearance={isDark ? "dark" : "light"}
           style={{ fontFamily: fonts.body, fontSize: 13, lineHeight: 20, minHeight: 48, color: colors.text, paddingVertical: 10 }} />
+      </View>
+      <View style={[s.card, { borderWidth: 0, gap: 16 }]}>
+        <LocationPicker value={place} onChange={setPlace} disabled={busy} />
       </View>
       {error ? (
         <Text accessibilityRole="alert" style={s.error}>

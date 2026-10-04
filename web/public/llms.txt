@@ -1,6 +1,6 @@
 # Nimbus Nova
 
-Nimbus Nova is an adult-only simulated local-task marketplace. Posters use the website and workers use a separate mobile app. Both interact through the shared Go API. This demo does not collect payments or arrange employment.
+Nimbus Nova is a local-task marketplace for people aged 16 and over (under 16 is volunteering only). Posters use the website and workers use a separate mobile app. Both interact through the shared Go API. Nova is a middleman: it connects people and does not hold their money.
 
 ## Public content
 - [Landing page](/): Romanian product explanation and API availability.

@@ -18,7 +18,7 @@ export const sectionMeta: Record<Section, { title: string; blurb: string; icon: 
   tasks: { title: 'Sarcini', blurb: 'Toate anunțurile, inclusiv cele ascunse. Moderează în masă.', icon: ClipboardTextIcon, group: 'Piață', key: '3' },
   applications: { title: 'Candidaturi', blurb: 'Cine a aplicat unde și ce a scris.', icon: PaperPlaneTiltIcon, group: 'Piață', key: '4' },
   reviews: { title: 'Recenzii', blurb: 'Reputația din spatele fiecărui cont. Elimină ce încalcă regulile.', icon: StarIcon, group: 'Piață', key: '5' },
-  disputes: { title: 'Dispute', blurb: 'Banii stau la Nova până decizi: eliberare, returnare sau împărțire.', icon: ScalesIcon, group: 'Încredere', key: '6' },
+  disputes: { title: 'Dispute', blurb: 'Nova nu ține banii. Decizi cine are dreptate: eliberare, returnare sau împărțire.', icon: ScalesIcon, group: 'Încredere', key: '6' },
   identity: { title: 'Identitate', blurb: 'Verificările CI și CEI, cu rezultatul fiecărei etape.', icon: IdentificationCardIcon, group: 'Încredere', key: '7' },
   ledger: { title: 'Bani', blurb: 'Registrul dublu: fiecare leu care intră, stă sau pleacă.', icon: BankIcon, group: 'Bani', key: '8' },
   partners: { title: 'Parteneri', blurb: 'Magazinele și organizațiile care publică ture.', icon: HandshakeIcon, group: 'Bani', key: '9' },

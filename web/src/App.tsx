@@ -14,7 +14,7 @@ const AdminPage = lazy(() => import('./admin/AdminPage'));
 const pages: Record<string, { title: string; description: string; index: boolean }> = {
   '/': {
     title: 'Nimbus Nova | Sarcini scurte, prin Nova',
-    description: 'Omul din mijloc dintre cine are timp și cine are o sarcină scurtă. Publică o sarcină, primești candidaturi și plătești prin Nimbus Nova. Doar pentru adulți.',
+    description: 'Omul din mijloc dintre cine are timp și cine are o sarcină scurtă. Publică o sarcină, primești candidaturi și alegi omul potrivit prin Nimbus Nova. De la 16 ani.',
     index: true,
   },
   '/explore': { title: 'Explorează sarcini | Nimbus Nova', description: 'Sarcini scurte deschise acum, în orașul tău.', index: true },

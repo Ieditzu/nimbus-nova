@@ -17,6 +17,9 @@ func (s *Server) adminExtraRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/admin/system", s.handleAdminSystem)
 	mux.HandleFunc("GET /v1/admin/users/{id}", s.handleAdminUser)
 	mux.HandleFunc("POST /v1/admin/users/{id}/revoke-sessions", s.handleRevokeSessions)
+	mux.HandleFunc("PUT /v1/admin/users/{id}", s.handleAdminUpdateUser)
+	mux.HandleFunc("PUT /v1/admin/users/{id}/profile", s.handleAdminUpdateProfile)
+	mux.HandleFunc("POST /v1/admin/users/{id}/password", s.handleAdminSetPassword)
 	mux.HandleFunc("GET /v1/admin/tasks/{id}", s.handleAdminTask)
 	mux.HandleFunc("GET /v1/admin/applications", s.handleAdminApplications)
 	mux.HandleFunc("GET /v1/admin/reviews", s.handleAdminReviews)
@@ -305,9 +308,9 @@ func (s *Store) logsFor(target string) ([]map[string]any, error) {
 
 func (s *Store) AdminUserDetail(id string) (map[string]any, error) {
 	var role, name, email, status, phone, birth, guardian, created string
-	var volunteer int
-	err := s.db.QueryRow(`SELECT role, display_name, COALESCE(email,''), COALESCE(status,'active'), phone_number, COALESCE(birth_date,''), COALESCE(guardian_email,''), created_at, volunteer_only FROM users WHERE id = ?`, id).
-		Scan(&role, &name, &email, &status, &phone, &birth, &guardian, &created, &volunteer)
+	var volunteer, verified int
+	err := s.db.QueryRow(`SELECT role, display_name, COALESCE(email,''), COALESCE(status,'active'), phone_number, COALESCE(birth_date,''), COALESCE(guardian_email,''), created_at, volunteer_only, identity_verified FROM users WHERE id = ?`, id).
+		Scan(&role, &name, &email, &status, &phone, &birth, &guardian, &created, &volunteer, &verified)
 	if err == sql.ErrNoRows {
 		return nil, errNotFound
 	}
@@ -356,7 +359,7 @@ func (s *Store) AdminUserDetail(id string) (map[string]any, error) {
 		"user": map[string]any{
 			"id": id, "role": role, "display_name": name, "email": email, "status": status,
 			"phone_number": phone, "birth_date": birth, "guardian_email": guardian,
-			"created_at": created, "volunteer_only": volunteer == 1,
+			"created_at": created, "volunteer_only": volunteer == 1, "identity_verified": verified == 1,
 		},
 		"profile": profile, "tasks_posted": posted, "tasks_assigned": assigned,
 		"applications": apps, "reviews_about": about, "reviews_by": by,

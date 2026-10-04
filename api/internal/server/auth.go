@@ -194,7 +194,7 @@ func (s *Store) Register(req registerRequest) (publicUser, *AppError) {
 		if count != 1 {
 			return appErr(409, "proof_used", "Dovada de identitate a fost folosită.")
 		}
-		_, err = conn.ExecContext(ctx, `INSERT INTO users (id,role,display_name,email,password_hash,birth_date,volunteer_only,guardian_email,status,phone_number,created_at) VALUES(?,?,?,?,?,?,?,?,'active',?,?)`, id, role, name, email, string(hash), birth.Format("2006-01-02"), flag, strings.TrimSpace(req.GuardianEmail), phone, NowRFC3339())
+		_, err = conn.ExecContext(ctx, `INSERT INTO users (id,role,display_name,email,password_hash,birth_date,volunteer_only,guardian_email,status,phone_number,created_at,identity_verified) VALUES(?,?,?,?,?,?,?,?,'active',?,?,1)`, id, role, name, email, string(hash), birth.Format("2006-01-02"), flag, strings.TrimSpace(req.GuardianEmail), phone, NowRFC3339())
 		return err
 	})
 	if err != nil {

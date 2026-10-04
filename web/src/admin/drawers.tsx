@@ -1,12 +1,13 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { EyeIcon, EyeSlashIcon, PlayIcon, ProhibitIcon, SignOutIcon, TrashIcon } from '@phosphor-icons/react';
+import { EyeIcon, EyeSlashIcon, PencilSimpleIcon, PlayIcon, ProhibitIcon, SignOutIcon, TrashIcon } from '@phosphor-icons/react';
 import type { TaskPublic } from '../api/types';
 import { errorMessage, formatInterval } from '../lib/format';
 import { categories } from '../lib/labels';
 import { adminApi, type AdminLog, type AdminNote } from './client';
 import type { Desk } from './desk';
 import { actionLabel, ago, money, roleLabel, statusLabel, when } from './format';
-import { Avatar, Dialog, Pill } from './ui';
+import { Avatar, Dialog, Field, Pill } from './ui';
+import type { AdminUserDetail } from './client';
 
 function useDetail<T>(load: () => Promise<T>, deps: unknown[]) {
   const [data, setData] = useState<T | null>(null);
@@ -86,8 +87,90 @@ function Stars({ value }: { value: number }) {
 
 /* -------------------------------------------------------------------- user */
 
+function EditUser({ desk, detail, self, done }: { desk: Desk; detail: AdminUserDetail; self: boolean; done: () => void }) {
+  const u = detail.user;
+  const [form, setForm] = useState({
+    display_name: u.display_name, email: u.email, phone_number: u.phone_number, birth_date: u.birth_date,
+    guardian_email: u.guardian_email, role: u.role, identity_verified: u.identity_verified,
+  });
+  const [profile, setProfile] = useState({
+    skills: (detail.profile?.skills ?? []).join(', '), city: detail.profile?.city ?? '',
+    availability: detail.profile?.availability ?? '', bio: detail.profile?.bio ?? '',
+  });
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const text = (key: 'display_name' | 'email' | 'phone_number' | 'birth_date' | 'guardian_email') =>
+    (event: React.ChangeEvent<HTMLInputElement>) => setForm(value => ({ ...value, [key]: event.target.value }));
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      const patch: Record<string, string | boolean> = {};
+      (Object.keys(form) as Array<keyof typeof form>).forEach(key => {
+        if (form[key] !== u[key]) patch[key] = form[key];
+      });
+      if (Object.keys(patch).length) await adminApi.updateUser(desk.token, u.id, patch);
+      if (detail.profile || profile.city.trim()) {
+        const skills = profile.skills.split(',').map(item => item.trim()).filter(Boolean);
+        const before = detail.profile;
+        const changed = !before || before.city !== profile.city.trim() || before.availability !== profile.availability.trim()
+          || before.bio !== profile.bio.trim() || before.skills.join(',') !== skills.join(',');
+        if (changed) await adminApi.updateProfile(desk.token, u.id, { skills, city: profile.city, availability: profile.availability, bio: profile.bio });
+      }
+      if (password) await adminApi.setUserPassword(desk.token, u.id, password);
+      await desk.run(async () => undefined, 'Datele au fost salvate.');
+      done();
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return <form className="dk-form dk-block" onSubmit={event => void save(event)}>
+    <h3>Modifică contul</h3>
+    <div className="dk-form-row">
+      <Field label="Nume"><input value={form.display_name} onChange={text('display_name')} minLength={2} maxLength={80} required /></Field>
+      <Field label="Email"><input type="email" value={form.email} onChange={text('email')} required /></Field>
+    </div>
+    <div className="dk-form-row">
+      <Field label="Telefon" hint="Format +40712345678"><input value={form.phone_number} onChange={text('phone_number')} /></Field>
+      <Field label="Data nașterii" hint="Vârsta recalculează dreptul la joburi plătite (16+)"><input type="date" value={form.birth_date} onChange={text('birth_date')} /></Field>
+    </div>
+    <div className="dk-form-row">
+      <Field label="Email tutore"><input type="email" value={form.guardian_email} onChange={text('guardian_email')} /></Field>
+      <Field label="Rol" hint={self ? 'Nu îți poți schimba propriul rol' : undefined}>
+        <select value={form.role} disabled={self} onChange={event => setForm(value => ({ ...value, role: event.target.value }))}>
+          {Object.entries(roleLabel).map(([key, name]) => <option key={key} value={key}>{name}</option>)}
+        </select>
+      </Field>
+    </div>
+    <label className="dk-field"><span><input type="checkbox" checked={form.identity_verified} onChange={event => setForm(value => ({ ...value, identity_verified: event.target.checked }))} /> Identitate verificată</span>
+      <small>Marcaj manual. Nu rulează verificarea cu documente.</small></label>
+    <h3>Profil de lucrător</h3>
+    <Field label="Competențe" hint="Separate prin virgulă, 1–8"><input value={profile.skills} onChange={event => setProfile(value => ({ ...value, skills: event.target.value }))} /></Field>
+    <div className="dk-form-row">
+      <Field label="Oraș"><input value={profile.city} onChange={event => setProfile(value => ({ ...value, city: event.target.value }))} /></Field>
+      <Field label="Disponibilitate"><input value={profile.availability} onChange={event => setProfile(value => ({ ...value, availability: event.target.value }))} /></Field>
+    </div>
+    <Field label="Bio"><textarea rows={3} maxLength={280} value={profile.bio} onChange={event => setProfile(value => ({ ...value, bio: event.target.value }))} /></Field>
+    {!self && <Field label="Parolă nouă" hint="Lasă gol pentru a nu o schimba. Închide toate sesiunile.">
+      <input type="password" autoComplete="new-password" minLength={8} maxLength={72} value={password} onChange={event => setPassword(event.target.value)} />
+    </Field>}
+    {error && <p className="dk-alert" role="alert">{error}</p>}
+    <div className="dk-actions">
+      <button type="submit" className="dk-btn is-small" disabled={busy}>{busy ? 'Se salvează…' : 'Salvează'}</button>
+      <button type="button" className="dk-btn is-small is-ghost" disabled={busy} onClick={done}>Renunță</button>
+    </div>
+  </form>;
+}
+
 export function UserDrawer({ desk, id, onClose }: { desk: Desk; id: string; onClose: () => void }) {
   const [tick, setTick] = useState(0);
+  const [editing, setEditing] = useState(false);
   const { data: detail, error } = useDetail(() => adminApi.user(desk.token, id), [id, desk.data, tick]);
   const user = detail?.user;
   const self = id === desk.me.id;
@@ -114,9 +197,13 @@ export function UserDrawer({ desk, id, onClose }: { desk: Desk; id: string; onCl
         <div>
           <h3>{user.display_name}</h3>
           <p className="dk-muted">{user.email || user.id}</p>
-          <div className="dk-row-gap"><Pill value="assigned" label={roleLabel[user.role] ?? user.role} /><Pill value={user.status} />{user.volunteer_only && <Pill value="paused" label="Minor" />}</div>
+          <div className="dk-row-gap"><Pill value="assigned" label={roleLabel[user.role] ?? user.role} /><Pill value={user.status} />{user.volunteer_only && <Pill value="paused" label="Sub 16" />}{user.identity_verified && <Pill value="verified" />}</div>
         </div>
       </header>
+      <div className="dk-actions">
+        <button type="button" className="dk-btn is-small" onClick={() => setEditing(value => !value)}><PencilSimpleIcon size={14} aria-hidden="true" />{editing ? 'Închide editarea' : 'Modifică'}</button>
+      </div>
+      {editing && <EditUser key={tick} desk={desk} detail={detail} self={self} done={() => { setEditing(false); setTick(value => value + 1); }} />}
       {!self && <div className="dk-actions">
         <button type="button" className={`dk-btn is-small ${user.status === 'suspended' ? '' : 'is-danger-ghost'}`} onClick={toggle}>{user.status === 'suspended' ? <><PlayIcon size={14} aria-hidden="true" />Reactivează</> : <><ProhibitIcon size={14} aria-hidden="true" />Suspendă contul</>}</button>
         <button type="button" className="dk-btn is-small is-ghost" onClick={revoke} disabled={detail.active_sessions === 0}><SignOutIcon size={14} aria-hidden="true" />Închide sesiunile ({detail.active_sessions})</button>
