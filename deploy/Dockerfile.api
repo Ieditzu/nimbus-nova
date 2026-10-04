@@ -1,0 +1,17 @@
+FROM golang:1.27-bookworm AS build
+WORKDIR /src
+COPY api/go.mod api/go.sum ./
+RUN go mod download
+COPY api/ ./
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/nova-api .
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates wget && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=build /out/nova-api /app/nova-api
+ENV PORT=8080 \
+    DATABASE_PATH=/data/nova.db \
+    NOVA_DEMO=1
+EXPOSE 8080
+VOLUME /data
+CMD ["/app/nova-api"]

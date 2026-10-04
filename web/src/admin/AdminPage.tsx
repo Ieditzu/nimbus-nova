@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createNovaClient } from '../api/client';
+import { apiBaseUrl } from '../api/instance';
 import type { TaskPublic } from '../api/types';
 import { errorMessage } from '../lib/format';
 import { statuses } from '../lib/labels';
 
-const api = createNovaClient(import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8080', 'admin-1');
+const api = createNovaClient(apiBaseUrl(), 'admin-1');
 
 export default function AdminPage() {
   const [tasks, setTasks] = useState<TaskPublic[]>([]);

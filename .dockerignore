@@ -1,0 +1,7 @@
+.git
+web/node_modules
+web/dist
+api/nova.db
+api/nova.db-shm
+api/nova.db-wal
+scripts/__pycache__
