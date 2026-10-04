@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AppState,
   Linking,
@@ -9,7 +9,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { CameraView, useCameraPermissions } from "expo-camera";
+import { useCameraPermissions } from "expo-camera";
+import { PhotoCamera } from "./photo-camera";
+import type { PhotoCameraHandle } from "./photo-camera-types";
 import { Button, Icon } from "./ui";
 import { fonts, useTheme } from "./theme";
 import {
@@ -31,18 +33,24 @@ export function CameraCapture({
 }) {
   const { colors } = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
-  const camera = useRef<CameraView>(null);
+  const camera = useRef<PhotoCameraHandle>(null);
   const mounted = useRef(true);
   const taking = useRef(false);
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
+  const [torch, setTorch] = useState(false);
+  const [torchAvailable, setTorchAvailable] = useState(false);
   const [error, setError] = useState("");
+  const cameraReady = useCallback(() => setReady(true), []);
+  const cameraError = useCallback((message: string) => { setError(message); }, []);
+  const torchSupport = useCallback((available: boolean) => { setTorchAvailable(available); if (!available) setTorch(false); }, []);
   const [active, setActive] = useState(AppState.currentState === "active");
   useEffect(() => {
     mounted.current = true;
     const subscription = AppState.addEventListener("change", (state) => {
       setActive(state === "active");
       setReady(false);
+      setTorch(false);
     });
     return () => {
       mounted.current = false;
@@ -144,20 +152,8 @@ export function CameraCapture({
           <>
             <View style={s.preview}>
               {active ? (
-                <CameraView
-                  ref={camera}
-                  style={StyleSheet.absoluteFill}
-                  facing={selfie ? "front" : "back"}
-                  mode="picture"
-                  mirror={false}
-                  onCameraReady={() => setReady(true)}
-                  onMountError={() => {
-                    setReady(false);
-                    setError(
-                      "Camera nu poate porni. Închide-o și încearcă din nou.",
-                    );
-                  }}
-                />
+                <PhotoCamera ref={camera} selfie={selfie} torch={torch}
+                  onReady={cameraReady} onError={cameraError} onTorchAvailable={torchSupport} />
               ) : null}
               <View pointerEvents="none" style={s.guideArea}>
                 <View style={selfie ? s.faceGuide : s.cardGuide} />
@@ -169,6 +165,16 @@ export function CameraCapture({
                 : "Ține întregul act în cadru. Evită reflexiile și verifică să fie lizibil."}
             </Text>
             <View style={s.footer}>
+              {!selfie ? <View style={s.cameraControls}>
+                <Text style={{ color: colors.text, fontFamily: fonts.bold }}>1×</Text>
+                <Pressable accessibilityRole="button" accessibilityLabel={torch ? "Oprește lanterna" : "Pornește lanterna"}
+                  accessibilityState={{ disabled: !torchAvailable || !ready || busy, selected: torch }}
+                  disabled={!torchAvailable || !ready || busy} onPress={() => setTorch((value) => !value)}
+                  style={[s.torch, { opacity: torchAvailable ? 1 : 0.5 }]}>
+                  <Icon name={torch ? "flash" : "flash-off-outline"} size={22} color={colors.text} />
+                  <Text style={{ color: colors.text }}>{torchAvailable ? (torch ? "Lanternă pornită" : "Lanternă") : "Lanternă indisponibilă"}</Text>
+                </Pressable>
+              </View> : null}
               <Button
                 disabled={!ready || busy || !active}
                 icon="camera-outline"
@@ -237,6 +243,8 @@ const s = StyleSheet.create({
     textAlign: "center",
   },
   instructions: { padding: 20 },
+  cameraControls: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  torch: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, paddingHorizontal: 12 },
   footer: { paddingHorizontal: 20, paddingBottom: 16 },
   permission: { flex: 1, justifyContent: "center", padding: 24, gap: 24 },
   error: { fontFamily: fonts.body, padding: 20, fontSize: 14, lineHeight: 21 },
