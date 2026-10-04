@@ -3,6 +3,7 @@ package main_test
 import (
 	"bytes"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -1022,7 +1023,7 @@ func TestAuthAndDemoHeader(t *testing.T) {
 		"role": "worker", "email": "minor@example.com", "password": "correct-horse",
 		"display_name": "Minor Pop", "birth_date": "2015-01-01",
 	})
-	h.errorCode(status, payload, 400, "invalid_input", "Un minor are nevoie de emailul tutorelui.")
+	h.errorCode(status, payload, 409, "identity_required", "Verifică identitatea înainte de cont.")
 	status, payload = h.doBearer(http.MethodPost, "/v1/auth/login", "", map[string]any{"email": "andrei@example.com", "password": "wrong-password"})
 	h.errorCode(status, payload, 401, "invalid_credentials", "Email sau parolă incorectă.")
 	status, payload = h.doBearer(http.MethodPost, "/v1/auth/login", "", map[string]any{"email": "andrei@example.com", "password": "correct-horse"})
@@ -1230,5 +1231,51 @@ func TestPlatformRoutes(t *testing.T) {
 	status, _, body = h.do(http.MethodGet, "/v1/users/poster-1/reputation", "worker-1", nil, true)
 	if status != 200 || !strings.Contains(string(body), "count") {
 		t.Fatalf("reputation %d %s", status, body)
+	}
+}
+
+func TestIdentityProof(t *testing.T) {
+	h := start(t)
+	png := base64.StdEncoding.EncodeToString([]byte{0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0})
+	pdf := base64.StdEncoding.EncodeToString([]byte("%PDF-1.4\n5150315400013\n%%EOF"))
+	status, _, body := h.do(http.MethodPost, "/v1/auth/register", "", map[string]any{
+		"role": "worker", "email": "minor@example.com", "password": "correct-horse", "display_name": "Minor Pop",
+	}, false)
+	h.errorCode(status, body, 409, "identity_required", "Verifică identitatea înainte de cont.")
+	status, _, body = h.do(http.MethodPost, "/v1/auth/identity", "", map[string]any{"email": "minor@example.com", "kind": "cei"}, false)
+	if status != 201 {
+		t.Fatalf("start %d %s", status, body)
+	}
+	id := asMap(t, asMap(t, decode(t, body))["verification"])["id"].(string)
+	for _, slot := range []string{"cei_front", "cei_back", "selfie"} {
+		status, _, body = h.do(http.MethodPost, "/v1/auth/identity/"+id+"/files", "", map[string]any{"slot": slot, "content_type": "image/png", "content_base64": png}, false)
+		if status != 201 {
+			t.Fatalf("file %s %d %s", slot, status, body)
+		}
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/auth/identity/"+id+"/files", "", map[string]any{"slot": "cei_pdf", "content_type": "application/pdf", "content_base64": pdf}, false)
+	if status != 201 {
+		t.Fatalf("pdf %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/auth/identity/"+id+"/complete", "", map[string]any{}, false)
+	if status != 200 || !strings.Contains(string(body), "not_available") {
+		t.Fatalf("complete %d %s", status, body)
+	}
+	proof := asMap(t, asMap(t, decode(t, body))["proof"])["token"].(string)
+	status, _, body = h.do(http.MethodPost, "/v1/auth/register", "", map[string]any{
+		"role": "worker", "email": "minor@example.com", "password": "correct-horse", "display_name": "Minor Pop", "identity_proof": proof,
+	}, false)
+	h.errorCode(status, body, 400, "invalid_input", "Un minor are nevoie de emailul tutorelui.")
+	status, _, body = h.do(http.MethodPost, "/v1/auth/register", "", map[string]any{
+		"role": "worker", "email": "minor@example.com", "password": "correct-horse", "display_name": "Minor Pop", "identity_proof": proof, "guardian_email": "parent@example.com",
+	}, false)
+	if status != 201 || !strings.Contains(string(body), `"volunteer_only":true`) {
+		t.Fatalf("register %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/auth/register", "", map[string]any{
+		"role": "worker", "email": "other@example.com", "password": "correct-horse", "display_name": "Alt Worker", "identity_proof": proof, "guardian_email": "parent@example.com",
+	}, false)
+	if status != 409 {
+		t.Fatalf("reuse %d %s", status, body)
 	}
 }

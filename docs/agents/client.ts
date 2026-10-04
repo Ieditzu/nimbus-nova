@@ -43,7 +43,10 @@ export interface NovaClient {
   putMyProfile(body: ProfileWrite): Promise<{ profile: Profile }>;
   applyToTask(taskId: string, body: { message: string }): Promise<{ application: ApplicationView }>;
   listMyApplications(): Promise<{ applications: ApplicationWithTask[] }>;
-  register(body: { role: "worker" | "poster"; email: string; password: string; display_name: string; birth_date: string; guardian_email?: string }): Promise<{ user: PublicAccount }>;
+  startIdentity(body: { email: string; kind: "ci" | "cei" }): Promise<{ verification: { id: string; email: string; kind: "ci" | "cei"; status: string; expires_at: string; checks?: { files: string; cnp: string; selfie: string; face_match: string } } }>;
+  uploadIdentityFile(id: string, body: { slot: "ci_front" | "ci_back" | "ci_scan_text" | "cei_front" | "cei_back" | "cei_pdf" | "selfie"; content_type: string; content_base64: string }): Promise<{ file: { id: string; slot: string; sha256: string } }>;
+  completeIdentity(id: string): Promise<{ verification: { id: string; status: string; checks: { files: string; cnp: string; selfie: string; face_match: string } }; proof: { token: string; expires_at: string; email: string } }>;
+  register(body: { role: "worker" | "poster"; email: string; password: string; display_name: string; birth_date?: string; identity_proof?: string; guardian_email?: string }): Promise<{ user: PublicAccount }>;
   login(body: { email: string; password: string }): Promise<{ token: string; user: PublicAccount }>;
   logout(token: string): Promise<{ ok: true }>;
   me(token: string): Promise<{ user: PublicAccount }>;
@@ -98,6 +101,9 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
     applyToTask: (taskId, body) =>
       request(`/v1/tasks/${taskId}/applications`, { method: "POST", body: JSON.stringify(body) }),
     listMyApplications: () => request("/v1/me/applications"),
+    startIdentity: (body) => request("/v1/auth/identity", { method: "POST", body: JSON.stringify(body) }, false),
+    uploadIdentityFile: (id, body) => request(`/v1/auth/identity/${id}/files`, { method: "POST", body: JSON.stringify(body) }, false),
+    completeIdentity: (id) => request(`/v1/auth/identity/${id}/complete`, { method: "POST", body: "{}" }, false),
     register: (body) => request("/v1/auth/register", { method: "POST", body: JSON.stringify(body) }, false),
     login: (body) => request("/v1/auth/login", { method: "POST", body: JSON.stringify(body) }, false),
     logout: (token) => request("/v1/auth/logout", { method: "POST", body: "{}", headers: { Authorization: "Bearer " + token } }, false),

@@ -1,5 +1,14 @@
 # Website verification
 
+Redesign checked on 4 October 2026 against backend `9e3557f`, with repository updates through `ab422f1`:
+
+- 22 frontend tests pass, including exact shared client/type copies; production build and SSR prerender pass.
+- Actual task cards, category filters, diacritic-insensitive search, empty-result reset, and table/card switching checked in the in-app browser.
+- Light theme survives reload; both light and dark interfaces inspected.
+- Landing and expanded card details checked at 320, 375, 768, and 1440 pixels: one H1 and no horizontal document overflow. The local WebP loads at its declared 1200 × 900 dimensions.
+- Created a real task for 125.50 RON, accepted the seeded worker's application, completed the task, and submitted a five-star review through the UI. The completed task and review remain accessible in the new card detail view.
+- This redesign retains demo poster flows. Auth/payment/cancel/dispute mentioned in the updated brief are not mounted by this visual change.
+
 Checked on 4 October 2026 against the real Go API, initially at `7db1ecf`, then rechecked after pulling teammate updates through `2c4233b`. The API was run with separate local test databases outside the repository. No backend or mobile source was modified.
 
 - `go test ./...`: passed the repository's existing API integration suite.

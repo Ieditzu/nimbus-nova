@@ -189,6 +189,26 @@ CREATE TABLE IF NOT EXISTS diplomas (
   code TEXT NOT NULL,
   issued_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS identity_sessions (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  status TEXT NOT NULL,
+  birth_date TEXT,
+  proof_hash TEXT,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS identity_files (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  slot TEXT NOT NULL,
+  content_type TEXT NOT NULL,
+  size INTEGER NOT NULL,
+  sha256 TEXT NOT NULL,
+  body BLOB NOT NULL,
+  UNIQUE (session_id, slot)
+);
 `)
 	return err
 }
@@ -365,6 +385,8 @@ func (s *Store) SeedIfEmpty() error {
 func (s *Store) Reset() error {
 	return s.withImmediate(func(ctx context.Context, conn *sql.Conn) error {
 		for _, q := range []string{
+			`DELETE FROM identity_files`,
+			`DELETE FROM identity_sessions`,
 			`DELETE FROM diplomas`,
 			`DELETE FROM attendances`,
 			`DELETE FROM notifications`,

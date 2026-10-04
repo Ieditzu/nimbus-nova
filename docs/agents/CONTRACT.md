@@ -117,3 +117,15 @@ Do not route these in Wave A. Haivas adds them without renaming the live fields.
 | `GET /v1/events` | Haivas | phone, under 18 only |
 
 Fee rule when pay exists: poster is charged `amount_bani`. Worker payout is `amount_bani - floor(amount_bani * 15 / 100)` using integer math, half away from zero. Nova keeps the fee. Clients display those numbers. They do not calculate a second fee.
+
+## Identity proof
+
+Worker `POST /v1/auth/register` does not accept a client `birth_date`. It requires `identity_proof`. Poster registration still sends `birth_date`. A minor worker still sends `guardian_email`. The server derives `birth_date` and `volunteer_only` from the proof.
+
+`POST /v1/auth/identity` body `{ "email", "kind" }` where `kind` is `ci` or `cei`. `201` returns `{ "verification": { "id", "email", "kind", "status": "collecting", "expires_at" } }`. The session expires in 15 minutes.
+
+`POST /v1/auth/identity/{id}/files` body `{ "slot", "content_type", "content_base64" }`. Slots for `ci` are `ci_front`, `ci_back`, `ci_scan_text`, `selfie`. Slots for `cei` are `cei_front`, `cei_back`, `cei_pdf`, `selfie`. Images are `image/jpeg` or `image/png`. The scan text is `text/plain`. The CEI file is `application/pdf`. The response is `{ "file": { "id", "slot", "sha256" } }`. File bytes are never returned.
+
+`POST /v1/auth/identity/{id}/complete` body `{}`. The server reads the CNP from `cei_pdf` or `ci_scan_text`, checks the CNP checksum, and derives the birth date. `200` returns `{ "verification": { ..., "status": "verified", "checks": { "files": "passed", "cnp": "passed", "selfie": "passed", "face_match": "not_available" } }, "proof": { "token", "expires_at", "email" } }`. `face_match` is not a passed face comparison. Do not treat it as one.
+
+Register sends `identity_proof` equal to `proof.token` and the same email. The proof is single-use. Missing proof is `409 identity_required`. Expired is `409 proof_expired`. Reuse is `409 proof_used`.

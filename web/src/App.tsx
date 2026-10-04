@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { ArrowRightIcon, ArrowUpRightIcon } from '@phosphor-icons/react';
 import { Health } from './components/Health';
+import { ThemeToggle } from './components/ThemeToggle';
 import LandingPage from './pages/LandingPage';
 import PosterPage from './pages/PosterPage';
 
@@ -28,5 +29,5 @@ function NotFound() {
   return <main id="main-content" className="route-message page-width"><span className="eyebrow">404</span><h1>Pagina nu există.</h1><p>Poate linkul este incomplet. Poți reveni la Nimbus Nova.</p><Link className="button button-primary" to="/">Înapoi la început<ArrowRightIcon size={18} aria-hidden="true" /></Link></main>;
 }
 export default function App() {
-  return <><Metadata /><a className="skip-link" href="#main-content">Mergi la conținut</a><header className="site-header"><div className="page-width header-inner"><Link to="/" className="brand" aria-label="Nimbus Nova, pagina principală"><span className="brand-mark" aria-hidden="true">n</span><span>Nimbus<span className="brand-light">Nova</span></span></Link><nav aria-label="Navigare principală"><NavLink to="/" end>Acasă</NavLink><NavLink to="/poster">Sarcinile mele<ArrowUpRightIcon size={16} aria-hidden="true" /></NavLink></nav><div className="header-health"><Health /></div></div></header><Routes><Route path="/" element={<LandingPage />} /><Route path="/poster" element={<PosterPage />} /><Route path="*" element={<NotFound />} /></Routes><footer className="site-footer"><div className="page-width footer-inner"><Link className="footer-brand" to="/">Nimbus Nova</Link><p>Demo pentru adulți. Fără plăți sau angajare.</p><span>© {new Date().getFullYear()} Nimbus Nova</span></div></footer></>;
+  return <><Metadata /><a className="skip-link" href="#main-content">Mergi la conținut</a><header className="site-header"><div className="page-width header-inner"><Link to="/" className="brand" aria-label="Nimbus Nova, pagina principală"><span className="brand-mark" aria-hidden="true">n</span><span>Nimbus Nova</span></Link><nav aria-label="Navigare principală"><NavLink to="/" end>Acasă</NavLink><NavLink to="/poster">Sarcinile mele<ArrowUpRightIcon size={16} aria-hidden="true" /></NavLink></nav><ThemeToggle /></div></header><Routes><Route path="/" element={<LandingPage />} /><Route path="/poster" element={<PosterPage />} /><Route path="*" element={<NotFound />} /></Routes><footer className="site-footer"><div className="page-width footer-inner"><Link className="footer-brand" to="/">Nimbus Nova</Link><p>Demo pentru adulți. Fără plăți sau angajare.</p><Health /><span>© {new Date().getFullYear()} Nimbus Nova</span></div></footer></>;
 }
