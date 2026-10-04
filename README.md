@@ -8,3 +8,4 @@ Nimbus Nova is the company in the middle between people with free time and peopl
 - [Running API contract](docs/PLAN.md)
 - [Contract fixtures](docs/fixtures/)
 - [API and integration tests](api/)
+- [Agent briefs](docs/agents/START-HERE.md)
