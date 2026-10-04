@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import './styles.css';
 import './feed.css';
 import './legal.css';
+import './not-found.css';
 import App from './App';
 
 export { api } from './api/instance';
