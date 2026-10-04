@@ -859,7 +859,7 @@ func TestResetRestoresSeed(t *testing.T) {
 
 func TestCORS(t *testing.T) {
 	h := start(t)
-	for _, origin := range []string{"http://127.0.0.1:5173", "http://localhost:5173", "http://10.0.2.2:8081", "http://192.168.1.20:8081", "https://nimbusnova.cc", "https://www.nimbusnova.cc"} {
+	for _, origin := range []string{"http://127.0.0.1:5173", "http://localhost:5173", "http://10.0.2.2:8081", "http://192.168.1.20:8081", "https://nimbusnova.cc", "https://www.nimbusnova.cc", "https://app.nimbusnova.cc", "https://admin.nimbusnova.cc"} {
 		req, _ := http.NewRequest(http.MethodGet, h.URL+"/v1/tasks", nil)
 		req.Header.Set("Origin", origin)
 		res, err := http.DefaultClient.Do(req)

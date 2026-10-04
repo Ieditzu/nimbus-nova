@@ -304,7 +304,7 @@ var originPattern = regexp.MustCompile(`^http://(localhost|127\.0\.0\.1|10\.\d+\
 
 func AllowedOrigin(origin string) bool {
 	switch origin {
-	case "https://nimbusnova.cc", "https://www.nimbusnova.cc":
+	case "https://nimbusnova.cc", "https://www.nimbusnova.cc", "https://app.nimbusnova.cc", "https://admin.nimbusnova.cc":
 		return true
 	}
 	return originPattern.MatchString(origin)
