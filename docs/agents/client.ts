@@ -58,6 +58,7 @@ export interface NovaClient {
   listAdminTasks(): Promise<{ tasks: TaskPublic[] }>;
   hideTask(taskId: string): Promise<{ task: TaskPublic }>;
   resetDemo(): Promise<{ ok: true }>;
+  getReputation(userId: string): Promise<{ count: number; average: number }>;
   listEvents(): Promise<{ events: Array<{ id: string; title: string; city: string; starts_at: string; ends_at: string; slots: number; min_age: number; description: string }> }>;
 }
 
@@ -121,6 +122,7 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
     listAdminTasks: () => request("/v1/admin/tasks"),
     hideTask: (taskId) => request(`/v1/admin/tasks/${taskId}/hide`, { method: "POST", body: "{}" }),
     resetDemo: () => request("/v1/demo/reset", { method: "POST", body: "{}" }),
+    getReputation: (userId) => request(`/v1/users/${userId}/reputation`, {}, false),
     listEvents: () => request("/v1/events", {}, false),
   };
 }

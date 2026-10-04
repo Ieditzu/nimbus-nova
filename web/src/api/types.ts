@@ -98,3 +98,8 @@ export interface IdentityProof {
   expires_at: string;
   email: string;
 }
+
+export interface Reputation {
+  count: number;
+  average: number;
+}
