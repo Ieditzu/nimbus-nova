@@ -1,3 +1,4 @@
+import { AuthProvider } from "../auth/session";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ThemeProvider, useTheme } from "../components/theme";
@@ -5,7 +6,9 @@ import { ThemeProvider, useTheme } from "../components/theme";
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <Navigation />
+      <AuthProvider>
+        <Navigation />
+      </AuthProvider>
     </ThemeProvider>
   );
 }

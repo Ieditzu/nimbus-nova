@@ -1,6 +1,8 @@
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { api } from "../api";
+import { useAuth } from "../auth/session";
+import { AuthForm } from "../components/auth-form";
+import { NovaError } from "../api/client";
 import type { Profile } from "../api/types";
 import { errorMessage } from "../lib/errors";
 import { Button, Header, Icon, Page, State, useData } from "../components/ui";
@@ -13,8 +15,7 @@ import {
 export default function ProfileScreen() {
   const { colors, preference, setPreference, storageError } = useTheme();
   const s = styles(colors);
-  const load = useCallback(() => api.getMyProfile(), []);
-  const { data, loading, error, reload } = useData(load);
+  const { session, restoring } = useAuth();
   const options: { value: ThemePreference; label: string }[] = [
     { value: "dark", label: "Întunecată" },
     { value: "light", label: "Luminoasă" },
@@ -22,7 +23,19 @@ export default function ProfileScreen() {
   ];
   return (
     <Page>
-      <Header title="Profil" subtitle="Datele văzute de organizatori." />
+      <Header
+        title="Profil"
+        subtitle={
+          session ? "Datele văzute de organizatori." : "Contul tău Nova."
+        }
+      />
+      {restoring ? (
+        <State loading />
+      ) : session ? (
+        <WorkerProfile />
+      ) : (
+        <AuthForm />
+      )}
       <View style={s.appearance}>
         <Text style={s.sectionTitle}>Aspect</Text>
         <View style={s.options}>
@@ -56,14 +69,77 @@ export default function ProfileScreen() {
           </Text>
         ) : null}
       </View>
+    </Page>
+  );
+}
+function WorkerProfile() {
+  const { session, signOut, notice, client } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+  const { colors } = useTheme();
+  const s = styles(colors);
+  async function logout() {
+    setLoggingOut(true);
+    setLogoutError("");
+    try {
+      await signOut();
+    } catch (e) {
+      setLogoutError(errorMessage(e));
+    } finally {
+      setLoggingOut(false);
+    }
+  }
+  const load = useCallback(async () => {
+    let result;
+    try {
+      result = await client.getMyProfile();
+    } catch (e) {
+      if (e instanceof NovaError && e.status === 404 && session)
+        return {
+          profile: {
+            user_id: session.user.id,
+            display_name: session.user.display_name,
+            skills: [],
+            city: "",
+            availability: "",
+            bio: "",
+          } as Profile,
+        };
+      throw e;
+    }
+    if (result.profile.user_id !== session?.user.id)
+      throw new NovaError(
+        503,
+        "profile_mismatch",
+        "Profilul nu corespunde contului conectat.",
+      );
+    return result;
+  }, [session, client]);
+  const { data, loading, error, reload } = useData(load);
+  return (
+    <>
+      {notice ? <Text style={s.help}>{notice}</Text> : null}
+      <Button
+        variant="outline"
+        disabled={loggingOut}
+        onPress={() => void logout()}
+      >
+        {loggingOut ? "Se deconectează..." : "Deconectează-te"}
+      </Button>
+      {logoutError ? (
+        <Text accessibilityRole="alert" style={s.error}>
+          {logoutError}
+        </Text>
+      ) : null}
       <State loading={loading} error={error} onRetry={() => void reload()} />
       {data?.profile ? (
         <ProfileForm key={data.profile.user_id} profile={data.profile} />
       ) : null}
-    </Page>
+    </>
   );
 }
 function ProfileForm({ profile }: { profile: Profile }) {
+  const { client, session } = useAuth();
   const { colors, isDark } = useTheme();
   const s = styles(colors);
   const [skills, setSkills] = useState(profile.skills.join(", "));
@@ -89,7 +165,7 @@ function ProfileForm({ profile }: { profile: Profile }) {
     setSaveError("");
     setSaved(false);
     try {
-      const result = await api.putMyProfile({
+      const result = await client.putMyProfile({
         skills: skills
           .split(",")
           .map((item) => item.trim())
@@ -117,7 +193,11 @@ function ProfileForm({ profile }: { profile: Profile }) {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={s.name}>{profile.display_name}</Text>
-          <Text style={s.help}>Cont demonstrativ</Text>
+          <Text style={s.help}>
+            {session?.user.volunteer_only
+              ? "Cont pentru voluntariat"
+              : "Contul tău Nova"}
+          </Text>
         </View>
       </View>
       <View style={s.field}>

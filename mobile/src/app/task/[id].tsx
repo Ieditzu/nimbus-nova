@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useAuth } from "../../auth/session";
 import { api } from "../../api";
 import { formatBani, NovaError } from "../../api/client";
 import { errorMessage } from "../../lib/errors";
@@ -10,6 +11,7 @@ import { useTheme, type Colors } from "../../components/theme";
 
 export default function TaskDetailScreen() {
   const { colors, isDark } = useTheme();
+  const { session, restoring, client } = useAuth();
   const s = styles(colors);
   const { id } = useLocalSearchParams<{ id: string }>();
   const load = useCallback(() => api.getTask(id), [id]);
@@ -21,7 +23,7 @@ export default function TaskDetailScreen() {
     setActionError("");
     setBusy(true);
     try {
-      await api.applyToTask(id, { message: message.trim() });
+      await client.applyToTask(id, { message: message.trim() });
       router.push("/applications");
     } catch (e) {
       if (e instanceof NovaError && e.code === "profile_required") {
@@ -74,9 +76,7 @@ export default function TaskDetailScreen() {
               <Icon name="time-outline" />
               <Text style={s.factText}>{when.time}</Text>
             </View>
-            <Text style={s.note}>
-              Sumă propusă. În acest demo nu se încasează plata.
-            </Text>
+            <Text style={s.note}>Sumă propusă de organizator.</Text>
           </View>
           <View style={s.section}>
             <Text style={s.sectionTitle}>Ce ai de făcut</Text>
@@ -91,7 +91,20 @@ export default function TaskDetailScreen() {
               <Text style={s.body}>{task.safety_note}</Text>
             </View>
           ) : null}
-          {task.status === "open" ? (
+          {task.status === "open" && restoring ? (
+            <State loading />
+          ) : task.status === "open" && !session ? (
+            <View style={s.section}>
+              <Text style={s.sectionTitle}>Vrei să aplici?</Text>
+              <Text style={s.body}>
+                Conectează-te sau creează un cont pentru a trimite un mesaj
+                organizatorului.
+              </Text>
+              <Button onPress={() => router.push("/profile")}>
+                Conectează-te pentru a aplica
+              </Button>
+            </View>
+          ) : task.status === "open" ? (
             <View style={s.section}>
               <Text style={s.sectionTitle}>Aplică la această sarcină</Text>
               <Text style={s.body}>

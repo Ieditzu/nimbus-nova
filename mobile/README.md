@@ -26,13 +26,13 @@ npm run lint
 
 Nova starts in dark mode. Use the sun/moon button for a quick switch, or choose dark, light, or system appearance under **Profil → Aspect**. The choice is stored locally on the device. Larger controls, plain screen titles, and readable task dates keep the main actions easy to find.
 
-## Screens and demo
+## Screens and accounts
 
 - Discover: open tasks filtered by city/category; pull to refresh.
 - Task details: schedule, proposed RON amount, safety note, and application message.
 - Profile: read-only name, editable skills, city, availability, and bio.
 - My applications: application and task statuses; pull to refresh.
 
-The worker identity is fixed to `worker-1`. The Go API validates permissions and rejects duplicate applications. When a poster accepts an application on the teammate's website, the app updates its status. Data reloads on screen focus and pull to refresh; the app does not poll. Authentication and payments are simulated for the adult-only demo.
+Users create a worker account or sign in from Profile. Private requests use the bearer token returned by the Go API; there is no demo actor fallback. iOS and Android store the token with Expo SecureStore. Browser preview uses session storage. The Go API validates permissions and rejects duplicate applications. When a poster accepts an application on the teammate's website, the app updates its status. Data reloads on screen focus and pull to refresh; the app does not poll. Account registration, login, and logout use the real API. Payment controls are outside the current mobile scope.
 
 Codex assisted Perjoc with the initial app code, API client, styling, and setup notes. Nova's icon is a simple vector star rendered to PNG. Review and verify the code before the final submission.

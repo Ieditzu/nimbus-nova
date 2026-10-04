@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
-import { Link } from "expo-router";
+import { useAuth } from "../auth/session";
+import { Link, router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { api } from "../api";
 import { formatBani } from "../api/client";
 import {
   applicationStatusLabel,
@@ -20,9 +20,30 @@ import {
 import { useTheme, type Colors } from "../components/theme";
 
 export default function MyApplicationsScreen() {
+  const { session, restoring } = useAuth();
+  if (restoring)
+    return (
+      <Page>
+        <State loading />
+      </Page>
+    );
+  if (!session)
+    return (
+      <Page>
+        <Header
+          title="Aplicările mele"
+          subtitle="Intră în cont pentru a vedea aplicările tale."
+        />
+        <Button onPress={() => router.push("/profile")}>Conectează-te</Button>
+      </Page>
+    );
+  return <WorkerApplications key={session.user.id} />;
+}
+function WorkerApplications() {
   const { colors } = useTheme();
   const s = styles(colors);
-  const load = useCallback(() => api.listMyApplications(), []);
+  const { client } = useAuth();
+  const load = useCallback(() => client.listMyApplications(), [client]);
   const { data, loading, error, reload } = useData(load);
   const [refreshing, setRefreshing] = useState(false);
   async function refresh() {

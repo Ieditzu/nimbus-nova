@@ -53,12 +53,15 @@ export interface NovaClient {
   listEvents(): Promise<{ events: Array<{ id: string; title: string; city: string; starts_at: string; ends_at: string; slots: number; min_age: number; description: string }> }>;
 }
 
-export function createNovaClient(baseUrl: string, actor: ActorId): NovaClient {
+export function createNovaClient(baseUrl: string, auth: ActorId | { token: string }): NovaClient {
   const root = baseUrl.replace(/\/$/, "");
+  const token = typeof auth === "string" ? "" : auth.token;
+  const actor = typeof auth === "string" ? auth : "";
 
   async function request<T>(path: string, init: RequestInit = {}, sendActor = true): Promise<T> {
     const headers = new Headers(init.headers);
-    if (sendActor) headers.set("X-Demo-Actor", actor);
+    if (token && !headers.has("Authorization")) headers.set("Authorization", "Bearer " + token);
+    else if (sendActor && actor) headers.set("X-Demo-Actor", actor);
     if (init.body) headers.set("Content-Type", "application/json");
     const response = await fetch(root + path, { ...init, headers });
     const text = await response.text();
