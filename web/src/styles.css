@@ -2,8 +2,8 @@
 @layer base {
   @font-face { font-family: 'Manrope Variable'; font-style: normal; font-weight: 200 800; font-display: swap; src: url('@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
   @font-face { font-family: 'Manrope Variable'; font-style: normal; font-weight: 200 800; font-display: swap; src: url('@fontsource-variable/manrope/files/manrope-latin-ext-wght-normal.woff2') format('woff2'); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
-  :root { font-family: 'Manrope Variable', sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; color: var(--ink); background: var(--paper); color-scheme: dark; --paper: #101010; --surface: #181818; --ink: #f5f5f5; --muted: #aaa9a6; --line: #333; --soft: #202020; --accent: #f5f5f5; --accent-ink: #101010; --accent-hover: #d8d8d8; --danger: #ffaaa1; --error-bg: #2a1919; --error-line: #64403b; --radius: 12px; --space-8: 8px; --space-16: 16px; --space-24: 24px; --space-32: 32px; --space-64: 64px; line-height: 1.5; font-weight: 400; }
-  :root[data-theme="light"] { color-scheme: light; --paper: #fafafa; --surface: #fff; --ink: #141414; --muted: #666; --line: #dedede; --soft: #f0f0f0; --accent: #141414; --accent-ink: #fff; --accent-hover: #333; --danger: #a22a23; --error-bg: #fff3f1; --error-line: #e6c8c3; }
+  :root { font-family: 'Manrope Variable', sans-serif; font-synthesis: none; text-rendering: optimizeLegibility; color: var(--ink); background: var(--paper); color-scheme: dark; --paper: #101615; --surface: #19211f; --ink: #f0f4f2; --muted: #a9b8b0; --line: #34433c; --soft: #222d29; --accent: #96e0ba; --accent-ink: #10251a; --accent-hover: #b1ebce; --danger: #ffaaa1; --error-bg: #2a1919; --error-line: #64403b; --radius: 12px; --space-8: 8px; --space-16: 16px; --space-24: 24px; --space-32: 32px; --space-64: 64px; line-height: 1.5; font-weight: 400; }
+  :root[data-theme="light"] { color-scheme: light; --paper: #f4f6f3; --surface: #fff; --ink: #17261e; --muted: #62736a; --line: #d7e1d9; --soft: #e8eee8; --accent: #256247; --accent-ink: #fff; --accent-hover: #1c5038; --danger: #a22a23; --error-bg: #fff3f1; --error-line: #e6c8c3; }
   * { box-sizing: border-box; }
   body { margin: 0; min-width: 320px; }
   h1,h2,h3,p { margin: 0; }
@@ -373,4 +373,76 @@
     .category-chips { gap: 6px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; } .category-chips button { flex-shrink: 0; font-size: 12px; padding-inline: 12px; } .filters { padding: 0; gap: 6px; justify-content: flex-start; } .filters button { padding-inline: 12px; font-size: 13px; }
   }
   @media (prefers-reduced-motion: reduce) { *,*::before,*::after { scroll-behavior: auto !important; transition: none !important; } }
+}
+
+@layer components {
+  .header-inner { min-height: 76px; }
+  .brand-mark { color: var(--accent); }
+  .page-width { width: min(1280px,calc(100% - 80px)); }
+  .dashboard { gap: 32px; padding-block: 28px 48px; }
+  .dashboard-heading h1 { font-size: 34px; margin: 6px 0; }
+  .dashboard-heading .eyebrow { color: var(--accent); }
+  .workspace-link[aria-pressed="true"] { color: var(--accent); background: var(--soft); }
+  .workspace-identity .avatar { background: var(--accent); color: var(--accent-ink); }
+  .task-overview { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; border: 0; margin-top: 24px; }
+  .task-overview button { position: relative; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); padding: 16px 20px; }
+  .task-overview button strong { font-size: 30px; line-height: 1.2; margin-top: 8px; }
+  .task-overview button[aria-pressed="true"] { border-color: var(--accent); }
+  .tasks-section { margin-top: 24px; }
+  .task-discovery { margin-block: 16px 12px; }
+  .category-chips { margin-bottom: 18px; }
+  .filters button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .category-chips button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  .task-card-grid { gap: 16px; }
+  .task-card { padding: 20px; border-radius: 18px; }
+  .task-card-top { margin-bottom: 16px; }
+  .task-card h3 { font-size: 21px; }
+  .task-card-bottom { padding-top: 18px; }
+  .task-card-bottom .money { color: var(--accent); }
+  .badge-open,.badge-accepted { color: var(--accent); }
+  .badge-completed { color: var(--ink); }
+  .task-card .task-detail { padding: 20px 0 0; background: transparent; }
+  .task-description h3 { font-size: 23px; }
+  .task-actions { margin-block: 24px; padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); }
+  .task-actions-heading { display: flex; gap: 16px; justify-content: space-between; align-items: start; margin-bottom: 16px; }
+  .task-actions-heading h3 { margin: 0 0 6px; font-size: 19px; }
+  .task-actions-heading p { color: var(--muted); font-size: 13px; }
+  .demo-pill { color: var(--accent); font-size: 12px; border: 1px solid var(--line); border-radius: 20px; padding: 4px 10px; }
+  .task-action-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+  .task-action-buttons .button { min-height: 46px; padding: 12px 16px; }
+  .action-confirmation,.dispute-form,.payment-receipt { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .action-confirmation h4,.payment-receipt h4 { margin: 0 0 10px; font-size: 16px; }
+  .action-confirmation p,.payment-receipt > p { color: var(--muted); font-size: 13px; }
+  .action-confirmation > div,.dispute-form > div { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  .button-danger { background: var(--error-bg); border: 1px solid var(--error-line); color: var(--danger); }
+  .payment-receipt dl { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin: 16px 0; }
+  .payment-receipt dt { color: var(--muted); font-size: 13px; }
+  .payment-receipt dd { margin: 6px 0 0; font-size: 19px; font-weight: 700; }
+  .dispute-reference { font-size: 13px; color: var(--muted); margin-top: 12px; overflow-wrap: anywhere; }
+  .hero { padding-block: 40px; gap: 40px; }
+  .hero-copy .eyebrow { color: var(--accent); }
+  .hero-tagline { font-size: clamp(42px,4.2vw,60px); }
+  .hero-photo img { border-radius: 24px; }
+  .how-section,.platform-story { padding-block: 40px; gap: 24px; }
+  .steps { gap: 24px; }
+  .steps li { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 24px; }
+  .step-number { color: var(--accent); }
+  .steps h3 { font-size: 21px; margin-bottom: 10px; }
+  .steps p { font-size: 15px; }
+  .boundaries { padding-block: 40px; }
+  .category-chips { scrollbar-width: none; }
+  .category-chips::-webkit-scrollbar { display: none; }
+}
+@layer responsive {
+  @media (max-width: 1100px) { .page-width { width: calc(100% - 48px); } .hero { gap: 24px; } }
+  @media (max-width: 640px) {
+    .page-width { width: calc(100% - 32px); } .header-inner { min-height: 72px; }
+    .dashboard { padding-top: 24px; } .dashboard-heading h1 { font-size: 30px; } .dashboard-heading { gap: 16px; }
+    .task-overview { gap: 8px; margin-top: 20px; } .task-overview button { padding: 12px; } .task-overview button strong { font-size: 26px; } .task-overview button span { font-size: 12px; }
+    .task-overview button svg { display: none; } .tasks-toolbar { padding-inline: 0; } .tasks-section { margin-top: 24px; }
+    .task-card { padding: 18px; } .task-actions { padding: 16px; } .payment-receipt dl { grid-template-columns: 1fr; gap: 12px; }
+    .payment-receipt dl > div { display: flex; justify-content: space-between; gap: 12px; align-items: center; } .payment-receipt dd { margin: 0; font-size: 17px; }
+    .task-action-buttons .button { width: 100%; } .action-confirmation .button,.dispute-form .button { width: 100%; }
+    .hero { padding-block: 28px; } .hero-tagline { font-size: 38px; } .steps li { padding: 20px; }
+  }
 }

@@ -8,7 +8,7 @@ export function ThemeToggle() {
     const sync = (event: StorageEvent) => {
       if (event.key === 'nova-theme' && (event.newValue === 'light' || event.newValue === 'dark')) {
         document.documentElement.dataset.theme = event.newValue;
-        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', event.newValue === 'dark' ? '#101010' : '#fafafa');
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', event.newValue === 'dark' ? '#101615' : '#f4f6f3');
         setTheme(event.newValue);
       }
     };
@@ -17,7 +17,7 @@ export function ThemeToggle() {
   }, []);
   function choose(value: 'light' | 'dark') {
     document.documentElement.dataset.theme = value;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', value === 'dark' ? '#101010' : '#fafafa');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', value === 'dark' ? '#101615' : '#f4f6f3');
     setTheme(value);
     try { localStorage.setItem('nova-theme', value); } catch { /* Theme remains usable when storage is unavailable. */ }
   }
