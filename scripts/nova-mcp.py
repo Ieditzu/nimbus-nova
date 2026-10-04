@@ -175,6 +175,10 @@ class Link:
         self.send(line)
 
 
+def result(payload, error=False):
+    return {"content": [{"type": "text", "text": json.dumps(payload, ensure_ascii=False)}], "isError": error}
+
+
 def call_tool(link, name, args):
     if name == "nova_say":
         text = str(args.get("text", "")).strip()
