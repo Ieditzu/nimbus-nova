@@ -1,77 +1,420 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowClockwiseIcon, ArrowRightIcon, BookmarkSimpleIcon, CalendarBlankIcon, FunnelSimpleIcon, MagnifyingGlassIcon, MapPinIcon, PlusIcon, RowsIcon, SquaresFourIcon, StarIcon, XIcon } from '@phosphor-icons/react';
+import {
+  ArrowRightIcon, ArrowUpRightIcon, CaretDownIcon, ChatCircleDotsIcon, DeviceMobileIcon, HandCoinsIcon, IdentificationCardIcon,
+  ListIcon, LockKeyIcon, MapPinIcon, ShieldCheckIcon, XIcon,
+} from '@phosphor-icons/react';
 import { api } from '../api/instance';
 import { formatBani } from '../api/client';
 import type { Category, TaskPublic } from '../api/types';
-import { categories } from '../lib/labels';
-import { errorMessage, formatInterval } from '../lib/format';
+import { Health } from '../components/Health';
+import { ThemeToggle } from '../components/ThemeToggle';
+import './landing.css';
 
-type Sort = 'recent' | 'soon' | 'price-low' | 'price-high' | 'rating';
-type Horizon = 'all' | 'today' | 'week';
-const options: Array<{ id: Category | 'all'; label: string }> = [
-  { id: 'all', label: 'Toate' }, { id: 'event_setup', label: 'Evenimente' },
-  { id: 'light_moving', label: 'Mutări ușoare' }, { id: 'shop_cover', label: 'Magazine' }, { id: 'other', label: 'Altele' },
-];
-const dateLabel = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'short', timeZone: 'Europe/Bucharest' });
+const APP_URL = 'https://app.nimbusnova.cc';
+const FEE_PERCENT = 15;
 
-function ListingCard({ task, saved, onSave, reputation }: { task: TaskPublic; saved: boolean; onSave: () => void; reputation?: { count: number; average: number } }) {
-  const [expanded, setExpanded] = useState(false);
-  return <article className={`feed-card feed-card-${task.category}`}>
-    <div className="feed-card-top"><span className="feed-avatar" aria-hidden="true">{task.poster_name.slice(0, 1).toLocaleUpperCase('ro-RO')}</span><div><strong>{task.poster_name}</strong><span>Publicat {dateLabel.format(new Date(task.created_at))}{reputation && reputation.count > 0 && <> · <StarIcon size={11} weight="fill" aria-hidden="true" /> {reputation.average.toFixed(1)} ({reputation.count})</>}</span></div><button className="feed-save" aria-label={saved ? `Elimină ${task.title} din salvate` : `Salvează ${task.title}`} aria-pressed={saved} onClick={onSave}><BookmarkSimpleIcon size={21} weight={saved ? 'fill' : 'regular'} aria-hidden="true" /></button></div>
-    <div className="feed-card-art" aria-hidden="true"><span>{categories[task.category]}</span><strong>{task.category === 'event_setup' ? 'EV' : task.category === 'light_moving' ? 'MU' : task.category === 'shop_cover' ? 'SH' : 'NO'}</strong><small>NOVA / {task.id.slice(-4).toUpperCase()}</small></div>
-    <div className="feed-card-body"><div className="feed-card-title"><h3>{task.title}</h3><strong>{formatBani(task.amount_bani)}</strong></div><div className="feed-card-meta"><span><MapPinIcon size={16} aria-hidden="true" />{task.city}</span><span><CalendarBlankIcon size={16} aria-hidden="true" />{formatInterval(task.starts_at, task.ends_at)}</span></div>{expanded && <div className="feed-card-details" id={`feed-detail-${task.id}`}><p>{task.description}</p>{task.safety_note && <p><strong>Siguranță:</strong> {task.safety_note}</p>}<p>Lucrătorii folosesc aplicația mobilă pentru a candida.</p></div>}<button className="feed-details-button" aria-expanded={expanded} aria-controls={`feed-detail-${task.id}`} onClick={() => setExpanded(value => !value)}>{expanded ? 'Ascunde detaliile' : 'Vezi detaliile'} <ArrowRightIcon size={17} aria-hidden="true" /></button></div>
-  </article>;
+const reduced = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const delay = (ms: number) => ({ '--d': `${ms}ms` }) as CSSProperties;
+
+/* ------------------------------------------------------------------ hooks */
+
+/** Elements with data-reveal fade in once. Nothing is hidden until this runs, so prerendered HTML stays readable. */
+function useReveal(root: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = root.current;
+    if (!el || !('IntersectionObserver' in window) || reduced()) return;
+    el.dataset.anim = 'on';
+    const io = new IntersectionObserver(entries => entries.forEach(entry => {
+      if (entry.isIntersecting) { entry.target.classList.add('is-in'); io.unobserve(entry.target); }
+    }), { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+    el.querySelectorAll('[data-reveal]').forEach(node => io.observe(node));
+    return () => { io.disconnect(); delete el.dataset.anim; };
+  }, [root]);
 }
 
+function useScrollProgress(root: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    let raf = 0;
+    const update = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        el.style.setProperty('--p', String(max > 0 ? Math.min(1, window.scrollY / max) : 0));
+        el.classList.toggle('is-scrolled', window.scrollY > 40);
+      });
+    };
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    return () => { window.removeEventListener('scroll', update); cancelAnimationFrame(raf); };
+  }, [root]);
+}
+
+function useParallax(root: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = root.current;
+    if (!el || reduced() || window.matchMedia('(pointer: coarse)').matches) return;
+    let raf = 0;
+    const move = (event: PointerEvent) => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const box = el.getBoundingClientRect();
+        el.style.setProperty('--mx', String((event.clientX - box.left) / box.width - 0.5));
+        el.style.setProperty('--my', String((event.clientY - box.top) / box.height - 0.5));
+      });
+    };
+    el.addEventListener('pointermove', move);
+    return () => { el.removeEventListener('pointermove', move); cancelAnimationFrame(raf); };
+  }, [root]);
+}
+
+function CountUp({ to, suffix = '' }: { to: number; suffix?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [value, setValue] = useState(to);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !('IntersectionObserver' in window) || reduced()) { setValue(to); return; }
+    let raf = 0;
+    setValue(0);
+    const io = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      io.disconnect();
+      const start = performance.now();
+      const tick = (now: number) => {
+        const progress = Math.min(1, (now - start) / 1200);
+        setValue(Math.round(to * (1 - (1 - progress) ** 3)));
+        if (progress < 1) raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    }, { threshold: 0.4 });
+    io.observe(el);
+    return () => { io.disconnect(); cancelAnimationFrame(raf); };
+  }, [to]);
+  return <span ref={ref}>{new Intl.NumberFormat('ro-RO').format(value)}{suffix}</span>;
+}
+
+/* ---------------------------------------------------------------- stickers */
+
+const outline = { stroke: '#000', strokeWidth: 3 } as const;
+
+function Rocket() {
+  return <svg viewBox="0 0 100 100" aria-hidden="true"><rect x="4" y="4" width="92" height="92" rx="20" fill="#fb4903" {...outline} /><path d="M50 14c-10 22-8 40-4 50h8c4-10 6-28-4-50z" fill="#fff" /><path d="M36 52l-10 10 4 4 10-10zM64 52l10 10-4 4-10-10z" fill="#fff" /><circle cx="50" cy="46" r="7" fill="#fb4903" stroke="#000" strokeWidth="2.5" /><path d="M50 78l-6 8h12z" fill="#ffd731" stroke="#000" strokeWidth="2.5" /></svg>;
+}
+function Coin() {
+  return <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="#ffd731" {...outline} /><circle cx="50" cy="50" r="32" fill="none" stroke="#000" strokeWidth="2.5" /><text x="50" y="62" textAnchor="middle" fontFamily="Inter, sans-serif" fontSize="34" fontWeight="700" fill="#000">N</text></svg>;
+}
+function Check() {
+  return <svg viewBox="0 0 100 100" aria-hidden="true"><rect x="4" y="4" width="92" height="92" rx="22" fill="#55db9c" {...outline} /><path d="M24 52l18 18 34-40" fill="none" stroke="#000" strokeWidth="11" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+function Wallet() {
+  return <svg viewBox="0 0 100 100" aria-hidden="true"><rect x="4" y="8" width="92" height="84" rx="18" fill="#5c4ade" {...outline} /><path d="M12 30h76" stroke="#000" strokeWidth="3" /><circle cx="50" cy="52" r="9" fill="#ffd731" {...outline} /></svg>;
+}
+
+function Ribbon({ className = '' }: { className?: string }) {
+  const d = 'M60 150 C 220 40, 420 40, 600 100 C 780 160, 1000 170, 1140 80';
+  return <div className={`lp-ribbon ${className}`} aria-hidden="true">
+    <svg viewBox="0 0 1200 220" preserveAspectRatio="none">
+      <path d={d} pathLength={1} stroke="#000" strokeWidth="96" />
+      <path d={d} pathLength={1} stroke="#4da2ff" strokeWidth="86" />
+      <path d="M60 138 C 220 30, 420 30, 600 90 C 780 148, 1000 158, 1140 70" pathLength={1} stroke="#9ecbff" strokeWidth="24" />
+      <path d="M60 164 C 220 52, 420 52, 600 112 C 780 172, 1000 182, 1140 92" pathLength={1} stroke="#2e86e0" strokeWidth="18" />
+    </svg>
+  </div>;
+}
+
+/* -------------------------------------------------------------------- data */
+
+const categoryMeta: Record<Category, { name: string; copy: string; tone: string; glyph: string }> = {
+  event_setup: { name: 'Amenajare evenimente', copy: 'Scaune, mese și standuri. Câteva ore, într-un spațiu public.', tone: 'pink', glyph: 'EV' },
+  light_moving: { name: 'Mutat obiecte ușoare', copy: 'Cutii și obiecte mici, fără urcat în locuințe.', tone: 'blue', glyph: 'MU' },
+  shop_cover: { name: 'Acoperire în magazin', copy: 'Patru ore la un stand de cartier. Fără casă și fără numerar.', tone: 'yellow', glyph: 'SH' },
+  other: { name: 'Altele', copy: 'Orice sarcină scurtă și sigură care nu încape în restul.', tone: 'lavender', glyph: 'NO' },
+};
+
+const steps = [
+  { title: 'Postezi sarcina', copy: 'Titlu, oraș, interval de cel mult 12 ore și suma propusă. Durează câteva minute.', tone: 'blue' },
+  { title: 'Oamenii aplică', copy: 'Cei cu timp liber văd sarcina în aplicația Nova și îți scriu de ce sunt potriviți.', tone: 'mint' },
+  { title: 'Alegi și vorbești', copy: 'Accepți o candidatură și discuți detaliile în chatul privat din aplicație.', tone: 'yellow' },
+  { title: 'Plătești prin Nova', copy: 'Nova ține banii până la finalizare, apoi îi eliberează. La final lăsați recenzii.', tone: 'lavender' },
+];
+
+const safety = [
+  { icon: IdentificationCardIcon, title: 'Identitate verificată', copy: 'CI sau CEI și un selfie, înainte de a deschide un cont.' },
+  { icon: HandCoinsIcon, title: 'Banii stau la Nova', copy: 'Plata e reținută până la predare. Dacă apare o problemă, o dispută o rezolvă un moderator.' },
+  { icon: ChatCircleDotsIcon, title: 'Chat privat', copy: 'Discuți în aplicație, fără să-ți dai numărul sau adresa de la început.' },
+  { icon: LockKeyIcon, title: 'Limite din start', copy: 'Fără numerar, fără acces la domiciliu, fără condus. Doar sarcini scurte, în spații publice.' },
+];
+
+const faq = [
+  { q: 'Cine poate posta sarcini?', a: 'Orice adult cu cont verificat. La înscriere verificăm identitatea cu un act european și un selfie. Minorii nu pot posta.' },
+  { q: 'Unde aplică oamenii?', a: 'În aplicația mobilă Nova. Site-ul este pentru cei care postează: publici, primești candidaturi, accepți, plătești și dai recenzii.' },
+  { q: 'Cât costă?', a: `Publici gratuit. Când sarcina e plătită, Nova reține ${FEE_PERCENT}% din suma propusă, iar restul ajunge la lucrător. Poți vedea calculul mai sus.` },
+  { q: 'Ce fel de sarcini sunt permise?', a: 'Sarcini scurte, de cel mult 12 ore, în spații publice: amenajări de evenimente, mutat obiecte ușoare, acoperire într-un stand sau magazin. Fără numerar, fără acces la domiciliu și fără condus.' },
+  { q: 'Ce fac dacă ceva nu merge bine?', a: 'Deschide o dispută din sarcina respectivă. Un moderator Nova citește ambele părți și decide: eliberează plata, o returnează sau o împarte.' },
+  { q: 'Pot participa și minorii?', a: 'Doar la evenimente de voluntariat, fără plată și cu emailul unui tutore. Sarcinile plătite sunt numai pentru adulți.' },
+];
+
+/* -------------------------------------------------------------------- page */
+
 export default function LandingPage() {
-  const [tasks, setTasks] = useState<TaskPublic[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [reload, setReload] = useState(0);
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState<Category | 'all'>('all');
-  const [city, setCity] = useState('');
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
-  const [horizon, setHorizon] = useState<Horizon>('all');
-  const [sort, setSort] = useState<Sort>('recent');
-  const [columns, setColumns] = useState<1 | 2>(1);
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [savedOnly, setSavedOnly] = useState(false);
-  const [savedIds, setSavedIds] = useState<string[]>([]);
-  const [rating, setRating] = useState('all');
-  const [reputations, setReputations] = useState<Record<string, { count: number; average: number }>>({});
-  useEffect(() => { try { const value = JSON.parse(localStorage.getItem('nova-saved-tasks') || '[]'); if (Array.isArray(value)) setSavedIds(value.filter((id): id is string => typeof id === 'string')); } catch { /* Invalid preference is harmless. */ } }, []);
-  useEffect(() => { let current = true; api.listOpenTasks().then(({ tasks }) => { if (current) { setTasks(tasks); setError(''); setLoading(false); } }).catch(cause => { if (current) { setError(errorMessage(cause)); setLoading(false); } }); return () => { current = false; }; }, [reload]);
-  useEffect(() => { let current = true; const ids = [...new Set(tasks.map(task => task.poster_id))]; Promise.allSettled(ids.map(id => api.getReputation(id))).then(results => { if (!current) return; const next: Record<string, { count: number; average: number }> = {}; results.forEach((result, index) => { if (result.status === 'fulfilled') next[ids[index]] = result.value; }); setReputations(next); }); return () => { current = false; }; }, [tasks]);
-  const visible = useMemo(() => {
-    const now = new Date();
-    const fold = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('ro-RO');
-    const lower = minPrice === '' ? null : Number(minPrice), upper = maxPrice === '' ? null : Number(maxPrice);
-    return tasks.filter(task => {
-      const start = new Date(task.starts_at);
-      if (category !== 'all' && task.category !== category) return false;
-      if (query && !fold(`${task.title} ${task.description} ${task.city} ${categories[task.category]}`).includes(fold(query.trim()))) return false;
-      if (city && !fold(task.city).includes(fold(city.trim()))) return false;
-      if (lower !== null && task.amount_bani < lower * 100) return false;
-      if (upper !== null && task.amount_bani > upper * 100) return false;
-      if (rating !== 'all' && (!reputations[task.poster_id]?.count || reputations[task.poster_id].average < Number(rating))) return false;
-      if (horizon !== 'all') { const limit = new Date(now); if (horizon === 'today') limit.setHours(23, 59, 59, 999); else limit.setDate(limit.getDate() + 7); if (start < now || start > limit) return false; }
-      return !savedOnly || savedIds.includes(task.id);
-    }).sort((a, b) => sort === 'soon' ? Date.parse(a.starts_at) - Date.parse(b.starts_at) : sort === 'price-low' ? a.amount_bani - b.amount_bani : sort === 'price-high' ? b.amount_bani - a.amount_bani : sort === 'rating' ? ((reputations[b.poster_id]?.count ? reputations[b.poster_id].average : -1) - (reputations[a.poster_id]?.count ? reputations[a.poster_id].average : -1)) || Date.parse(b.created_at) - Date.parse(a.created_at) : Date.parse(b.created_at) - Date.parse(a.created_at));
-  }, [tasks, query, category, city, minPrice, maxPrice, horizon, rating, reputations, sort, savedOnly, savedIds]);
-  const activeFilters = [city.trim(), minPrice.trim(), maxPrice.trim(), horizon !== 'all', rating !== 'all'].filter(Boolean).length;
-  const reset = () => { setQuery(''); setCategory('all'); setCity(''); setMinPrice(''); setMaxPrice(''); setHorizon('all'); setRating('all'); setSort('recent'); setSavedOnly(false); };
-  const toggleSaved = (id: string) => setSavedIds(current => { const next = current.includes(id) ? current.filter(item => item !== id) : [...current, id]; localStorage.setItem('nova-saved-tasks', JSON.stringify(next)); return next; });
-  return <main id="main-content" className="feed-shell page-width">
-    <section className="feed-intro"><div><p className="feed-kicker">NIMBUS NOVA <span>·</span> DESCOPERĂ</p><h1>Sarcini în jurul tău<span>.</span></h1><p>Lucruri de făcut, oameni aproape. Explorează anunțurile și găsește ce ți se potrivește.</p></div><Link className="button button-primary feed-post" to="/poster?new=1"><PlusIcon size={20} aria-hidden="true" /> Postează o sarcină</Link></section>
-    <section className="feed-discovery" aria-label="Caută anunțuri"><label className="feed-search"><MagnifyingGlassIcon size={21} aria-hidden="true" /><span className="sr-only">Caută anunțuri</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Caută sarcini sau orașe" /></label><button className="feed-filter-trigger" aria-expanded={filtersOpen} aria-controls="feed-filters" onClick={() => setFiltersOpen(value => !value)}><FunnelSimpleIcon size={20} aria-hidden="true" />Filtre{activeFilters > 0 && <span>{activeFilters}</span>}</button></section>
-    <div className="feed-categories" role="group" aria-label="Categorie">{options.map(option => <button key={option.id} aria-pressed={category === option.id} onClick={() => setCategory(option.id)}>{option.label}</button>)}</div>
-    {filtersOpen && <section className="feed-filter-panel" id="feed-filters" aria-label="Filtre și ordonare"><div className="feed-filter-heading"><h2>Rafinează rezultatele</h2><button aria-label="Închide filtrele" onClick={() => setFiltersOpen(false)}><XIcon size={21} aria-hidden="true" /></button></div><div className="feed-filter-fields"><label>Oraș<input value={city} onChange={event => setCity(event.target.value)} placeholder="Orice oraș" /></label><label>Preț minim (RON)<input inputMode="decimal" type="number" min="0" value={minPrice} onChange={event => setMinPrice(event.target.value)} placeholder="0" /></label><label>Preț maxim (RON)<input inputMode="decimal" type="number" min="0" value={maxPrice} onChange={event => setMaxPrice(event.target.value)} placeholder="Fără limită" /></label><label>Începe<select value={horizon} onChange={event => setHorizon(event.target.value as Horizon)}><option value="all">Oricând</option><option value="today">Astăzi</option><option value="week">În următoarele 7 zile</option></select></label><label>Rating autor<select value={rating} onChange={event => setRating(event.target.value)}><option value="all">Orice rating</option><option value="4">Cel puțin 4 stele</option><option value="4.5">Cel puțin 4,5 stele</option><option value="5">5 stele</option></select></label></div><div className="feed-filter-footer"><button className="text-button" onClick={reset}>Resetează filtrele</button><button className="button button-primary button-small" onClick={() => setFiltersOpen(false)}>Vezi {visible.length} {visible.length === 1 ? 'anunț' : 'anunțuri'}</button></div></section>}
-    <section className="feed-results" aria-label="Anunțuri"><div className="feed-results-heading"><div><p className="eyebrow">EXPLOREAZĂ</p><h2>Anunțuri disponibile <span>{loading ? '…' : visible.length}</span></h2></div><button className="feed-saved-filter" aria-pressed={savedOnly} onClick={() => setSavedOnly(value => !value)}><BookmarkSimpleIcon size={18} weight={savedOnly ? 'fill' : 'regular'} aria-hidden="true" /> Salvate</button></div><div className="feed-sortbar"><label>Ordonează<select value={sort} onChange={event => setSort(event.target.value as Sort)}><option value="recent">Cele mai noi</option><option value="soon">Încep cel mai curând</option><option value="price-low">Preț crescător</option><option value="price-high">Preț descrescător</option><option value="rating">Rating autor</option></select></label><div className="feed-density" role="group" aria-label="Anunțuri pe rând"><button aria-label="Un anunț pe rând" aria-pressed={columns === 1} onClick={() => setColumns(1)}><RowsIcon size={19} aria-hidden="true" /></button><button aria-label="Două anunțuri pe rând" aria-pressed={columns === 2} onClick={() => setColumns(2)}><SquaresFourIcon size={19} aria-hidden="true" /></button></div></div>
-    {loading ? <p className="feed-state" role="status">Se încarcă anunțurile…</p> : error ? <div className="feed-state" role="alert"><p>{error}</p><button className="button button-secondary button-small" onClick={() => { setLoading(true); setReload(value => value + 1); }}><ArrowClockwiseIcon size={18} aria-hidden="true" /> Reîncearcă</button></div> : visible.length === 0 ? <div className="feed-state"><p>{tasks.length ? 'Nu am găsit anunțuri pentru aceste filtre.' : 'Nu sunt anunțuri deschise acum.'}</p><button className="text-button" onClick={reset}>Șterge filtrele</button></div> : <div className={`feed-grid feed-grid-${columns}`}>{visible.map(task => <ListingCard key={task.id} task={task} reputation={reputations[task.poster_id]} saved={savedIds.includes(task.id)} onSave={() => toggleSaved(task.id)} />)}</div>}
-    </section><section className="feed-about"><h2>Câteva ore pot face diferența.</h2><p>Omul din mijloc dintre cine are timp și cine are o sarcină scurtă. Nova ia cererea, alege omul, ține banii și predă lucrarea. Publici pe site. Oamenii aplică din aplicație.</p></section>
-    <nav className="feed-bottom-nav" aria-label="Navigare pe telefon"><a href="#main-content"><MagnifyingGlassIcon size={23} aria-hidden="true" /><span>Explorează</span></a><button onClick={() => { setFiltersOpen(true); document.querySelector('.feed-discovery')?.scrollIntoView({ behavior: 'smooth' }); }}><FunnelSimpleIcon size={23} aria-hidden="true" /><span>Filtre</span></button><Link className="feed-bottom-post" to="/poster?new=1" aria-label="Postează o sarcină"><PlusIcon size={26} aria-hidden="true" /></Link><button aria-pressed={savedOnly} onClick={() => { setSavedOnly(true); document.querySelector('.feed-results')?.scrollIntoView({ behavior: 'smooth' }); }}><BookmarkSimpleIcon size={23} aria-hidden="true" /><span>Salvate</span></button><Link to="/poster"><span className="feed-mini-avatar">A</span><span>Contul meu</span></Link></nav>
-  </main>;
+  const root = useRef<HTMLDivElement>(null);
+  const hero = useRef<HTMLElement>(null);
+  const [tasks, setTasks] = useState<TaskPublic[] | null>(null);
+  const [menu, setMenu] = useState(false);
+  const [amount, setAmount] = useState(150);
+  useReveal(root);
+  useScrollProgress(root);
+  useParallax(hero);
+
+  useEffect(() => {
+    let live = true;
+    api.listOpenTasks().then(({ tasks: list }) => { if (live) setTasks(list); }).catch(() => { if (live) setTasks([]); });
+    return () => { live = false; };
+  }, []);
+
+  const open = tasks ?? [];
+  const cities = new Set(open.map(task => task.city.trim().toLocaleLowerCase('ro-RO'))).size;
+  const shown = open.slice(0, 12);
+  const track = shown.length > 0 && shown.length < 6 ? [...shown, ...shown, ...shown] : shown;
+  const bani = amount * 100;
+  const fee = Math.floor((bani * FEE_PERCENT + 50) / 100);
+
+  return <div className="lp" ref={root}>
+    <a className="lp-skip" href="#main-content">Mergi la conținut</a>
+    <div className="lp-progress" aria-hidden="true" />
+
+    <div className="lp-marquee" aria-hidden="true">
+      <div className="lp-marquee-track">
+        {[0, 1].map(copy => <span key={copy}>Sarcini scurte <i>✦</i> Oameni aproape <i>✦</i> Banii stau la Nova <i>✦</i> Doar pentru adulți <i>✦</i> Postează în câteva minute <i>✦</i>&nbsp;</span>)}
+      </div>
+    </div>
+
+    <header className="lp-nav">
+      <div className="lp-nav-pill">
+        <Link className="lp-brand" to="/" aria-label="Nimbus Nova, pagina principală"><span className="lp-brand-mark" aria-hidden="true">N</span><span>Nova</span></Link>
+        <nav className="lp-links" aria-label="Navigare principală">
+          <a href="#cum-functioneaza">Cum funcționează</a>
+          <a href="#tarif">Tarif</a>
+          <a href="#siguranta">Siguranță</a>
+          <a href="#intrebari">Întrebări</a>
+          <Link to="/explore">Explorează</Link>
+        </nav>
+        <ThemeToggle />
+        <Link className="lp-btn is-small lp-nav-cta" to="/poster?new=1">Postează</Link>
+        <button type="button" className="lp-menu-btn" aria-expanded={menu} aria-controls="lp-sheet" aria-label={menu ? 'Închide meniul' : 'Deschide meniul'} onClick={() => setMenu(value => !value)}>
+          {menu ? <XIcon size={20} aria-hidden="true" /> : <ListIcon size={20} aria-hidden="true" />}
+        </button>
+      </div>
+      {menu && <nav id="lp-sheet" className="lp-sheet" aria-label="Meniu">
+        {[['#cum-functioneaza', 'Cum funcționează'], ['#tarif', 'Tarif'], ['#siguranta', 'Siguranță'], ['#intrebari', 'Întrebări']].map(([href, label]) => <a key={href} href={href} onClick={() => setMenu(false)}>{label}</a>)}
+        <Link to="/explore">Explorează sarcini</Link>
+        <Link to="/poster?new=1" className="lp-btn">Postează o sarcină</Link>
+      </nav>}
+    </header>
+
+    <main id="main-content">
+      {/* ----------------------------------------------------------- hero */}
+      <section className="lp-hero" ref={hero}>
+        <div className="lp-stickers" aria-hidden="true">
+          <span className="lp-sticker is-rocket" style={{ '--depth': 46, '--rot': '-14deg' } as CSSProperties}><Rocket /></span>
+          <span className="lp-sticker is-coin" style={{ '--depth': -34, '--rot': '10deg' } as CSSProperties}><Coin /></span>
+          <span className="lp-sticker is-check" style={{ '--depth': 58, '--rot': '-8deg' } as CSSProperties}><Check /></span>
+          <span className="lp-sticker is-wallet" style={{ '--depth': -50, '--rot': '8deg' } as CSSProperties}><Wallet /></span>
+        </div>
+        <p className="lp-pill lp-rise" style={delay(0)}>✦ Sarcini scurte · oameni aproape</p>
+        <h1 className="lp-word">
+          <span className="sr-only">Nova: sarcini scurte, oameni aproape</span>
+          <span aria-hidden="true">{[...'NOVA'].map((letter, index) => <b key={index} style={delay(120 + index * 90)}>{letter}</b>)}</span>
+        </h1>
+        <Ribbon className="is-hero" />
+        <p className="lp-tagline lp-rise" style={delay(520)}>Omul din mijloc dintre cine are timp și cine are o sarcină scurtă.</p>
+        <p className="lp-sub lp-rise" style={delay(620)}>Postezi în câteva minute. Oamenii din orașul tău aplică din aplicație. Nova ține banii și predă lucrarea.</p>
+        <div className="lp-actions lp-rise" style={delay(720)}>
+          <Link className="lp-btn" to="/poster?new=1">Postează o sarcină<ArrowRightIcon size={18} aria-hidden="true" /></Link>
+          <Link className="lp-btn is-ghost" to="/explore">Vezi sarcinile deschise</Link>
+        </div>
+        {open.length > 0 && <p className="lp-live lp-rise" style={delay(820)} role="status"><span aria-hidden="true" />{open.length} {open.length === 1 ? 'sarcină deschisă' : 'sarcini deschise'} acum{cities > 1 ? `, în ${cities} orașe` : ''}</p>}
+      </section>
+
+      {/* --------------------------------------------------------- ticker */}
+      {shown.length > 0 && <section className="lp-ticker" aria-label="Sarcini deschise acum">
+        <div className="lp-ticker-track">
+          {[0, 1].map(copy => <ul key={copy} aria-hidden={copy === 1 ? true : undefined}>
+            {track.map((task, index) => {
+              const meta = categoryMeta[task.category] ?? categoryMeta.other;
+              return <li key={`${task.id}-${index}`}>
+                <Link to="/explore" tabIndex={copy === 1 ? -1 : undefined} className={`lp-job is-${meta.tone}`}>
+                  <span className="lp-job-tag">{meta.name}</span>
+                  <b>{task.title}</b>
+                  <span className="lp-job-foot"><span><MapPinIcon size={14} aria-hidden="true" />{task.city}</span><strong>{formatBani(task.amount_bani)}</strong></span>
+                </Link>
+              </li>;
+            })}
+          </ul>)}
+        </div>
+      </section>}
+
+      {/* ---------------------------------------------------------- stats */}
+      <section className="lp-stats" aria-label="Nova în cifre">
+        <div className="lp-wrap">
+          <dl>
+            <div data-reveal style={delay(0)}><dt>Sarcini deschise acum</dt><dd>{tasks === null ? '—' : <CountUp to={open.length} />}</dd></div>
+            <div data-reveal style={delay(80)}><dt>Orașe active</dt><dd>{tasks === null ? '—' : <CountUp to={cities} />}</dd></div>
+            <div data-reveal style={delay(160)}><dt>Durata maximă</dt><dd><CountUp to={12} suffix="h" /></dd></div>
+            <div data-reveal style={delay(240)}><dt>Comision Nova</dt><dd><CountUp to={FEE_PERCENT} suffix="%" /></dd></div>
+          </dl>
+        </div>
+      </section>
+
+      {/* ----------------------------------------------------- categories */}
+      <section className="lp-section" id="categorii">
+        <div className="lp-wrap">
+          <div className="lp-head" data-reveal>
+            <p className="lp-eyebrow">Ce poți posta</p>
+            <h2 className="lp-display">Mici treburi,<br />mari ajutoare</h2>
+          </div>
+          <ul className="lp-tiles">
+            {(Object.keys(categoryMeta) as Category[]).map((key, index) => {
+              const meta = categoryMeta[key];
+              return <li key={key} className={`lp-tile is-${meta.tone}`} data-reveal style={delay(index * 90)}>
+                <span className="lp-tile-glyph" aria-hidden="true">{meta.glyph}</span>
+                <h3>{meta.name}</h3>
+                <p>{meta.copy}</p>
+              </li>;
+            })}
+          </ul>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------ how */}
+      <section className="lp-section is-gray" id="cum-functioneaza">
+        <div className="lp-wrap">
+          <div className="lp-head" data-reveal>
+            <p className="lp-eyebrow">Pas cu pas</p>
+            <h2 className="lp-display">Cum<br />funcționează</h2>
+            <Ribbon className="is-section" />
+          </div>
+          <ol className="lp-steps">
+            {steps.map((step, index) => <li key={step.title} className="lp-step" data-reveal style={delay(index * 110)}>
+              <span className={`lp-step-num is-${step.tone}`} aria-hidden="true">{index + 1}</span>
+              <h3>{step.title}</h3>
+              <p>{step.copy}</p>
+            </li>)}
+          </ol>
+        </div>
+      </section>
+
+      {/* ---------------------------------------------------------- split */}
+      <section className="lp-section">
+        <div className="lp-wrap lp-split">
+          <article className="lp-card is-pink" data-reveal>
+            <p className="lp-eyebrow">Ai o sarcină</p>
+            <h2>Găsește pe cineva din cartier, azi.</h2>
+            <ul>
+              <li>Publici gratuit, fără abonament</li>
+              <li>Vezi profilul și recenziile fiecărui candidat</li>
+              <li>Plătești doar după ce te-ai înțeles</li>
+            </ul>
+            <Link className="lp-btn is-dark" to="/poster?new=1">Postează o sarcină<ArrowRightIcon size={18} aria-hidden="true" /></Link>
+          </article>
+          <article className="lp-card is-blue" data-reveal style={delay(120)}>
+            <p className="lp-eyebrow">Ai timp liber</p>
+            <h2>Alege o sarcină și aplică din telefon.</h2>
+            <ul>
+              <li>Sarcini scurte, de la două ore</li>
+              <li>Chat privat cu cel care a postat</li>
+              <li>Banii ajung la tine prin Nova</li>
+            </ul>
+            <a className="lp-btn is-dark" href={APP_URL} target="_blank" rel="noopener noreferrer"><DeviceMobileIcon size={18} aria-hidden="true" />Deschide aplicația<ArrowUpRightIcon size={16} aria-hidden="true" /></a>
+          </article>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------- calculator */}
+      <section className="lp-section is-gray" id="tarif">
+        <div className="lp-wrap lp-calc">
+          <div data-reveal>
+            <p className="lp-eyebrow">Tarif</p>
+            <h2 className="lp-display">Vezi exact<br />unde merg banii</h2>
+            <p className="lp-lead">Tu propui suma. Nova reține {FEE_PERCENT}% când sarcina se plătește, iar restul ajunge la lucrător. Fără taxe ascunse.</p>
+          </div>
+          <div className="lp-calc-card" data-reveal style={delay(120)}>
+            <label htmlFor="lp-amount">Suma propusă</label>
+            <output htmlFor="lp-amount" className="lp-calc-amount">{formatBani(bani)}</output>
+            <input id="lp-amount" type="range" min={20} max={1000} step={10} value={amount} onChange={event => setAmount(Number(event.target.value))} aria-valuetext={formatBani(bani)} />
+            <div className="lp-calc-bar" aria-hidden="true"><span style={{ width: `${100 - FEE_PERCENT}%` }} /><span /></div>
+            <dl>
+              <div><dt><i className="is-worker" aria-hidden="true" />Lucrătorul primește</dt><dd>{formatBani(bani - fee)}</dd></div>
+              <div><dt><i className="is-fee" aria-hidden="true" />Comision Nova ({FEE_PERCENT}%)</dt><dd>{formatBani(fee)}</dd></div>
+            </dl>
+            <small>Exemplu de calcul pentru sume până la 1.000 RON. Plățile din această versiune sunt simulate.</small>
+          </div>
+        </div>
+      </section>
+
+      {/* --------------------------------------------------------- safety */}
+      <section className="lp-section is-lavender" id="siguranta">
+        <div className="lp-wrap">
+          <div className="lp-head" data-reveal>
+            <p className="lp-eyebrow">Siguranță</p>
+            <h2 className="lp-display">Limitele sunt<br />pornite din start</h2>
+          </div>
+          <ul className="lp-safety">
+            {safety.map((item, index) => {
+              const Icon = item.icon;
+              return <li key={item.title} data-reveal style={delay(index * 90)}>
+                <span className="lp-safety-icon"><Icon size={26} weight="bold" aria-hidden="true" /></span>
+                <h3>{item.title}</h3>
+                <p>{item.copy}</p>
+              </li>;
+            })}
+          </ul>
+          <p className="lp-adults" data-reveal><ShieldCheckIcon size={20} weight="fill" aria-hidden="true" />Sarcinile plătite sunt doar pentru adulți.</p>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------ faq */}
+      <section className="lp-section" id="intrebari">
+        <div className="lp-wrap lp-faq">
+          <div className="lp-head" data-reveal>
+            <p className="lp-eyebrow">Întrebări</p>
+            <h2 className="lp-display">Ce ne<br />întreabă lumea</h2>
+          </div>
+          <div className="lp-faq-list">
+            {faq.map((item, index) => <details key={item.q} data-reveal style={delay(index * 60)}>
+              <summary>{item.q}<CaretDownIcon size={20} weight="bold" aria-hidden="true" /></summary>
+              <p>{item.a}</p>
+            </details>)}
+          </div>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------ cta */}
+      <section className="lp-cta">
+        <div className="lp-wrap">
+          <h2 className="lp-cta-word" data-reveal>Postează<br />acum</h2>
+          <p data-reveal style={delay(100)}>O sarcină bine descrisă primește primele candidaturi în scurt timp.</p>
+          <div className="lp-actions" data-reveal style={delay(180)}>
+            <Link className="lp-btn is-light" to="/poster?new=1">Postează o sarcină<ArrowRightIcon size={18} aria-hidden="true" /></Link>
+            <Link className="lp-btn is-ghost-dark" to="/explore">Explorează sarcini</Link>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer className="lp-footer">
+      <div className="lp-wrap lp-footer-inner">
+        <Link className="lp-brand" to="/"><span className="lp-brand-mark" aria-hidden="true">N</span><span>Nimbus Nova</span></Link>
+        <nav aria-label="Linkuri">
+          <Link to="/explore">Explorează</Link>
+          <Link to="/poster">Sarcinile mele</Link>
+          <a href={APP_URL} target="_blank" rel="noopener noreferrer">Aplicația</a>
+        </nav>
+        <Health />
+        <p>© {new Date().getFullYear()} Nimbus Nova · Sarcini scurte, prin contul tău.</p>
+      </div>
+    </footer>
+  </div>;
 }
