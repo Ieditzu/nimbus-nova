@@ -225,6 +225,7 @@ func addColumns(db *sql.DB) error {
 		{"users", "birth_date", "TEXT"},
 		{"users", "volunteer_only", "INTEGER NOT NULL DEFAULT 0"},
 		{"users", "guardian_email", "TEXT"},
+		{"users", "identity_verified", "INTEGER NOT NULL DEFAULT 0"},
 		{"users", "status", "TEXT NOT NULL DEFAULT 'active'"},
 		{"users", "created_at", "TEXT NOT NULL DEFAULT ''"},
 		{"tasks", "kind", "TEXT NOT NULL DEFAULT 'local_task'"},
@@ -245,6 +246,13 @@ func addColumns(db *sql.DB) error {
 		}
 		if _, err := db.Exec(`ALTER TABLE ` + column.table + ` ADD COLUMN ` + column.name + ` ` + column.decl); err != nil {
 			return err
+		}
+		// Every account created through registration passed identity verification.
+		// Backfill once, when the column is first added, so admin edits are never overwritten.
+		if column.table == "users" && column.name == "identity_verified" {
+			if _, err := db.Exec(`UPDATE users SET identity_verified = 1 WHERE email IN (SELECT email FROM identity_sessions WHERE status = 'consumed')`); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

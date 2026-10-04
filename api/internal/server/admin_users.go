@@ -20,6 +20,7 @@ type adminUserPatch struct {
 	BirthDate     *string `json:"birth_date"`
 	GuardianEmail *string `json:"guardian_email"`
 	Role          *string `json:"role"`
+	Verified      *bool   `json:"identity_verified"`
 }
 
 type adminProfilePatch struct {
@@ -61,9 +62,9 @@ func (s *Store) AdminUpdateUser(id, actorID string, p adminUserPatch) ([]string,
 	var changed []string
 	err := s.withImmediate(func(ctx context.Context, conn *sql.Conn) error {
 		var role, name, email, phone, birth, guardian string
-		var volunteer int
-		err := conn.QueryRowContext(ctx, `SELECT role, display_name, COALESCE(email,''), phone_number, COALESCE(birth_date,''), COALESCE(guardian_email,''), volunteer_only FROM users WHERE id = ?`, id).
-			Scan(&role, &name, &email, &phone, &birth, &guardian, &volunteer)
+		var volunteer, verified int
+		err := conn.QueryRowContext(ctx, `SELECT role, display_name, COALESCE(email,''), phone_number, COALESCE(birth_date,''), COALESCE(guardian_email,''), volunteer_only, identity_verified FROM users WHERE id = ?`, id).
+			Scan(&role, &name, &email, &phone, &birth, &guardian, &volunteer, &verified)
 		if err == sql.ErrNoRows {
 			return errNotFound
 		}
@@ -149,14 +150,24 @@ func (s *Store) AdminUpdateUser(id, actorID string, p adminUserPatch) ([]string,
 				changed = append(changed, "rol")
 			}
 		}
+		if p.Verified != nil {
+			want := 0
+			if *p.Verified {
+				want = 1
+			}
+			if want != verified {
+				verified = want
+				changed = append(changed, "verificare identitate")
+			}
+		}
 		if role == "admin" && volunteer == 1 {
 			return invalidInput("Un administrator trebuie să fie major.")
 		}
 		if len(changed) == 0 {
 			return nil
 		}
-		if _, err := conn.ExecContext(ctx, `UPDATE users SET display_name=?, email=?, phone_number=?, birth_date=?, guardian_email=?, role=?, volunteer_only=? WHERE id=?`,
-			name, email, phone, birth, guardian, role, volunteer, id); err != nil {
+		if _, err := conn.ExecContext(ctx, `UPDATE users SET display_name=?, email=?, phone_number=?, birth_date=?, guardian_email=?, role=?, volunteer_only=?, identity_verified=? WHERE id=?`,
+			name, email, phone, birth, guardian, role, volunteer, verified, id); err != nil {
 			return errInternal
 		}
 		for _, c := range changed {
