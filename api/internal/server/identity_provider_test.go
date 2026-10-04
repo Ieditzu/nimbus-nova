@@ -20,7 +20,7 @@ import (
 
 func scanFixture() identityScan {
 	r := identityScan{Success: true, Decision: "accept", Data: map[string][]identityField{}}
-	for key, value := range map[string]string{"countryIso2": "RO", "documentType": "I", "dob": "2015-03-15", "personalNumber": "5150315400013", "documentNumber": "RX123456", "expiry": "2035-03-15"} {
+	for key, value := range map[string]string{"countryIso2": "RO", "documentType": "I", "dob": "2015/03/15", "personalNumber": "5150315400013", "documentNumber": "RX123456", "expiry": "2035/03/15"} {
 		r.Data[key] = []identityField{{Value: value, Confidence: 0.99}}
 	}
 	score := 0.9
@@ -436,5 +436,19 @@ func TestV2IssuingCountryField(t *testing.T) {
 				t.Fatalf("incorrect country diagnosis: %v", ae)
 			}
 		})
+	}
+}
+
+func TestProviderDateFormats(t *testing.T) {
+	for _, input := range []string{"2015/03/15", "2015-03-15"} {
+		parsed, err := parseProviderDate(input)
+		if err != nil || parsed.Format("2006-01-02") != "2015-03-15" {
+			t.Fatalf("unsupported provider date %q: %v", input, err)
+		}
+	}
+	for _, input := range []string{"2015/02/30", "15/03/2015", ""} {
+		if _, err := parseProviderDate(input); err == nil {
+			t.Fatalf("invalid date accepted: %q", input)
+		}
 	}
 }

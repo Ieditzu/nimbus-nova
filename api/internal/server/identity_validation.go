@@ -39,6 +39,14 @@ func compactDocumentNumber(value string) string {
 		return unicode.ToUpper(r)
 	}, value)
 }
+func parseProviderDate(value string) (time.Time, error) {
+	// V2 documents dates as YYYY/MM/DD; some responses use ISO YYYY-MM-DD.
+	parsed, err := time.Parse("2006/01/02", value)
+	if err == nil {
+		return parsed, nil
+	}
+	return time.Parse("2006-01-02", value)
+}
 func validateScannedIdentity(ctx context.Context, kind string, files map[string][]byte, scan identityScan, checks map[string]string) (time.Time, *AppError) {
 	if ae := scan.faceFailure(checks); ae != nil {
 		return time.Time{}, ae
@@ -57,13 +65,13 @@ func validateScannedIdentity(ctx context.Context, kind string, files map[string]
 		return time.Time{}, appErr(422, "document_type", "Adaugă o carte de identitate românească CI sau CEI.")
 	}
 	dob, ok := scan.field("dob")
-	birth, err := time.Parse("2006-01-02", dob)
+	birth, err := parseProviderDate(dob)
 	now := time.Now()
 	if !ok || err != nil || birth.After(now) || birth.Before(now.AddDate(-120, 0, 0)) {
 		return time.Time{}, appErr(422, "document_unreadable", "Data nașterii nu a putut fi confirmată din act.")
 	}
 	if expiry, ok := scan.field("expiry"); ok {
-		expires, err := time.Parse("2006-01-02", expiry)
+		expires, err := parseProviderDate(expiry)
 		today := now.In(zoneEEST).Format("2006-01-02")
 		if err != nil || expires.Format("2006-01-02") < today {
 			return time.Time{}, appErr(422, "document_expired", "Actul este expirat sau data expirării nu poate fi confirmată.")
