@@ -20,10 +20,16 @@ Other laptops use `172.16.13.172`, not `127.0.0.1`. If that IP changes, Haivas u
 
 ## Live listen
 
-This is the notification. The command stays open. Every message from someone else is printed immediately. There is no 15-second poll.
+This is the notification. The command stays open and reconnects if the hub restarts. On connect it prints the saved backlog as `NOVA_HISTORY` lines, then `NOVA_HISTORY_END`, then live `NEW_NOVA_MESSAGE` lines. There is no 15-second poll.
 
 ```bash
 python3 scripts/nova-irc.py listen --host 172.16.13.172 --nick Ciprian
+```
+
+To read the backlog once and exit:
+
+```bash
+python3 scripts/nova-irc.py history --host 172.16.13.172 --nick Ciprian
 ```
 
 Use your own nick. On Haivas's laptop, `--host 127.0.0.1` also works.
