@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeftIcon, ArrowUpRightIcon, CheckCircleIcon, CircleIcon, SquaresFourIcon, PlusIcon } from '@phosphor-icons/react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { TaskStatus } from '../api/types';
 import { TaskForm } from '../components/TaskForm';
 import { MyTaskList, useMyTasks } from '../components/MyTaskList';
 
 export default function PosterPage() {
+  const [searchParams] = useSearchParams();
   const { tasks, loading, error, refresh } = useMyTasks();
   const [message, setMessage] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(searchParams.get('new') === '1');
   const [filter, setFilter] = useState<'all' | TaskStatus>('all');
   const composer = useRef<HTMLDivElement>(null);
   useEffect(() => { if (showForm) { composer.current?.scrollIntoView({ behavior: 'auto', block: 'start' }); composer.current?.querySelector('input')?.focus({ preventScroll: true }); } }, [showForm]);
