@@ -11,10 +11,10 @@ import (
 )
 
 type User struct {
-	ID             string
-	Role           string
-	DisplayName    string
-	VolunteerOnly  bool
+	ID            string
+	Role          string
+	DisplayName   string
+	VolunteerOnly bool
 }
 
 type TaskPublic struct {
@@ -138,21 +138,21 @@ var (
 )
 
 const (
-	msgTitle       = "Titlul trebuie să aibă între 3 și 80 de caractere."
-	msgCategory    = "Categoria trebuie să fie event_setup, light_moving, shop_cover sau other."
-	msgCity        = "Orașul trebuie să aibă între 2 și 80 de caractere."
-	msgTime        = "Timpul trebuie să fie RFC3339 cu fus orar."
-	msgEnd         = "Ora de final trebuie să fie după ora de început."
-	msgDuration    = "Durata trebuie să fie de cel mult 12 ore."
-	msgAmount      = "Suma trebuie să fie un număr întreg de bani între 0 și 500000."
-	msgDescription = "Descrierea trebuie să aibă între 10 și 500 de caractere."
-	msgSafety      = "Nota de siguranță poate avea cel mult 200 de caractere."
-	msgMessage     = "Mesajul trebuie să aibă între 1 și 280 de caractere."
-	msgSkills      = "Competențele trebuie să conțină între 1 și 8 elemente, fiecare de cel mult 40 de caractere."
+	msgTitle        = "Titlul trebuie să aibă între 3 și 80 de caractere."
+	msgCategory     = "Categoria trebuie să fie event_setup, light_moving, shop_cover sau other."
+	msgCity         = "Orașul trebuie să aibă între 2 și 80 de caractere."
+	msgTime         = "Timpul trebuie să fie RFC3339 cu fus orar."
+	msgEnd          = "Ora de final trebuie să fie după ora de început."
+	msgDuration     = "Durata trebuie să fie de cel mult 12 ore."
+	msgAmount       = "Suma trebuie să fie un număr întreg de bani între 0 și 500000."
+	msgDescription  = "Descrierea trebuie să aibă între 10 și 500 de caractere."
+	msgSafety       = "Nota de siguranță poate avea cel mult 200 de caractere."
+	msgMessage      = "Mesajul trebuie să aibă între 1 și 280 de caractere."
+	msgSkills       = "Competențele trebuie să conțină între 1 și 8 elemente, fiecare de cel mult 40 de caractere."
 	msgAvailability = "Disponibilitatea trebuie să aibă între 1 și 80 de caractere."
-	msgBio         = "Bio poate avea cel mult 280 de caractere."
-	msgStars       = "Nota trebuie să fie un număr întreg între 1 și 5."
-	msgReviewText  = "Textul trebuie să aibă între 1 și 280 de caractere."
+	msgBio          = "Bio poate avea cel mult 280 de caractere."
+	msgStars        = "Nota trebuie să fie un număr întreg între 1 și 5."
+	msgReviewText   = "Textul trebuie să aibă între 1 și 280 de caractere."
 )
 
 func invalidInput(message string) *AppError {
@@ -167,7 +167,7 @@ func NowRFC3339() string {
 
 func NewID(prefix string) (string, error) {
 	switch prefix {
-	case "task_", "app_", "rev_", "user_", "con_", "pay_", "led_", "evt_":
+	case "task_", "app_", "rev_", "user_", "con_", "pay_", "led_", "evt_", "par_", "doc_", "dis_", "ntf_", "att_", "dip_":
 	default:
 		return "", errors.New("invalid id prefix")
 	}

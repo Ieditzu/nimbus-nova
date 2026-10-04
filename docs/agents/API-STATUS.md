@@ -29,5 +29,22 @@
 | `POST /v1/contracts/{id}/sign` | live | phone, later |
 | `GET /v1/events` | live | phone, later |
 | `POST /v1/events` | live | admin, later |
+| `GET /v1/tasks/search` | live | phone |
+| `POST /v1/tasks/{id}/cancel` | live | website |
+| `POST /v1/tasks/{id}/dispute` | live | both |
+| `GET /v1/me/ledger` | live | both |
+| `GET /v1/admin/ledger` | live | admin |
+| `GET /v1/me/contracts` | live | phone |
+| `GET /v1/me/notifications` | live | both |
+| `POST /v1/profiles/me/documents` | live | phone |
+| `GET /v1/partner/shifts` | live | later |
+| `POST /v1/partner/shifts` | live | later |
+| `GET /v1/admin/partners` | live | admin |
+| `POST /v1/admin/partners/{id}/activate` | live | admin |
+| `POST /v1/events/{id}/attend` | live | phone |
+| `POST /v1/events/{id}/check-in` | live | admin |
+| `POST /v1/events/{id}/complete` | live | admin |
+| `GET /v1/users/{id}/reputation` | live | both |
+| `POST /v1/admin/disputes/{id}/resolve` | live | admin |
 
 Haivas changes a row from `planned` to `live` in the same commit as the route and its test. Ciprian and Perjoc do not flip these rows.

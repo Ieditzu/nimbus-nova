@@ -10,12 +10,12 @@ func platformFee(amount int64) int64 {
 }
 
 type paymentView struct {
-	TaskID          string `json:"task_id"`
-	PayStatus       string `json:"pay_status"`
-	AmountBani      int64  `json:"amount_bani"`
-	PlatformFeeBani int64  `json:"platform_fee_bani"`
-	WorkerPayoutBani int64 `json:"worker_payout_bani"`
-	Provider        string `json:"provider"`
+	TaskID           string `json:"task_id"`
+	PayStatus        string `json:"pay_status"`
+	AmountBani       int64  `json:"amount_bani"`
+	PlatformFeeBani  int64  `json:"platform_fee_bani"`
+	WorkerPayoutBani int64  `json:"worker_payout_bani"`
+	Provider         string `json:"provider"`
 }
 
 func (s *Server) handlePay(w http.ResponseWriter, r *http.Request) {
@@ -79,6 +79,22 @@ func (s *Store) Pay(taskID, posterID string) (paymentView, error) {
 	}
 	if _, err := s.db.Exec(`UPDATE tasks SET pay_status = 'held' WHERE id = ?`, taskID); err != nil {
 		return paymentView{}, errInternal
+	}
+	now := NowRFC3339()
+	for _, row := range []struct {
+		account, direction string
+		amount             int64
+	}{
+		{"poster", "debit", amount},
+		{"escrow", "credit", amount},
+	} {
+		id, err := NewID("led_")
+		if err != nil {
+			return paymentView{}, errInternal
+		}
+		if _, err := s.db.Exec(`INSERT INTO ledger_entries (id, task_id, account, direction, amount_bani, created_at) VALUES (?, ?, ?, ?, ?, ?)`, id, taskID, row.account, row.direction, row.amount, now); err != nil {
+			return paymentView{}, errInternal
+		}
 	}
 	return paymentView{
 		TaskID: taskID, PayStatus: "held", AmountBani: amount,

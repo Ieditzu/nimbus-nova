@@ -1081,10 +1081,10 @@ func TestPayLedgerAndContract(t *testing.T) {
 		t.Fatalf("complete %s", body)
 	}
 	var debit, credit int
-	if err := h.DB.QueryRow(`SELECT COALESCE(SUM(amount_bani),0) FROM ledger_entries WHERE task_id='task_seed_event_setup' AND direction='debit'`).Scan(&debit); err != nil || debit != 10000 {
+	if err := h.DB.QueryRow(`SELECT COALESCE(SUM(amount_bani),0) FROM ledger_entries WHERE task_id='task_seed_event_setup' AND direction='debit'`).Scan(&debit); err != nil || debit != 20000 {
 		t.Fatalf("debit %d %v", debit, err)
 	}
-	if err := h.DB.QueryRow(`SELECT COALESCE(SUM(amount_bani),0) FROM ledger_entries WHERE task_id='task_seed_event_setup' AND direction='credit'`).Scan(&credit); err != nil || credit != 10000 {
+	if err := h.DB.QueryRow(`SELECT COALESCE(SUM(amount_bani),0) FROM ledger_entries WHERE task_id='task_seed_event_setup' AND direction='credit'`).Scan(&credit); err != nil || credit != 20000 {
 		t.Fatalf("credit %d %v", credit, err)
 	}
 	if _, err := h.DB.Exec(`UPDATE tasks SET kind='volunteer', status='assigned', assignee_id='worker-1', pay_status='unpaid' WHERE id='task_seed_shop_cover'`); err != nil {
@@ -1112,4 +1112,123 @@ func TestEventsHaveNoMoney(t *testing.T) {
 		"ends_at": "2026-10-07T11:00:00+03:00", "slots": 4, "min_age": 14, "description": "Fără plată.",
 	}, true)
 	h.equalFixture(status, body, 403, "error-forbidden.json")
+}
+
+func TestPlatformRoutes(t *testing.T) {
+	h := start(t)
+	status, _, body := h.do(http.MethodGet, "/v1/tasks/search?kind=local_task", "worker-1", nil, true)
+	if status != 200 || !strings.Contains(string(body), "task_seed_event_setup") {
+		t.Fatalf("search %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/profiles/me/documents", "worker-1", map[string]any{"kind": "id_card"}, true)
+	if status != 201 || !strings.Contains(string(body), `"kind":"id_card"`) {
+		t.Fatalf("document %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodGet, "/v1/me/contracts", "worker-1", nil, true)
+	if status != 200 || !strings.Contains(string(body), "framework") {
+		t.Fatalf("contracts %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/tasks/task_seed_event_setup/applications", "worker-1", map[string]any{"message": "Pot ajuta la amenajare."}, true)
+	if status != 201 {
+		t.Fatalf("apply %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodGet, "/v1/me/notifications", "poster-1", nil, true)
+	if status != 200 || !strings.Contains(string(body), "application_received") {
+		t.Fatalf("notifications %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/tasks", "poster-1", map[string]any{
+		"title": "Disputa", "category": "other", "city": "București",
+		"starts_at": "2026-10-06T10:00:00+03:00", "ends_at": "2026-10-06T12:00:00+03:00",
+		"amount_bani": 10000, "description": "1234567890", "safety_note": "ok",
+	}, true)
+	if status != 201 {
+		t.Fatalf("create %d %s", status, body)
+	}
+	taskID := asMap(t, asMap(t, decode(t, body))["task"])["id"].(string)
+	status, _, body = h.do(http.MethodPost, "/v1/tasks/"+taskID+"/applications", "worker-1", map[string]any{"message": "Pot ajuta la mutare."}, true)
+	if status != 201 {
+		t.Fatalf("apply2 %d %s", status, body)
+	}
+	appID := asMap(t, asMap(t, decode(t, body))["application"])["id"].(string)
+	status, _, body = h.do(http.MethodPost, "/v1/applications/"+appID+"/accept", "poster-1", map[string]any{}, true)
+	if status != 200 {
+		t.Fatalf("accept %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/tasks/"+taskID+"/pay", "poster-1", map[string]any{}, true)
+	if status != 200 {
+		t.Fatalf("pay %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodGet, "/v1/me/ledger", "poster-1", nil, true)
+	if status != 200 || !strings.Contains(string(body), "poster") {
+		t.Fatalf("ledger %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/tasks/"+taskID+"/dispute", "poster-1", map[string]any{"reason": "Nu s-a prezentat."}, true)
+	if status != 201 {
+		t.Fatalf("dispute %d %s", status, body)
+	}
+	disputeID := asMap(t, asMap(t, decode(t, body))["dispute"])["id"].(string)
+	status, _, body = h.do(http.MethodPost, "/v1/tasks/"+taskID+"/complete", "poster-1", map[string]any{}, true)
+	if status != 409 || !strings.Contains(string(body), "dispute_open") {
+		t.Fatalf("complete blocked %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/admin/disputes/"+disputeID+"/resolve", "admin-1", map[string]any{"result": "refund"}, true)
+	if status != 200 {
+		t.Fatalf("resolve %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/tasks/task_seed_shop_cover/cancel", "poster-1", map[string]any{}, true)
+	if status != 200 {
+		t.Fatalf("cancel %d %s", status, body)
+	}
+	if _, err := h.DB.Exec(`INSERT INTO users (id, role, display_name) VALUES ('partner-1', 'partner_user', 'Partener')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.DB.Exec(`INSERT INTO partners (id, name, status, user_id) VALUES ('par_test', 'Magazin', 'prospect', 'partner-1')`); err != nil {
+		t.Fatal(err)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/partner/shifts", "partner-1", map[string]any{
+		"title": "Schimb", "category": "shop_cover", "city": "București",
+		"starts_at": "2026-10-06T10:00:00+03:00", "ends_at": "2026-10-06T14:00:00+03:00",
+		"amount_bani": 20000, "description": "Acoperire magazin", "safety_note": "ok",
+	}, true)
+	if status != 403 || !strings.Contains(string(body), "partner_inactive") {
+		t.Fatalf("inactive partner %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/admin/partners/par_test/activate", "admin-1", map[string]any{}, true)
+	if status != 200 {
+		t.Fatalf("activate %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/partner/shifts", "partner-1", map[string]any{
+		"title": "Schimb", "category": "shop_cover", "city": "București",
+		"starts_at": "2026-10-06T10:00:00+03:00", "ends_at": "2026-10-06T14:00:00+03:00",
+		"amount_bani": 20000, "description": "Acoperire magazin", "safety_note": "ok",
+	}, true)
+	if status != 201 {
+		t.Fatalf("shift %d %s", status, body)
+	}
+	var kind string
+	if err := h.DB.QueryRow(`SELECT kind FROM tasks WHERE poster_id = 'partner-1'`).Scan(&kind); err != nil || kind != "partner_shift" {
+		t.Fatalf("shift kind %q err %v body %s", kind, err, body)
+	}
+	status, _, body = h.do(http.MethodGet, "/v1/events", "worker-1", nil, true)
+	events := asMap(t, decode(t, body))["events"].([]any)
+	eventID := asMap(t, events[0])["id"].(string)
+	status, _, body = h.do(http.MethodPost, "/v1/events/"+eventID+"/attend", "worker-1", map[string]any{}, true)
+	if status != 200 {
+		t.Fatalf("attend %d %s", status, body)
+	}
+	if _, err := h.DB.Exec(`INSERT INTO users (id, role, display_name) VALUES ('org-1', 'organizer', 'Organizator')`); err != nil {
+		t.Fatal(err)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/events/"+eventID+"/check-in", "org-1", map[string]any{"volunteer_id": "worker-1"}, true)
+	if status != 200 {
+		t.Fatalf("check-in %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/events/"+eventID+"/complete", "org-1", map[string]any{"volunteer_id": "worker-1"}, true)
+	if status != 200 || !strings.Contains(string(body), "diploma") {
+		t.Fatalf("diploma %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodGet, "/v1/users/poster-1/reputation", "worker-1", nil, true)
+	if status != 200 || !strings.Contains(string(body), "count") {
+		t.Fatalf("reputation %d %s", status, body)
+	}
 }

@@ -85,9 +85,9 @@ Button `Finalizează` is enabled only when the task status is `assigned`. It cal
 
 After completion, a review form calls `api.createReview(task.id, { stars, text })` and then `api.listReviews(task.id)`. Stars are a select from 1 to 5.
 
-## Do not build yet
+## After you pull main
 
-Do not mount pay, login, cancel, or dispute screens. Those routes are `planned` in [API-STATUS.md](API-STATUS.md). The client file may grow those functions later. A page that calls a missing route is a broken demo.
+Pay, login, cancel, and dispute are live. Pull `main` and mount them from `docs/agents/API-STATUS.md`. Do not create a branch.
 
 ## Done when
 

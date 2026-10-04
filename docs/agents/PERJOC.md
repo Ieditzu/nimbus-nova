@@ -47,7 +47,7 @@ Navigation is a native stack with four screens: `TaskListScreen`, `TaskDetailScr
 
 ## Do not build
 
-No map, GPS permission, camera, CV file upload, chat, or payment button. Volunteer and contract screens stay unmounted while those routes are `planned` in [API-STATUS.md](API-STATUS.md).
+No map, GPS permission, camera, or chat. Contract list, document upload, event attend, and reputation are live in [API-STATUS.md](API-STATUS.md). Pull `main`. Do not create a branch.
 
 Do not hardcode the two seed tasks in the list. If the API is down, show `API oprit` and no fake rows.
 
