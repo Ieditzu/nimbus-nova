@@ -11,6 +11,7 @@ import (
 )
 
 type User struct {
+	PhoneNumber   string
 	ID            string
 	Role          string
 	DisplayName   string
@@ -180,7 +181,7 @@ func NowRFC3339() string {
 
 func NewID(prefix string) (string, error) {
 	switch prefix {
-	case "task_", "app_", "rev_", "user_", "con_", "pay_", "led_", "evt_", "par_", "doc_", "dis_", "ntf_", "att_", "dip_", "idn_", "idf_", "log_":
+	case "chat_", "msg_", "task_", "app_", "rev_", "user_", "con_", "pay_", "led_", "evt_", "par_", "doc_", "dis_", "ntf_", "att_", "dip_", "idn_", "idf_", "log_":
 	default:
 		return "", errors.New("invalid id prefix")
 	}

@@ -217,6 +217,7 @@ CREATE TABLE IF NOT EXISTS identity_files (
 func addColumns(db *sql.DB) error {
 	columns := []struct{ table, name, decl string }{
 		{"users", "email", "TEXT"},
+		{"users", "phone_number", "TEXT NOT NULL DEFAULT ''"},
 		{"users", "password_hash", "TEXT"},
 		{"users", "birth_date", "TEXT"},
 		{"users", "volunteer_only", "INTEGER NOT NULL DEFAULT 0"},
@@ -390,6 +391,8 @@ func (s *Store) SeedIfEmpty() error {
 func (s *Store) Reset() error {
 	return s.withImmediate(func(ctx context.Context, conn *sql.Conn) error {
 		for _, q := range []string{
+			`DELETE FROM chat_messages`,
+			`DELETE FROM conversations`,
 			`DELETE FROM identity_files`,
 			`DELETE FROM identity_sessions`,
 			`DELETE FROM diplomas`,

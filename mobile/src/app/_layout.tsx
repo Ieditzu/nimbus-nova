@@ -2,10 +2,10 @@ import { useFonts } from "expo-font";
 import { Anton_400Regular } from "@expo-google-fonts/anton/400Regular";
 import { Inter_500Medium } from "@expo-google-fonts/inter/500Medium";
 import { Inter_700Bold } from "@expo-google-fonts/inter/700Bold";
-import { View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BottomNav } from "../components/ui";
-import { AuthProvider } from "../auth/session";
+import { AuthProvider, useAuth } from "../auth/session";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ThemeProvider, useTheme } from "../components/theme";
@@ -27,6 +27,19 @@ export default function RootLayout() {
 }
 function Navigation() {
   const { colors, isDark } = useTheme();
+  const { session, restoring } = useAuth();
+  const ready = !!session?.user.phone_number;
+  if (restoring)
+    return (
+      <View style={{
+          flex: 1,
+          backgroundColor: colors.background,
+          justifyContent: "center",
+        }}>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <ActivityIndicator color={colors.text} />
+      </View>
+    );
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
@@ -37,14 +50,26 @@ function Navigation() {
           contentStyle: { backgroundColor: colors.background },
         }}
       >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="task/[id]" />
         <Stack.Screen name="profile" />
-        <Stack.Screen name="applications" />
+        <Stack.Protected guard={!!session}>
+          <Stack.Screen name="phone" />
+        </Stack.Protected>
+        <Stack.Protected guard={ready}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="task/[id]" />
+          <Stack.Screen name="applications" />
+          <Stack.Screen name="jobs/index" />
+          <Stack.Screen name="jobs/new" />
+          <Stack.Screen name="jobs/[id]" />
+          <Stack.Screen name="messages/index" />
+          <Stack.Screen name="messages/[id]" />
+        </Stack.Protected>
       </Stack>
-      <SafeAreaView edges={["bottom", "left", "right"]}>
-        <BottomNav />
-      </SafeAreaView>
+      {ready ? (
+        <SafeAreaView edges={["bottom", "left", "right"]}>
+          <BottomNav />
+        </SafeAreaView>
+      ) : null}
     </View>
   );
 }

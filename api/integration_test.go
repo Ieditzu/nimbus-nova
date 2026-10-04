@@ -430,18 +430,13 @@ func TestActorAndRoleGuards(t *testing.T) {
 		t.Fatalf("trimmed actor %d %s", status, body)
 	}
 	forbidden := []struct{ method, path, actor string }{
-		{http.MethodPost, "/v1/tasks", "worker-1"},
 		{http.MethodPost, "/v1/tasks", "admin-1"},
-		{http.MethodGet, "/v1/me/tasks", "worker-1"},
 		{http.MethodGet, "/v1/me/tasks", "admin-1"},
-		{http.MethodGet, "/v1/profiles/me", "poster-1"},
-		{http.MethodPut, "/v1/profiles/me", "poster-1"},
 		{http.MethodPost, "/v1/tasks/task_seed_event_setup/applications", "poster-1"},
 		{http.MethodPost, "/v1/tasks/task_seed_event_setup/applications", "admin-1"},
 		{http.MethodGet, "/v1/tasks/task_seed_event_setup/applications", "worker-1"},
 		{http.MethodGet, "/v1/tasks/task_seed_event_setup/applications", "admin-1"},
 		{http.MethodGet, "/v1/me/applications", "poster-1"},
-		{http.MethodPost, "/v1/applications/missing/accept", "worker-1"},
 		{http.MethodPost, "/v1/applications/missing/accept", "admin-1"},
 		{http.MethodPost, "/v1/tasks/task_seed_event_setup/complete", "worker-1"},
 		{http.MethodGet, "/v1/admin/tasks", "poster-1"},

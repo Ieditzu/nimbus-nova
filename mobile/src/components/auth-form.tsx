@@ -51,7 +51,9 @@ export function AuthForm() {
     <View style={s.form}>
       <View style={s.intro}>
         <Text style={s.title}>Conectează-te</Text>
-        <Text style={s.body}>Intră în cont pentru profil și aplicări.</Text>
+        <Text style={s.body}>
+          Intră în cont pentru sarcini, anunțuri și mesaje.
+        </Text>
       </View>
       {notice ? (
         <View style={s.notice}>

@@ -22,6 +22,7 @@ var (
 )
 
 type publicUser struct {
+	PhoneNumber   string `json:"phone_number"`
 	ID            string `json:"id"`
 	Role          string `json:"role"`
 	DisplayName   string `json:"display_name"`
@@ -29,6 +30,7 @@ type publicUser struct {
 }
 
 type registerRequest struct {
+	PhoneNumber   string `json:"phone_number"`
 	Role          string `json:"role"`
 	Email         string `json:"email"`
 	Password      string `json:"password"`
@@ -116,11 +118,19 @@ func bearerToken(r *http.Request) (string, *AppError) {
 }
 
 func publicFrom(u *User) publicUser {
-	return publicUser{ID: u.ID, Role: u.Role, DisplayName: u.DisplayName, VolunteerOnly: u.VolunteerOnly}
+	return publicUser{ID: u.ID, Role: u.Role, DisplayName: u.DisplayName, VolunteerOnly: u.VolunteerOnly, PhoneNumber: u.PhoneNumber}
 }
 
 func (s *Store) Register(req registerRequest) (publicUser, *AppError) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
+	phone := ""
+	if strings.TrimSpace(req.PhoneNumber) != "" {
+		parsed, ae := normalizePhone(req.PhoneNumber)
+		if ae != nil {
+			return publicUser{}, ae
+		}
+		phone = parsed
+	}
 	role := strings.TrimSpace(req.Role)
 	name := strings.TrimSpace(req.DisplayName)
 	if role != "worker" && role != "poster" {
@@ -185,8 +195,8 @@ func (s *Store) Register(req registerRequest) (publicUser, *AppError) {
 	if volunteer {
 		flag = 1
 	}
-	_, err = s.db.Exec(`INSERT INTO users (id, role, display_name, email, password_hash, birth_date, volunteer_only, guardian_email, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
-		id, role, name, email, string(hash), birth.Format("2006-01-02"), flag, strings.TrimSpace(req.GuardianEmail))
+	_, err = s.db.Exec(`INSERT INTO users (id, role, display_name, email, password_hash, birth_date, volunteer_only, guardian_email, status, phone_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
+		id, role, name, email, string(hash), birth.Format("2006-01-02"), flag, strings.TrimSpace(req.GuardianEmail), phone)
 	if err != nil {
 		return publicUser{}, errInternal
 	}
@@ -195,15 +205,15 @@ func (s *Store) Register(req registerRequest) (publicUser, *AppError) {
 			return publicUser{}, errInternal
 		}
 	}
-	return publicUser{ID: id, Role: role, DisplayName: name, VolunteerOnly: volunteer}, nil
+	return publicUser{ID: id, Role: role, DisplayName: name, VolunteerOnly: volunteer, PhoneNumber: phone}, nil
 }
 
 func (s *Store) Login(email, password string) (string, publicUser, *AppError) {
 	email = strings.ToLower(strings.TrimSpace(email))
-	var id, role, name, hash, status string
+	var id, role, name, hash, status, phone string
 	var volunteer int
-	err := s.db.QueryRow(`SELECT id, role, display_name, COALESCE(password_hash, ''), status, volunteer_only FROM users WHERE email = ?`, email).
-		Scan(&id, &role, &name, &hash, &status, &volunteer)
+	err := s.db.QueryRow(`SELECT id, role, display_name, COALESCE(password_hash, ''), status, volunteer_only, phone_number FROM users WHERE email = ?`, email).
+		Scan(&id, &role, &name, &hash, &status, &volunteer, &phone)
 	if err == sql.ErrNoRows || hash == "" || bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
 		return "", publicUser{}, errInvalidCredentials
 	}
@@ -228,7 +238,7 @@ func (s *Store) Login(email, password string) (string, publicUser, *AppError) {
 	if err != nil {
 		return "", publicUser{}, errInternal
 	}
-	return token, publicUser{ID: id, Role: role, DisplayName: name, VolunteerOnly: volunteer == 1}, nil
+	return token, publicUser{ID: id, Role: role, DisplayName: name, VolunteerOnly: volunteer == 1, PhoneNumber: phone}, nil
 }
 
 func (s *Store) Logout(token string) *AppError {
@@ -252,11 +262,11 @@ func (s *Store) UserByToken(token string) (*User, error) {
 	var u User
 	var volunteer int
 	err := s.db.QueryRow(`
-		SELECT u.id, u.role, u.display_name, u.volunteer_only
+		SELECT u.id, u.role, u.display_name, u.volunteer_only, u.phone_number
 		FROM sessions s
 		JOIN users u ON u.id = s.user_id
-		WHERE s.token_hash = ? AND s.expires_at > ?`, hex.EncodeToString(sum[:]), NowRFC3339()).
-		Scan(&u.ID, &u.Role, &u.DisplayName, &volunteer)
+		WHERE s.token_hash = ? AND s.expires_at > ? AND u.status = 'active'`, hex.EncodeToString(sum[:]), NowRFC3339()).
+		Scan(&u.ID, &u.Role, &u.DisplayName, &volunteer, &u.PhoneNumber)
 	if err == sql.ErrNoRows {
 		return nil, errInvalidToken
 	}

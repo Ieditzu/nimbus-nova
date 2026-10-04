@@ -31,10 +31,18 @@ Nova starts in dark mode. Use the sun/moon button for a quick switch, or choose 
 
 - Discover: open tasks filtered by city/category; pull to refresh.
 - Task details: schedule, proposed RON amount, safety note, and application message.
-- Profile: read-only name, editable skills, city, availability, and bio.
+- Profile: read-only name, private phone number, editable skills, city, availability, and bio.
+- Anunțuri: publish jobs from the signed-in account, view applicants, contact them, choose a worker, and complete assigned jobs.
+- Mesaje: private job conversations, saved by the backend, with older-message history.
 - My applications: application and task statuses; pull to refresh.
 
-Users sign in or begin worker signup from Profile. Private requests use the bearer token returned by the Go API; there is no demo actor fallback. iOS and Android store the token with Expo SecureStore. Browser preview uses session storage. The Go API validates permissions and rejects duplicate applications. When a poster accepts an application on the teammate's website, the app updates its status. Data reloads on screen focus and pull to refresh; the app does not poll. Login and logout use the real API. Payment controls are outside the current mobile scope.
+Users sign in or begin worker signup from Profile. Private requests use the bearer token returned by the Go API; there is no demo actor fallback. iOS and Android store the token with Expo SecureStore. Browser preview uses session storage. The Go API validates permissions and rejects duplicate applications. Adult worker and poster accounts can publish and manage their own jobs. Applications still require a worker account and accepting an applicant retains the backend's contract checks. Lists reload on screen focus and pull to refresh. Open conversations poll every three seconds while the app is active; background screens stop polling. Login and logout use the real API. Payment controls are outside the current mobile scope.
+
+## Required phone and test account
+
+Every signed-in member must save a valid phone number before entering private app screens. Existing accounts without a number are sent to phone completion. The backend also enforces this requirement for authenticated member actions. Romanian `07...` numbers are normalized to `+40...`; international numbers require a country prefix. This is format validation, not SMS verification. The number appears only in the owner's authenticated account responses and is excluded from public jobs and conversation participants.
+
+The supplied test login uses normal backend password hashing and bearer sessions. To provision it locally, start the API with both `NOVA_DEMO=1` and `NOVA_TEST_ACCOUNT=1`. It starts with no phone number, so the same completion step applies. Its jobs and messages live in that API's SQLite database and are shared across devices connecting to that server. No test credentials or fake bearer are handled by the mobile app. Leave `NOVA_TEST_ACCOUNT` unset on a published server.
 
 ## Identity signup
 

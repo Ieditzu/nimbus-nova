@@ -1,6 +1,7 @@
+import { router } from "expo-router";
+import { PhoneForm } from "../components/phone-form";
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { testToken } from "../auth/test-profile";
 import { useAuth } from "../auth/session";
 import { AuthForm } from "../components/auth-form";
 import { NovaError } from "../api/client";
@@ -27,16 +28,12 @@ export default function ProfileScreen() {
     <Page>
       <Header
         title="Profil"
-        subtitle={
-          session?.token === testToken
-            ? "Profil de test salvat pe dispozitiv."
-            : session
-              ? "Datele văzute de organizatori."
-              : "Contul tău Nova."
-        }
+        subtitle={session ? "Profilul și activitatea ta." : "Contul tău Nova."}
       />
       {restoring ? (
         <State loading />
+      ) : session && !session.user.phone_number ? (
+        <PhoneForm />
       ) : session ? (
         <WorkerProfile />
       ) : (
@@ -125,6 +122,24 @@ function WorkerProfile() {
   return (
     <>
       {notice ? <Text style={s.help}>{notice}</Text> : null}
+      <Text style={s.help}>Telefon: {session?.user.phone_number}</Text>
+      <Button
+        variant="outline"
+        icon="call-outline"
+        onPress={() => router.push("/phone")}
+      >
+        Modifică telefonul
+      </Button>
+      {session?.user.role === "worker" ? (
+        <Button
+          variant="outline"
+          icon="file-tray-outline"
+          onPress={() => router.push("/applications")}
+        >
+          Aplicările mele
+        </Button>
+      ) : null}
+
       <Button
         variant="outline"
         disabled={loggingOut}

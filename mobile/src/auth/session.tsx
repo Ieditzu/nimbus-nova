@@ -17,15 +17,6 @@ import {
 import { errorMessage } from "../lib/errors";
 import { readToken, removeToken, saveToken } from "./storage";
 
-import {
-  createTestProfileClient,
-  matchesTestLogin,
-  testNotice,
-  testToken,
-  testUser,
-} from "./test-profile";
-import { readTestProfile, writeTestProfile } from "./test-profile-storage";
-
 type Session = { token: string; user: PublicAccount };
 type AuthContextValue = {
   session: Session | null;
@@ -34,6 +25,7 @@ type AuthContextValue = {
   restore: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  updatePhone: (phone: string) => Promise<void>;
   client: NovaClient;
 };
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -47,11 +39,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void removeToken().catch(() => {});
   }, []);
   const client = useMemo(() => {
-    if (__DEV__ && session?.token === testToken)
-      return createTestProfileClient(api, {
-        read: readTestProfile,
-        write: writeTestProfile,
-      });
     const current = createNovaClient(baseUrl, { token: session?.token ?? "" });
     async function authorized<T>(call: () => Promise<T>): Promise<T> {
       if (!session)
@@ -67,15 +54,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw e;
       }
     }
-    return {
-      ...current,
-      getMyProfile: () => authorized(() => current.getMyProfile()),
-      putMyProfile: (body: Parameters<NovaClient["putMyProfile"]>[0]) =>
-        authorized(() => current.putMyProfile(body)),
-      applyToTask: (id: string, body: { message: string }) =>
-        authorized(() => current.applyToTask(id, body)),
-      listMyApplications: () => authorized(() => current.listMyApplications()),
-    };
+    return new Proxy(current, {
+      get(target, property) {
+        const method = Reflect.get(target, property);
+        if (typeof method !== "function") return method;
+        return (...args: unknown[]) =>
+          authorized(() => Promise.resolve(Reflect.apply(method, target, args)));
+      },
+    });
   }, [session, expire]);
   const restore = useCallback(async () => {
     setRestoring(true);
@@ -83,19 +69,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const token = await readToken();
       if (!token) return;
-      if (token === testToken) {
-        if (__DEV__) {
-          setSession({ token: testToken, user: testUser });
-          setNotice(testNotice);
-        } else await removeToken();
+      if (token === "nova-local-test-profile") {
+        await removeToken();
         return;
       }
       const { user } = await api.me(token);
-      if (user.role !== "worker") {
+      if (user.role !== "worker" && user.role !== "poster") {
         await removeToken();
-        setNotice(
-          "Aplicația este pentru cei care caută sarcini. Conturile de organizator se folosesc pe site.",
-        );
+        setNotice("Acest tip de cont nu este disponibil în aplicație.");
         return;
       }
       setSession({ token, user });
@@ -122,24 +103,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [restore]);
   async function signIn(email: string, password: string) {
-    const local = matchesTestLogin(__DEV__, email, password);
-    const result = local
-      ? { token: testToken, user: testUser }
-      : await api.login({ email: email.trim(), password });
-    if (result.user.role !== "worker") {
+    const result = await api.login({ email: email.trim(), password });
+    if (result.user.role !== "worker" && result.user.role !== "poster") {
       await api.logout(result.token).catch(() => {});
       throw new NovaError(
         403,
         "worker_required",
-        "Aplicația este pentru cei care caută sarcini. Folosește contul de organizator pe site.",
+        "Acest tip de cont nu este disponibil în aplicație.",
       );
     }
-    setNotice(local ? testNotice : "");
+    setNotice("");
     try {
       await saveToken(result.token);
     } catch {
       setNotice(
-        `${local ? `${testNotice} ` : ""}Ești conectat, dar sesiunea nu a putut fi salvată pe dispozitiv.`,
+        "Ești conectat, dar sesiunea nu a putut fi salvată pe dispozitiv.",
       );
     }
     setSession(result);
@@ -147,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signOut() {
     if (!session) return;
     try {
-      if (session.token !== testToken) await api.logout(session.token);
+      await api.logout(session.token);
     } catch (e) {
       if (!(e instanceof NovaError && e.status === 401)) throw e;
     }
@@ -161,9 +139,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setSession(null);
   }
+  async function updatePhone(phone: string) {
+    if (!session) throw new Error("Conectează-te pentru a continua.");
+    const { user } = await client.updatePhone(phone);
+    setSession((current) =>
+      current?.token === session.token ? { ...current, user } : current,
+    );
+  }
   return (
     <AuthContext.Provider
-      value={{ session, restoring, notice, restore, signIn, signOut, client }}
+      value={{
+        session,
+        restoring,
+        notice,
+        restore,
+        signIn,
+        signOut,
+        updatePhone,
+        client,
+      }}
     >
       {children}
     </AuthContext.Provider>

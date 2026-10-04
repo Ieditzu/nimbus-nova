@@ -9,8 +9,8 @@
 | `GET /health` | live | website |
 | `GET /v1/tasks` | live | phone |
 | `GET /v1/tasks/{id}` | live | phone |
-| `POST /v1/tasks` | live | website |
-| `GET /v1/me/tasks` | live | website |
+| `POST /v1/tasks` | live | both |
+| `GET /v1/me/tasks` | live | both |
 | `GET /v1/tasks/{id}/applications` | live | website |
 | `POST /v1/applications/{id}/accept` | live | website |
 | `POST /v1/tasks/{id}/complete` | live | website |
@@ -26,7 +26,12 @@
 | `POST /v1/auth/identity/{id}/complete` | live | phone |
 | `POST /v1/auth/login` | live | both, later |
 | `POST /v1/auth/logout` | live | both, later |
-| `GET /v1/me` | live | both, later |
+| `GET /v1/me` | live | both |
+| `PUT /v1/me/phone` | live | phone |
+| `POST /v1/tasks/{id}/conversations` | live | phone |
+| `GET /v1/me/conversations` | live | phone |
+| `GET /v1/conversations/{id}/messages` | live | phone |
+| `POST /v1/conversations/{id}/messages` | live | phone |
 | `POST /v1/tasks/{id}/pay` | live | website, later |
 | `POST /v1/contracts/framework` | live | phone, later |
 | `POST /v1/contracts/{id}/sign` | live | phone, later |

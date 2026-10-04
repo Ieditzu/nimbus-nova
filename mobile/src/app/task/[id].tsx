@@ -19,6 +19,22 @@ export default function TaskDetailScreen() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
+  async function openChat() {
+    if (busy) return;
+    setBusy(true);
+    setActionError("");
+    try {
+      const { conversation } = await client.startTaskConversation(id);
+      router.push({
+        pathname: "/messages/[id]",
+        params: { id: conversation.id },
+      });
+    } catch (e) {
+      setActionError(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
   async function apply() {
     setActionError("");
     setBusy(true);
@@ -91,7 +107,34 @@ export default function TaskDetailScreen() {
               <Text style={s.body}>{task.safety_note}</Text>
             </View>
           ) : null}
-          {task.status === "open" && restoring ? (
+          {session && task.poster_id === session.user.id ? (
+            <Button
+              icon="briefcase-outline"
+              onPress={() =>
+                router.push({ pathname: "/jobs/[id]", params: { id } })
+              }
+            >
+              Gestionează anunțul tău
+            </Button>
+          ) : task.status === "open" && session ? (
+            <Button
+              variant="outline"
+              icon="chatbubble-outline"
+              disabled={busy}
+              onPress={() => void openChat()}
+            >
+              Discută cu organizatorul
+            </Button>
+          ) : null}
+          {actionError ? (
+            <Text accessibilityRole="alert" style={s.error}>
+              {actionError}
+            </Text>
+          ) : null}
+          {session &&
+          (task.poster_id === session.user.id ||
+            session.user.role === "poster") ? null : task.status === "open" &&
+            restoring ? (
             <State loading />
           ) : task.status === "open" && !session ? (
             <View style={s.section}>
@@ -129,11 +172,6 @@ export default function TaskDetailScreen() {
               {!message.trim() ? (
                 <Text style={s.help}>
                   Scrie un mesaj pentru a putea aplica.
-                </Text>
-              ) : null}
-              {actionError ? (
-                <Text accessibilityRole="alert" style={s.error}>
-                  {actionError}
                 </Text>
               ) : null}
               <Button

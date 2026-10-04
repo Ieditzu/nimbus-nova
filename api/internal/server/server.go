@@ -18,12 +18,20 @@ func New(dbPath string) (*Server, error) {
 		_ = st.Close()
 		return nil, err
 	}
+	if err := st.ensureChatTables(); err != nil {
+		_ = st.Close()
+		return nil, err
+	}
 	if err := st.SeedIfEmpty(); err != nil {
 		_ = st.Close()
 		return nil, err
 	}
 	email, password := adminEmailFromEnv()
 	if err := st.EnsureAdmin(email, password); err != nil {
+		_ = st.Close()
+		return nil, err
+	}
+	if err := st.ensureMobileTestAccount(); err != nil {
 		_ = st.Close()
 		return nil, err
 	}

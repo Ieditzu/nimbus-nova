@@ -12,7 +12,7 @@ func (s *Server) handleCancelTask(w http.ResponseWriter, r *http.Request) {
 		writeAppError(w, ae)
 		return
 	}
-	if ae = requireRole(user, "poster"); ae != nil {
+	if ae = requirePublisher(user); ae != nil {
 		writeAppError(w, ae)
 		return
 	}

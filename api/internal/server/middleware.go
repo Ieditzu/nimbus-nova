@@ -84,6 +84,9 @@ func (s *Server) currentUser(r *http.Request) (User, *AppError) {
 			}
 			return User{}, errInternal
 		}
+		if (u.Role == "worker" || u.Role == "poster") && u.PhoneNumber == "" {
+			return User{}, errPhoneRequired
+		}
 		return *u, nil
 	}
 	id := strings.TrimSpace(r.Header.Get("X-Demo-Actor"))

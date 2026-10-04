@@ -111,3 +111,27 @@ export interface Reputation {
   count: number;
   average: number;
 }
+
+export interface ChatMessage {
+  id: string;
+  sequence: number;
+  conversation_id: string;
+  sender_id: string;
+  text: string;
+  created_at: string;
+}
+export interface Conversation {
+  id: string;
+  task_id: string;
+  task_title: string;
+  other_user: { id: string; display_name: string };
+  last_message: ChatMessage | null;
+  updated_at: string;
+}
+export interface MessagePage {
+  conversation: Conversation;
+  messages: ChatMessage[];
+  next_cursor: number;
+  previous_cursor: number;
+  has_more: boolean;
+}

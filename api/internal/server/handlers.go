@@ -41,6 +41,11 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /v1/auth/login", s.handleLogin)
 	mux.HandleFunc("POST /v1/auth/logout", s.handleLogout)
 	mux.HandleFunc("GET /v1/me", s.handleMe)
+	mux.HandleFunc("PUT /v1/me/phone", s.handlePhone)
+	mux.HandleFunc("POST /v1/tasks/{id}/conversations", s.handleStartConversation)
+	mux.HandleFunc("GET /v1/me/conversations", s.handleConversations)
+	mux.HandleFunc("GET /v1/conversations/{id}/messages", s.handleMessages)
+	mux.HandleFunc("POST /v1/conversations/{id}/messages", s.handleSendMessage)
 	mux.HandleFunc("POST /v1/tasks/{id}/pay", s.handlePay)
 	mux.HandleFunc("POST /v1/contracts/framework", s.handleFrameworkContract)
 	mux.HandleFunc("POST /v1/contracts/{id}/sign", s.handleSignContract)
@@ -195,7 +200,7 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 		writeAppError(w, ae)
 		return
 	}
-	if ae = requireRole(user, "poster"); ae != nil {
+	if ae = requirePublisher(user); ae != nil {
 		writeAppError(w, ae)
 		return
 	}
@@ -224,7 +229,7 @@ func (s *Server) handleMyTasks(w http.ResponseWriter, r *http.Request) {
 		writeAppError(w, ae)
 		return
 	}
-	if ae = requireRole(user, "poster"); ae != nil {
+	if ae = requireMember(user); ae != nil {
 		writeAppError(w, ae)
 		return
 	}
@@ -244,7 +249,7 @@ func (s *Server) handleGetProfile(w http.ResponseWriter, r *http.Request) {
 		writeAppError(w, ae)
 		return
 	}
-	if ae = requireRole(user, "worker"); ae != nil {
+	if ae = requireMember(user); ae != nil {
 		writeAppError(w, ae)
 		return
 	}
@@ -264,7 +269,7 @@ func (s *Server) handlePutProfile(w http.ResponseWriter, r *http.Request) {
 		writeAppError(w, ae)
 		return
 	}
-	if ae = requireRole(user, "worker"); ae != nil {
+	if ae = requireMember(user); ae != nil {
 		writeAppError(w, ae)
 		return
 	}
@@ -368,7 +373,7 @@ func (s *Server) handleAccept(w http.ResponseWriter, r *http.Request) {
 		writeAppError(w, ae)
 		return
 	}
-	if ae = requireRole(user, "poster"); ae != nil {
+	if ae = requirePublisher(user); ae != nil {
 		writeAppError(w, ae)
 		return
 	}
@@ -394,7 +399,7 @@ func (s *Server) handleComplete(w http.ResponseWriter, r *http.Request) {
 		writeAppError(w, ae)
 		return
 	}
-	if ae = requireRole(user, "poster"); ae != nil {
+	if ae = requirePublisher(user); ae != nil {
 		writeAppError(w, ae)
 		return
 	}

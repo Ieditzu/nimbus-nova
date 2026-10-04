@@ -251,9 +251,14 @@ export function Page({
 const dockTabs = [
   { href: "/" as const, icon: "search-outline" as const, label: "Sarcini" },
   {
-    href: "/applications" as const,
-    icon: "file-tray-outline" as const,
-    label: "Aplicări",
+    href: "/jobs" as const,
+    icon: "briefcase-outline" as const,
+    label: "Anunțuri",
+  },
+  {
+    href: "/messages" as const,
+    icon: "chatbubbles-outline" as const,
+    label: "Mesaje",
   },
   {
     href: "/profile" as const,
@@ -265,11 +270,16 @@ const dockTabs = [
 export function BottomNav() {
   const path = usePathname();
   const { colors } = useTheme();
-  const selectedIndex = path.startsWith("/profile")
-    ? 2
-    : path.startsWith("/applications")
-      ? 1
-      : 0;
+  const selectedIndex =
+    path.startsWith("/profile") ||
+    path.startsWith("/phone") ||
+    path.startsWith("/applications")
+      ? 3
+      : path.startsWith("/messages")
+        ? 2
+        : path.startsWith("/jobs")
+          ? 1
+          : 0;
   const [position] = useState(() => new Animated.Value(selectedIndex));
   const [width, setWidth] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(true);

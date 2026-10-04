@@ -40,6 +40,7 @@ export function SignupForm({
   const [name, setName] = useState("");
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [guardian, setGuardian] = useState("");
   const [guardianVisible, setGuardianVisible] = useState(false);
   const [kind, setKind] = useState<IdentityKind>("ci");
@@ -137,6 +138,7 @@ export function SignupForm({
         email: email.toLowerCase().trim(),
         password,
         display_name: name.trim(),
+        phone_number: phone.trim(),
         identity_proof: result.proof.token,
         ...(guardian.trim() ? { guardian_email: guardian.trim() } : {}),
       });
@@ -175,6 +177,7 @@ export function SignupForm({
     name.trim().length <= 80 &&
     email.trim().includes("@") &&
     password.length >= 8 &&
+    phone.trim().length >= 8 &&
     (!guardian.trim() || guardian.includes("@"));
   const documentsReady = documentSlots[kind].every((slot) => assets[slot]);
   const headings = [
@@ -230,6 +233,16 @@ export function SignupForm({
               setEmail(value);
             }}
             placeholder="nume@exemplu.ro"
+          />
+          <AuthField
+            label="Număr de telefon"
+            value={phone}
+            onChangeText={setPhone}
+            editable={!busy}
+            keyboardType="phone-pad"
+            autoComplete="tel"
+            placeholder="+40 712 345 678"
+            maxLength={30}
           />
           <PasswordField
             newPassword

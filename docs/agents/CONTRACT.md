@@ -129,3 +129,22 @@ Worker `POST /v1/auth/register` does not accept a client `birth_date`. It requir
 `POST /v1/auth/identity/{id}/complete` body `{}`. The server reads the CNP from `cei_pdf` or `ci_scan_text`, checks the CNP checksum, and derives the birth date. `200` returns `{ "verification": { ..., "status": "verified", "checks": { "files": "passed", "cnp": "passed", "selfie": "passed", "face_match": "not_available" } }, "proof": { "token", "expires_at", "email" } }`. `face_match` is not a passed face comparison. Do not treat it as one.
 
 Register sends `identity_proof` equal to `proof.token` and the same email. The proof is single-use. Missing proof is `409 identity_required`. Expired is `409 proof_expired`. Reuse is `409 proof_used`.
+
+## Mobile accounts, phone onboarding, and job conversations
+
+Perjoc was explicitly authorized by the user to implement these backend and shared-contract changes while the hub is paused. No web files change.
+
+`PublicAccount` now includes `phone_number` on register/login/me and phone-update responses. The number is private account data; it is not returned on public tasks, profiles, or conversation participants. Old accounts start with an empty number. Registration can include `phone_number`; otherwise onboarding must collect it before app access. `PUT /v1/me/phone` requires a bearer token and `{ "phone_number": "+40712345678" }`, returning `200 { "user": PublicAccount }`. Normalization strips spaces/dashes/parentheses, accepts `00` country prefixes and Romanian `07...` numbers, and validates an international number of 8–15 digits. It does not verify ownership with SMS.
+
+Bearer-authenticated worker/poster accounts without a phone number receive `409 phone_required` on protected API routes. `/v1/me`, logout and phone update remain available for onboarding. Existing demo headers remain supported on the old routes; chat always requires a real bearer session. Suspended sessions are rejected.
+
+Adult workers can now publish and manage their own tasks without changing their `role`. Ownership checks still apply to applications, acceptance, completion, and cancellation. Minors cannot publish. Workers cannot apply to their own task. `GET /v1/me/tasks` lists only the authenticated account's tasks. Profiles may be edited by worker or poster accounts. Poster accounts continue to publish; applying and signing worker contracts remain worker-only.
+
+- `POST /v1/tasks/{id}/conversations`: a member contacts the task owner with `{}`. An owner can contact an applicant with `{ "participant_id": user_id }`. Repeated calls return the same thread. New threads require an open visible task; existing threads can reopen after completion. Returns `200 { "conversation": Conversation }`.
+- `GET /v1/me/conversations`: returns the member's most recent 100 threads as `{ "conversations": Conversation[] }`.
+- `GET /v1/conversations/{id}/messages`: returns the newest 100 messages ordered oldest first. `?before=sequence` loads older history; `?after=sequence` loads later messages. Do not combine cursors. Returns `MessagePage`, including `next_cursor`, `previous_cursor`, and `has_more` in the requested direction.
+- `POST /v1/conversations/{id}/messages`: `{ "text": string }`, 1–2000 Unicode characters after trimming. Returns `201 { "message": ChatMessage }`. The server sets sender, sequence, IDs and timestamps. Only participants can read/send; other accounts get `404`. No sends to suspended participants or hidden jobs.
+
+`Conversation` includes `id`, `task_id`, `task_title`, `other_user: { id, display_name }`, `last_message: ChatMessage | null`, and `updated_at`. `ChatMessage` includes `id`, integer `sequence`, `conversation_id`, `sender_id`, `text`, and `created_at`. Copy the shared client/types verbatim.
+
+The supplied test login is now a real hashed-password account only when both `NOVA_DEMO=1` and `NOVA_TEST_ACCOUNT=1` are set. Its phone is initially empty. No mobile authentication shortcut or fake bearer token remains. Production should leave `NOVA_TEST_ACCOUNT` unset. CI/CEI identity provider availability is unchanged by this feature.
