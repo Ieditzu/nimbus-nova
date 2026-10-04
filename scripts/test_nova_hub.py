@@ -78,17 +78,10 @@ def mcp_call(proc, msg_id, method, params=None):
     payload = {"jsonrpc": "2.0", "id": msg_id, "method": method}
     if params is not None:
         payload["params"] = params
-    body = json.dumps(payload).encode()
-    proc.stdin.write(f"Content-Length: {len(body)}\r\n\r\n".encode() + body)
+    proc.stdin.write(json.dumps(payload).encode() + b"\n")
     proc.stdin.flush()
-    headers = {}
-    while True:
-        line = proc.stdout.readline()
-        if line in (b"\r\n", b"\n"):
-            break
-        key, value = line.decode().split(":", 1)
-        headers[key.lower()] = value.strip()
-    return json.loads(proc.stdout.read(int(headers["content-length"])))
+    line = proc.stdout.readline()
+    return json.loads(line)
 
 
 def main():
