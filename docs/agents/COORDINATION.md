@@ -1,68 +1,60 @@
 # How the agents talk
 
-The three agents do not share a chat. They share this git repo and one GitHub issue.
+The three agents talk live on a small IRC hub running on Haivas's laptop. They are on the same network. Do not use GitHub issue #1. That mailbox is retired.
 
-Mailbox: https://github.com/Ieditzu/nimbus-nova/issues/1
-
-This is the same pattern described by Jon Udell in InfoWorld, "The agent coordination protocol hiding in plain sight: GitHub issues" (22 September 2026): https://www.infoworld.com/article/4224587/the-agent-coordination-protocol-hiding-in-plain-sight-github-issues.html
-
-GitHub issues already work from Codex, Claude Code, and OpenCode through `gh`. A custom chat tool would be a second place to look. Do not add one.
-
-## Read this every session
-
-```bash
-git pull origin main
-gh issue view 1 --repo Ieditzu/nimbus-nova --comments
-```
-
-Then read `docs/agents/API-STATUS.md` and your own brief.
-
-## Write this before you stop
-
-```bash
-gh issue comment 1 --repo Ieditzu/nimbus-nova --body "$(cat <<'EOF'
-Signature: Haivas backend agent
-Type: status
-Commit: abc1234
-Need from: nobody
-Done: Pay route is live and covered by go test.
-Next: Ciprian can call api.pay after refetching main. Do not require pay on the first poster screen.
-EOF
-)"
-```
-
-Replace the signature with `Ciprian web agent` or `Perjoc mobile agent`. `Type` is `status`, `blocker`, `contract-change`, or `handoff`.
-
-`contract-change` means you need a JSON field or route that is not in `docs/agents/CONTRACT.md`. Stop coding that screen. Haivas answers on the same issue, changes the contract, and marks the route `live` in `docs/agents/API-STATUS.md`.
-
-## Branches
-
-- `haivas/<short-topic>`
-- `ciprian/<short-topic>`
-- `perjoc/<short-topic>`
-
-Push the branch. Open a pull request only if the human asks. The other agent pulls `main`, not your unmerged branch, unless the issue comment gives the branch name and says to pull it.
-
-## Ownership
-
-| Path | Only this agent edits it |
+| | |
 | --- | --- |
-| `api/**` | Haivas backend agent |
-| `docs/agents/API-STATUS.md` | Haivas backend agent |
-| `docs/agents/CONTRACT.md` | Haivas backend agent |
-| `docs/agents/types.ts` | Haivas backend agent |
-| `docs/agents/client.ts` | Haivas backend agent |
-| `web/**` | Ciprian web agent |
-| `mobile/**` | Perjoc mobile agent |
+| Host | `172.16.13.172` |
+| Port | `6667` |
+| Channel | `#nova` |
+| Password | `nova-lan` |
+| Nicks | `Haivas`, `Ciprian`, `Perjoc` |
 
-If two agents need the same file, that file is in the wrong place. Say so on issue #1.
+Haivas starts the hub from the repo:
 
-## What a good handoff contains
+```bash
+python3 scripts/nova-hub.py
+```
 
-- The commit SHA.
-- The command the other person runs, not a description of the command.
-- The header and URL, if the API is involved.
-- What not to build yet.
+Leave that process running. It prints `NOVA_HUB_READY` when the port is open. Other laptops use `172.16.13.172`, not `127.0.0.1`. If Haivas's IP changes, he posts the new IP in `#nova` and in this file.
 
-Bad: "backend is basically done, wire it up."
-Good: "Commit 5e752fe. `cd api && go run .` Pay is `POST /v1/tasks/{id}/pay` with `X-Demo-Actor: poster-1` and body `{}`. Do not block Finalizează on pay."
+## Live listen
+
+This is the notification. The command stays open. Every message from someone else is printed immediately. There is no 15-second poll.
+
+```bash
+python3 scripts/nova-irc.py listen --host 172.16.13.172 --nick Ciprian
+```
+
+Use your own nick. On Haivas's laptop, `--host 127.0.0.1` also works.
+
+When a line like this appears, stop and answer on the hub before you keep coding:
+
+```text
+NEW_NOVA_MESSAGE from=Haivas text=pay route is live, do not block Finalizează on it
+END_NOVA_MESSAGE
+```
+
+Claude Code: run that listen command with the Monitor tool, not as a forgotten background poll. Codex and OpenCode: run it in a background terminal in the same session and treat `NEW_NOVA_MESSAGE` as a wake-up. If the session is closed, the listen command is dead. Start it again when you reopen the agent.
+
+Ignore messages from your own nick. The script already does that.
+
+## Send
+
+```bash
+python3 scripts/nova-irc.py say --host 172.16.13.172 --nick Ciprian --text "landing health line works against poster-1"
+```
+
+Keep messages short. Include the commit SHA if you changed code. Do not paste secrets, passwords, or real personal data.
+
+## Still in git
+
+IRC is the live talk. Git is still the code. Pull `main` before editing. Own only your folder:
+
+| Path | Agent |
+| --- | --- |
+| `api/**`, `docs/agents/API-STATUS.md`, `docs/agents/CONTRACT.md`, `docs/agents/types.ts`, `docs/agents/client.ts` | Haivas |
+| `web/**` | Ciprian |
+| `mobile/**` | Perjoc |
+
+If you need a new JSON field, say so on `#nova` with `contract-change` and stop. Do not invent the field in the website or the phone.

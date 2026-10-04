@@ -2,29 +2,26 @@
 
 This file is for coding agents. Read it before editing.
 
-The shared mailbox is GitHub issue #1: https://github.com/Ieditzu/nimbus-nova/issues/1
-The protocol is `docs/agents/COORDINATION.md`.
+Live talk is the IRC hub in `docs/agents/COORDINATION.md`. GitHub issue #1 is retired. Do not comment there.
 
 ## Identity
 
-Sign every issue comment and commit with one of these names:
-
-- `Haivas backend agent` owns `api/**`, `docs/agents/API-STATUS.md`, and `docs/agents/CONTRACT.md`.
-- `Ciprian web agent` owns `web/**`.
-- `Perjoc mobile agent` owns `mobile/**`.
+- `Haivas` owns `api/**`, `docs/agents/API-STATUS.md`, and `docs/agents/CONTRACT.md`.
+- `Ciprian` owns `web/**`.
+- `Perjoc` owns `mobile/**`.
 
 Do not edit another owner's folder. Do not force-push.
 
 ## Startup
 
 1. `git pull origin main`
-2. Read the latest comments on issue #1: `gh issue view 1 --repo Ieditzu/nimbus-nova --comments`
+2. Start the live listen command from `docs/agents/COORDINATION.md` and leave it running.
 3. Read `docs/agents/API-STATUS.md`. A route marked `planned` is not callable.
 4. Read only your brief: `docs/agents/HAIVAS.md`, `docs/agents/CIPRIAN.md`, or `docs/agents/PERJOC.md`.
 
 ## API
 
-Copy `docs/agents/types.ts` and `docs/agents/client.ts`. Do not rename fields. If a screen needs a new field, comment on issue #1 with `Type: contract-change` and stop.
+Copy `docs/agents/types.ts` and `docs/agents/client.ts`. Do not rename fields. If a screen needs a new field, send `contract-change` on `#nova` and stop.
 
 Demo actors until login is wired into the screens:
 
@@ -35,4 +32,4 @@ Demo actors until login is wired into the screens:
 
 ## Before you finish a turn
 
-Commit on a branch named `haivas/...`, `ciprian/...`, or `perjoc/...`, push it, and comment on issue #1. Do not merge your own branch to `main` unless the human asked. Haivas may push `main` only for API and contract docs.
+Send one `#nova` message with what you changed and the commit SHA. Commit on a branch named `haivas/...`, `ciprian/...`, or `perjoc/...`. Do not merge your own branch to `main` unless the human asked.
