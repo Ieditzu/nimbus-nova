@@ -20,7 +20,7 @@ export default function PosterPage() {
     <div className="task-overview" aria-label="Situația sarcinilor">{(['open', 'assigned', 'completed'] as const).map(status => <button key={status} aria-pressed={filter === status} onClick={() => setFilter(status)}><span>{status === 'open' ? 'Deschise' : status === 'assigned' ? 'În lucru' : 'Finalizate'}</span><strong>{loading || error ? '—' : tasks.filter(task => task.status === status).length}</strong><ArrowUpRightIcon size={18} aria-hidden="true" /></button>)}</div>
     {message && <p className="success-notice" role="status">{message}</p>}
     <div ref={composer}>{showForm && <TaskForm onClose={() => setShowForm(false)} onCreated={async () => { setMessage('Sarcina a fost publicată. Este disponibilă în aplicația mobilă.'); setFilter('all'); await refresh(); }} />}</div>
-    <MyTaskList tasks={tasks} loading={loading} error={error} refresh={refresh} filter={filter} setFilter={setFilter} expanded={expanded} setExpanded={setExpanded} onCreate={() => setShowForm(true)} />
+    <MyTaskList tasks={tasks} loading={loading} error={error} refresh={refresh} filter={filter} setFilter={setFilter} expanded={expanded} setExpanded={setExpanded} onCreate={() => setShowForm(true)} onNotice={setMessage} />
     <aside className="dashboard-help"><h3>Candidaturile vin de pe mobil.</h3><p>Folosește „Actualizează” pentru a vedea sarcinile curente și „Actualizează candidaturile” din detalii pentru persoanele care au aplicat.</p></aside>
     </div>
   </main>;

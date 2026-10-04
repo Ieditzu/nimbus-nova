@@ -1,6 +1,6 @@
 # Nimbus Nova website (Ciprian)
 
-Vite + React + TypeScript demand-side website. Romanian UI. Routes: `/` and `/poster`, plus a useful not-found view. No admin, login, payment, cancel, dispute, worker profile, or role switcher.
+Vite + React + TypeScript demand-side website. Romanian UI. Routes: `/` and `/poster`, plus a useful not-found view. Includes demo payment, cancellation, and dispute controls. Authentication UI remains a follow-up; the poster uses the seeded demo actor.
 
 ## Run locally
 
@@ -28,7 +28,8 @@ The latest backend starts with demo mode enabled by default. Use a fresh seeded 
 
 - `src/api/client.ts` and `src/api/types.ts` are verbatim copies from `docs/agents/`. The single poster client lives in `src/api/instance.ts` and is re-exported by `src/main.tsx`; keeping it separate allows static rendering without importing browser startup code.
 - The client always uses `poster-1` on poster requests. Public health and review reads omit the actor, as specified by the shared client.
-- Create task, my tasks, expanded applications, accept, complete, and reviews use only routes marked live in `docs/agents/API-STATUS.md`.
+- Create task, my tasks, expanded applications, accept, complete, reviews, demo payment, cancellation, and disputes use only routes marked live in `docs/agents/API-STATUS.md`.
+- Payment is explicitly simulated; its amount, platform fee, and worker payout come from the server. Cancellation asks for confirmation, then refetches and preserves the success notice outside the removed card. Dispute submission retains the reason on failure and displays the returned reference on success.
 - After accept, the website refetches both the task list and the expanded application's list. A failed refresh has a retry action. No optimistic fabricated successes.
 - Money uses the supplied `ronToBani` and `formatBani`. Dates use `toRfc3339` with `+03:00`. The computer's local timezone does not alter submitted times.
 - API failures keep form values. The UI displays server error messages verbatim; network and non-JSON failures have Romanian recovery messages.
@@ -53,7 +54,7 @@ Host the static `dist/` output with a rewrite for `/poster`. For unknown routes,
 
 ## Visual design
 
-The interface has selectable black/white light and dark themes, saved locally. The initial editable Figma foundations are at https://www.figma.com/design/PF68fLNhOHfq5irftxtslq. The website subsequently adopts Meetup-inspired compact filters, search, and dated task cards, with an optional table view. Search is local to the poster's loaded tasks and ignores Romanian diacritics; it makes no new API calls.
+The interface has selectable light and dark themes, saved locally, using the Nova phone palette: dark background `#101615`, surface `#19211f`, raised `#222d29`, text `#f0f4f2`, accent `#96e0ba`; light background `#f4f6f3`, text `#17261e`, accent `#256247`. The editable Figma foundations are at https://www.figma.com/design/PF68fLNhOHfq5irftxtslq. The website adopts Meetup-inspired compact filters, search, and dated task cards, with an optional table view. Search is local to the poster's loaded tasks and ignores Romanian diacritics; it makes no new API calls.
 
 Reference: the official Meetup screenshots at https://apps.apple.com/us/app/meetup-social-events-groups/id375990038. The supplied Mobbin collection required authentication and its individual screens were unavailable during this implementation.
 

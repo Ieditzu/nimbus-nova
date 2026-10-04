@@ -4,9 +4,10 @@ import { api } from '../api/instance';
 import type { ApplicationView, Review, TaskPublic } from '../api/types';
 import { errorMessage } from '../lib/format';
 import { ApplicationList } from './ApplicationList';
+import { TaskActions } from './TaskActions';
 import { ErrorNotice, Loading } from './Feedback';
 
-export function TaskDetail({ task, onChanged }: { task: TaskPublic; onChanged: () => Promise<void> }) {
+export function TaskDetail({ task, onChanged, onNotice }: { task: TaskPublic; onChanged: () => Promise<void>; onNotice: (message: string) => void }) {
   const [applications, setApplications] = useState<ApplicationView[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,6 +57,7 @@ export function TaskDetail({ task, onChanged }: { task: TaskPublic; onChanged: (
     <div className="task-description"><div><h3>Despre sarcină</h3><p>{task.description}</p>{task.safety_note && <p className="safety-note"><strong>Notă de siguranță:</strong> {task.safety_note}</p>}{task.assignee_name && <p className="assignee"><CheckCircleIcon size={18} aria-hidden="true" />Persoana aleasă: <strong>{task.assignee_name}</strong></p>}</div><button className="button button-secondary" disabled={busy || task.status !== 'assigned'} onClick={() => void act('complete')}><CheckCircleIcon size={19} aria-hidden="true" />Finalizează</button></div>
     {actionError && <ErrorNotice message={actionError} />}
     {message && <p className="success-notice" role="status"><CheckCircleIcon size={20} aria-hidden="true" />{message}</p>}
+    <TaskActions task={task} busy={busy} setBusy={setBusy} onChanged={onChanged} onNotice={onNotice} />
     <div className="detail-heading"><h3>Candidaturi {(!loading && !error) && <span className="count">{applications.length}</span>}</h3><button className="text-button" disabled={loading || busy} onClick={() => setAttempt(value => value + 1)}>Actualizează candidaturile</button></div>
     <ApplicationList applications={applications} task={task} loading={loading} error={error} busy={busy} onRetry={() => setAttempt(value => value + 1)} onAccept={id => void act('accept', id)} />
     {task.status === 'completed' && <section className="reviews-region" aria-labelledby={`review-title-${task.id}`}><h3 id={`review-title-${task.id}`}>Cum a fost experiența?</h3>{reviewLoading ? <Loading /> : reviewError ? <ErrorNotice message={reviewError} retry={() => setReviewAttempt(value => value + 1)} /> : <>

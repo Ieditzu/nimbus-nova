@@ -122,9 +122,9 @@ Fee rule when pay exists: poster is charged `amount_bani`. Worker payout is `amo
 
 Worker `POST /v1/auth/register` does not accept a client `birth_date`. It requires `identity_proof`. Poster registration still sends `birth_date`. A minor worker still sends `guardian_email`. The server derives `birth_date` and `volunteer_only` from the proof.
 
-`POST /v1/auth/identity` body `{ "email", "kind" }` where `kind` is `ci` or `cei`. `201` returns `{ "verification": { "id", "email", "kind", "status": "collecting", "expires_at" } }`. The session expires in 15 minutes.
+`POST /v1/auth/identity` body `{ "email", "kind" }` where `kind` is `ci` or `cei`. `201` returns `{ "verification": { "id", "email", "kind", "status": "collecting", "expires_at", "checks" } }`. `checks.face_match` is `not_available` until a real provider exists. The session expires in 15 minutes.
 
-`POST /v1/auth/identity/{id}/files` body `{ "slot", "content_type", "content_base64" }`. Slots for `ci` are `ci_front`, `ci_back`, `ci_scan_text`, `selfie`. Slots for `cei` are `cei_front`, `cei_back`, `cei_pdf`, `selfie`. Images are `image/jpeg` or `image/png`. The scan text is `text/plain`. The CEI file is `application/pdf`. The response is `{ "file": { "id", "slot", "sha256" } }`. File bytes are never returned.
+`POST /v1/auth/identity/{id}/files` body `{ "slot", "content_type", "content_base64" }`. Required slots for `ci` are `ci_front`, `ci_back`, and `selfie`. `ci_scan_text` is optional and is not a typed CNP field. Required slots for `cei` are `cei_front`, `cei_back`, `cei_pdf`, and `selfie`. Images are `image/jpeg` or `image/png`. The scan text is `text/plain`. The CEI file is `application/pdf`. The response is `{ "file": { "id", "slot", "sha256" } }`. File bytes are never returned.
 
 `POST /v1/auth/identity/{id}/complete` body `{}`. The server reads the CNP from `cei_pdf` or `ci_scan_text`, checks the CNP checksum, and derives the birth date. `200` returns `{ "verification": { ..., "status": "verified", "checks": { "files": "passed", "cnp": "passed", "selfie": "passed", "face_match": "not_available" } }, "proof": { "token", "expires_at", "email" } }`. `face_match` is not a passed face comparison. Do not treat it as one.
 

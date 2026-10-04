@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#101010" />
+    <meta name="theme-color" content="#101615" />
     <script>
       try {
         const theme = localStorage.getItem('nova-theme');
         if (theme === 'light' || theme === 'dark') {
           document.documentElement.dataset.theme = theme;
-          document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#101010' : '#fafafa';
+          document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#101615' : '#f4f6f3';
         }
       } catch {}
     </script>

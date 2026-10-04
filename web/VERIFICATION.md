@@ -1,5 +1,14 @@
 # Website verification
 
+Phone-theme and poster-action update, repository through `0dd6d8b`:
+
+- Applied the phone's green dark/light palette and compacted dashboard cards, stats, and spacing.
+- Shared client includes `pay`, `cancelTask`, and `openDispute` verbatim.
+- Browser payment simulation for an assigned 185.50 RON task returned 27.83 RON platform fee and 157.67 RON worker payout. The UI displays those server values without recalculation.
+- Browser dispute submission returned and displayed a real `dis_` reference. Cancellation was tested both by dismissing its confirmation and by submitting it. The cancelled task disappears after refetch, and a dashboard success notice remains visible.
+- All payment controls explicitly describe a simulation; no money was charged.
+- Duplicate dispute submission shows the server's `Există deja o dispută deschisă.` message, preserves the typed reason, and releases the submit control. Expanded details fit at 320/375/768/1440 pixels; both phone palette modes were inspected.
+
 Redesign checked on 4 October 2026 against backend `9e3557f`, with repository updates through `ab422f1`:
 
 - 22 frontend tests pass, including exact shared client/type copies; production build and SSR prerender pass.
@@ -7,7 +16,7 @@ Redesign checked on 4 October 2026 against backend `9e3557f`, with repository up
 - Light theme survives reload; both light and dark interfaces inspected.
 - Landing and expanded card details checked at 320, 375, 768, and 1440 pixels: one H1 and no horizontal document overflow. The local WebP loads at its declared 1200 × 900 dimensions.
 - Created a real task for 125.50 RON, accepted the seeded worker's application, completed the task, and submitted a five-star review through the UI. The completed task and review remain accessible in the new card detail view.
-- This redesign retains demo poster flows. Auth/payment/cancel/dispute mentioned in the updated brief are not mounted by this visual change.
+- The initial visual change retained demo poster flows. Payment/cancel/dispute were subsequently mounted in the phone-theme update described above. Authentication remains a follow-up.
 
 Checked on 4 October 2026 against the real Go API, initially at `7db1ecf`, then rechecked after pulling teammate updates through `2c4233b`. The API was run with separate local test databases outside the repository. No backend or mobile source was modified.
 

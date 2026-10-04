@@ -37,6 +37,8 @@ export interface NovaClient {
   listTaskApplications(taskId: string): Promise<{ applications: ApplicationView[] }>;
   acceptApplication(applicationId: string): Promise<{ task: TaskPublic }>;
   completeTask(taskId: string): Promise<{ task: TaskPublic }>;
+  cancelTask(taskId: string): Promise<{ task: TaskPublic }>;
+  openDispute(taskId: string, body: { reason: string }): Promise<{ dispute: { id: string; status: "open" } }>;
   createReview(taskId: string, body: { stars: number; text: string }): Promise<{ review: Review }>;
   listReviews(taskId: string): Promise<{ reviews: Review[] }>;
   getMyProfile(): Promise<{ profile: Profile }>;
@@ -93,6 +95,8 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
     acceptApplication: (applicationId) =>
       request(`/v1/applications/${applicationId}/accept`, { method: "POST", body: "{}" }),
     completeTask: (taskId) => request(`/v1/tasks/${taskId}/complete`, { method: "POST", body: "{}" }),
+    cancelTask: (taskId) => request(`/v1/tasks/${taskId}/cancel`, { method: "POST", body: "{}" }),
+    openDispute: (taskId, body) => request(`/v1/tasks/${taskId}/dispute`, { method: "POST", body: JSON.stringify(body) }),
     createReview: (taskId, body) =>
       request(`/v1/tasks/${taskId}/reviews`, { method: "POST", body: JSON.stringify(body) }),
     listReviews: (taskId) => request(`/v1/tasks/${taskId}/reviews`, {}, false),
