@@ -68,5 +68,5 @@ export const PhotoCamera = forwardRef<PhotoCameraHandle, PhotoCameraProps>(funct
     },
   }));
   return createElement("video", { ref: video, autoPlay: true, muted: true, playsInline: true,
-    style: { width: "100%", height: "100%", objectFit: "contain" } });
+    style: { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" } });
 });

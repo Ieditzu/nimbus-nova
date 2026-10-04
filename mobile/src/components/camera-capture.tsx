@@ -36,6 +36,7 @@ export function CameraCapture({
   const camera = useRef<PhotoCameraHandle>(null);
   const mounted = useRef(true);
   const taking = useRef(false);
+  const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
   const [torch, setTorch] = useState(false);
@@ -150,13 +151,16 @@ export function CameraCapture({
           </View>
         ) : (
           <>
-            <View style={s.preview}>
+            <View style={s.preview} onLayout={({ nativeEvent }) => {
+              const { width, height } = nativeEvent.layout;
+              setPreviewSize((current) => current.width === width && current.height === height ? current : { width, height });
+            }}>
               {active ? (
                 <PhotoCamera ref={camera} selfie={selfie} torch={torch}
                   onReady={cameraReady} onError={cameraError} onTorchAvailable={torchSupport} />
               ) : null}
               <View pointerEvents="none" style={s.guideArea}>
-                <View style={selfie ? s.faceGuide : s.cardGuide} />
+                <View style={selfie ? s.faceGuide : [s.cardGuide, previewSize.width > 0 && { width: Math.max(1, Math.min(520, previewSize.width - 48, (previewSize.height - 48) * 1.45)) }]} />
               </View>
             </View>
             <Text style={[s.body, s.instructions, { color: colors.muted }]}>

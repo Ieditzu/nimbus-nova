@@ -61,6 +61,10 @@ func normalizeCNP(value string) string {
 var ocrCNPPattern = regexp.MustCompile(`[0-9](?:[ \t-]*[0-9]){12}`)
 
 func cnpFromOCR(text string, birth time.Time) (string, bool) {
+	value, valid, _ := inspectCNPOCR(text, birth)
+	return value, valid
+}
+func inspectCNPOCR(text string, birth time.Time) (string, bool, bool) {
 	candidates := map[string]bool{}
 	for _, line := range strings.Split(text, "\n") {
 		for _, match := range ocrCNPPattern.FindAllStringIndex(line, -1) {
@@ -75,19 +79,19 @@ func cnpFromOCR(text string, birth time.Time) (string, bool) {
 			parsed, valid := parseCNP(value)
 			if valid {
 				if !parsed.Equal(birth) {
-					return "", false
+					return "", false, true
 				}
 				candidates[value] = true
 			}
 		}
 	}
 	if len(candidates) != 1 {
-		return "", false
+		return "", false, len(candidates) > 1
 	}
 	for value := range candidates {
-		return value, true
+		return value, true, false
 	}
-	return "", false
+	return "", false, false
 }
 func readCNPFromImage(ctx context.Context, image []byte, birth time.Time) (string, bool) {
 	if len(image) == 0 {
@@ -95,17 +99,43 @@ func readCNPFromImage(ctx context.Context, image []byte, birth time.Time) (strin
 	}
 	ctx, cancel := context.WithTimeout(ctx, 12*time.Second)
 	defer cancel()
-	for _, mode := range []string{"11", "6"} {
-		command := exec.CommandContext(ctx, "tesseract", "stdin", "stdout", "-l", "eng", "--psm", mode)
+	run := func(data []byte, mode string, adaptive bool) (string, bool, bool) {
+		args := []string{"stdin", "stdout", "-l", "eng", "--psm", mode, "--dpi", "300"}
+		if adaptive {
+			args = append(args, "-c", "thresholding_method=2")
+		}
+		attempt, stop := context.WithTimeout(ctx, 2*time.Second)
+		defer stop()
+		command := exec.CommandContext(attempt, "tesseract", args...)
 		command.Env = append(os.Environ(), "OMP_THREAD_LIMIT=2")
-		command.Stdin = bytes.NewReader(image)
+		command.Stdin = bytes.NewReader(data)
 		var output limitedPDFText
 		command.Stdout = &output
 		command.Stderr = io.Discard
 		if command.Run() != nil {
+			return "", false, false
+		}
+		return inspectCNPOCR(output.String(), birth)
+	}
+	for _, mode := range []string{"11", "6"} {
+		value, ok, conflict := run(image, mode, false)
+		if conflict {
 			return "", false
 		}
-		if value, ok := cnpFromOCR(output.String(), birth); ok {
+		if ok {
+			return value, true
+		}
+	}
+	// Work only on temporary OCR copies; the provider receives the original photo.
+	for _, variant := range cnpOCRImages(image) {
+		if ctx.Err() != nil {
+			break
+		}
+		value, ok, conflict := run(variant, "11", true)
+		if conflict {
+			return "", false
+		}
+		if ok {
 			return value, true
 		}
 	}
