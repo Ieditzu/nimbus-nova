@@ -2,7 +2,17 @@
 
 Contract version: `2026-10-04.1`. This file plus `docs/fixtures/` is the only interface between the Go API, the website, the mobile app, and the admin view. If a screen needs a field or route that is not written here, add it to this file and the fixtures in the same change before using it. Clients must not invent JSON names, status codes, or headers.
 
-This is a hackathon coordination spec, not a finished product and not proof that the idea matches the specific challenge. The challenge is announced at the event and is not the public slogan "CONNECT THE DOTS". If the announced challenge does not fit this short-task demo, pivot before coding and do not force this contract onto a different product. Rules: [VNU-HACK-RULES.md](VNU-HACK-RULES.md) and [vnu-hack-2026-regulament.pdf](vnu-hack-2026-regulament.pdf). Do not submit project-specific code written before the official start as competition work.
+The announced challenge is **man in the middle**, in the Uber / eMAG sense: a platform that sits between two sides. It is not a network man-in-the-middle attack. Public slogan "CONNECT THE DOTS" is still not the challenge. Rules: [VNU-HACK-RULES.md](VNU-HACK-RULES.md) and [vnu-hack-2026-regulament.pdf](vnu-hack-2026-regulament.pdf). Do not submit project-specific code written before the official start as competition work.
+
+## Announced theme
+
+Nova is the middleman. One side has a free afternoon. The other side has a short task. They do not find each other in a Facebook group, and they do not pay each other off-platform. Both sides talk only to Nimbus Nova, the same way a rider and a driver talk only through Uber, or a buyer and a seller talk only through eMAG.
+
+The live split is the proof: Maria acts only in the mobile app, Andrei acts only on the website, and the Go API is the middle. Neither client stores the other side's private contact details. The proposed amount, the application, the acceptance, and the rating all pass through Nova. Nova is not the employer and does not collect the money in this demo. That is the same shape as those platforms, not a partnership with Uber or eMAG.
+
+Pitch line: `Nimbus Nova este omul din mijloc. Andrei nu o caută pe Maria. Maria nu sună la magazin. Amândoi trec prin Nova.`
+
+If the organizers' written wording differs from "man in the middle", keep this product and swap only that sentence. Do not pivot to a security attack, a ride-hailing clone, or an eMAG reseller.
 
 ## What the demo is
 
@@ -289,7 +299,7 @@ Stack: Vite, React, TypeScript, `react-router-dom`. Routes are only `/`, `/poste
 `/` landing, no task fixture hardcoded:
 
 - Heading `Nimbus Nova`.
-- Text `Conectează timpul liber cu o sarcină scurtă și clară.`
+- Text `Omul din mijloc dintre cine are timp și cine are o sarcină scurtă.`
 - Text `Demo pentru adulți. Nu se încasează bani și nu se face angajare.`
 - Link labeled `Postează o sarcină` to `/poster`.
 - Text `Lucrătorii folosesc aplicația mobilă.`
@@ -417,8 +427,8 @@ The website and phone must perform the same apply and accept path against this p
 
 ## Demo story and cut order
 
-Demo story, same data as the seed: Andrei has published event setup for 100.00 RON proposed. Maria applies from the phone. Andrei accepts on the website. Maria sees `Acceptată` / `Atribuită`. Andrei presses `Finalizează`. Nobody is paid and nobody is employed.
+Demo story, same data as the seed: Andrei publishes event setup for 100.00 RON proposed on the website. He never sees Maria's phone number. Maria applies from the phone and never messages Andrei directly. Nova accepts the match in the middle. Maria sees `Acceptată` / `Atribuită`. Andrei presses `Finalizează`. Nobody is paid and nobody is employed.
 
-If integration is failing, stop in this order: reviews, admin hide/reset, landing polish, category filter. Do not drop public task list, worker apply, or poster accept. Do not claim Glovo, Tazz, Uber, Lidl, a Nova employment contract, a diploma, or legal compliance. Selaru may collect anonymous adult feedback, but missing feedback is recorded as untested rather than invented.
+If integration is failing, stop in this order: reviews, admin hide/reset, landing polish, category filter. Do not drop public task list, worker apply, or poster accept. Do not claim a Glovo, Tazz, Uber, eMAG, or Lidl partnership, a ride dispatch, a shop checkout, a Nova employment contract, a diploma, or legal compliance. Name Uber and eMAG only as the jury's examples of a middleman. Selaru may collect anonymous adult feedback, but missing feedback is recorded as untested rather than invented.
 
-Pitch evidence is the live cross-device state change, the two seeded user roles, the safety limits, and the source/AI attribution list. Judging weights are in the rules doc.
+Pitch evidence is the two sides meeting only through the API, the live cross-device state change, the safety limits, and the source/AI attribution list. Judging weights are in the rules doc.
