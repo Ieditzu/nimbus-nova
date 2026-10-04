@@ -1336,3 +1336,105 @@ func verifiedProofFixture(t *testing.T, h *harness, email string) string {
 	}
 	return token
 }
+
+func TestAdminDeskRoutes(t *testing.T) {
+	h := start(t)
+	get := func(path string) map[string]any {
+		t.Helper()
+		status, _, body := h.do(http.MethodGet, path, "admin-1", nil, true)
+		if status != 200 {
+			t.Fatalf("GET %s %d %s", path, status, body)
+		}
+		return asMap(t, decode(t, body))
+	}
+	post := func(path string, body any, want int) map[string]any {
+		t.Helper()
+		status, _, raw := h.do(http.MethodPost, path, "admin-1", body, true)
+		if status != want {
+			t.Fatalf("POST %s %d %s", path, status, raw)
+		}
+		return asMap(t, decode(t, raw))
+	}
+
+	stats := asMap(t, get("/v1/admin/stats")["stats"])
+	if len(stats["daily"].([]any)) != 14 {
+		t.Fatalf("daily series %v", stats["daily"])
+	}
+	if len(asMap(t, get("/v1/admin/stats?days=30")["stats"])["daily"].([]any)) != 30 {
+		t.Fatal("30-day series")
+	}
+	system := asMap(t, get("/v1/admin/system")["system"])
+	if system["demo_mode"] != true || asMap(t, system["tables"])["users"] == nil {
+		t.Fatalf("system %v", system)
+	}
+
+	user := get("/v1/admin/users/worker-1")
+	if asMap(t, user["user"])["display_name"] != "Maria Ionescu" || user["profile"] == nil {
+		t.Fatalf("user detail %v", user)
+	}
+	status, _, body := h.do(http.MethodGet, "/v1/admin/users/missing", "admin-1", nil, true)
+	h.errorCode(status, body, 404, "not_found", "Nu există.")
+
+	task := get("/v1/admin/tasks/task_seed_event_setup")
+	if asMap(t, task["task"])["id"] != "task_seed_event_setup" || task["pay_status"] != "unpaid" {
+		t.Fatalf("task detail %v", task)
+	}
+
+	h.apply("task_seed_event_setup", "Pot ajuta la amenajare.")
+	apps := get("/v1/admin/applications")["applications"].([]any)
+	if len(apps) != 1 || asMap(t, apps[0])["task_title"] == "" {
+		t.Fatalf("applications %v", apps)
+	}
+	if _, ok := get("/v1/admin/reviews")["reviews"].([]any); !ok {
+		t.Fatal("reviews list")
+	}
+	if _, ok := get("/v1/admin/identity")["sessions"].([]any); !ok {
+		t.Fatal("identity list")
+	}
+
+	note := asMap(t, post("/v1/admin/notes", map[string]any{"target": "worker-1", "text": "Verificat la telefon."}, 201)["note"])
+	if note["text"] != "Verificat la telefon." {
+		t.Fatalf("note %v", note)
+	}
+	post("/v1/admin/notes", map[string]any{"target": "worker-1", "text": "  "}, 400)
+	if len(get("/v1/admin/notes?target=worker-1")["notes"].([]any)) != 1 {
+		t.Fatal("notes list")
+	}
+	if len(get("/v1/admin/users/worker-1")["notes"].([]any)) != 1 {
+		t.Fatal("notes on user detail")
+	}
+
+	partner := asMap(t, post("/v1/admin/partners", map[string]any{"name": "Magazin Nou"}, 201)["partner"])
+	partnerID := partner["id"].(string)
+	post("/v1/admin/partners/"+partnerID+"/activate", map[string]any{}, 200)
+	post("/v1/admin/partners/"+partnerID+"/pause", map[string]any{}, 200)
+	post("/v1/admin/partners/par_missing/pause", map[string]any{}, 404)
+	post("/v1/admin/partners", map[string]any{"name": "x"}, 400)
+
+	events := get("/v1/admin/events")["events"].([]any)
+	if len(events) != 1 || asMap(t, events[0])["attendees"] == nil {
+		t.Fatalf("events %v", events)
+	}
+	post("/v1/admin/events/event_seed_cartier/delete", map[string]any{}, 200)
+	post("/v1/admin/events/event_seed_cartier/delete", map[string]any{}, 404)
+
+	post("/v1/admin/users/worker-1/revoke-sessions", map[string]any{}, 200)
+	post("/v1/admin/users/admin-1/revoke-sessions", map[string]any{}, 400)
+	post("/v1/admin/reviews/rev_missing/remove", map[string]any{}, 404)
+
+	logs := get("/v1/admin/logs")["logs"].([]any)
+	seen := map[string]bool{}
+	for _, item := range logs {
+		seen[asMap(t, item)["action"].(string)] = true
+	}
+	for _, action := range []string{"note_create", "partner_create", "partner_pause", "event_delete", "user_revoke_sessions"} {
+		if !seen[action] {
+			t.Fatalf("missing audit %s in %v", action, logs)
+		}
+	}
+
+	for _, path := range []string{"/v1/admin/stats", "/v1/admin/system", "/v1/admin/users/worker-1", "/v1/admin/applications", "/v1/admin/identity"} {
+		status, _, body := h.do(http.MethodGet, path, "poster-1", nil, true)
+		h.errorCode(status, body, 403, "forbidden", "Interzis.")
+	}
+}

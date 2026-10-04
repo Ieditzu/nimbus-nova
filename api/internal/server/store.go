@@ -226,6 +226,7 @@ func addColumns(db *sql.DB) error {
 		{"users", "volunteer_only", "INTEGER NOT NULL DEFAULT 0"},
 		{"users", "guardian_email", "TEXT"},
 		{"users", "status", "TEXT NOT NULL DEFAULT 'active'"},
+		{"users", "created_at", "TEXT NOT NULL DEFAULT ''"},
 		{"tasks", "kind", "TEXT NOT NULL DEFAULT 'local_task'"},
 		{"tasks", "pay_status", "TEXT NOT NULL DEFAULT 'unpaid'"},
 		{"tasks", "partner_id", "TEXT"},

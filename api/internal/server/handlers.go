@@ -70,6 +70,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /v1/events/{id}/complete", s.handleEventComplete)
 	mux.HandleFunc("GET /v1/users/{id}/reputation", s.handleReputation)
 	mux.HandleFunc("POST /v1/admin/disputes/{id}/resolve", s.handleResolveDispute)
+	s.adminExtraRoutes(mux)
 	return mux
 }
 

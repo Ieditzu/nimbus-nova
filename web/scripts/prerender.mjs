@@ -6,7 +6,7 @@ html = html.replace('<div id="root"><!--app-html--></div>', `<div id="root" data
 if (siteUrl) {
   const url = new URL(siteUrl).origin;
   html = html.replace('</head>', `<link rel="canonical" href="${url}/" /><meta property="og:url" content="${url}/" /><meta property="og:image" content="${url}/social.svg" /></head>`);
-  await writeFile('dist/sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${url}/</loc></url></urlset>`);
+  await writeFile('dist/sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${url}/</loc></url><url><loc>${url}/explore</loc></url></urlset>`);
   const robots = await readFile('dist/robots.txt', 'utf8');
   await writeFile('dist/robots.txt', robots + `\nSitemap: ${url}/sitemap.xml\n`);
 }

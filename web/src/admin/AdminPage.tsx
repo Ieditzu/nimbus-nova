@@ -1,203 +1,311 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ArrowClockwiseIcon, ArrowUpRightIcon, ListIcon, MagnifyingGlassIcon, SignOutIcon, XIcon } from '@phosphor-icons/react';
+import { NovaError } from '../api/client';
 import { errorMessage } from '../lib/format';
-import { adminApi, type AdminDispute, type AdminLog, type AdminUser } from './client';
+import { adminApi } from './client';
+import { emptyData, sectionMeta, sections, type ConfirmRequest, type Desk, type DeskData, type Section } from './desk';
+import { TaskDrawer, UserDrawer } from './drawers';
+import { ago, fold, roleLabel } from './format';
+import { Dialog } from './ui';
+import { Applications, Disputes, Events, Identity, Ledger, Logs, Overview, Partners, Reviews, System, Tasks, Users } from './views';
 import './admin.css';
 
 const TOKEN_KEY = 'nova-admin-token';
-const sections = ['overview', 'users', 'tasks', 'disputes', 'ledger', 'partners', 'events', 'logs'] as const;
-type Section = (typeof sections)[number];
-const titles: Record<Section, string> = {
-  overview: 'Rezumat',
-  users: 'Utilizatori',
-  tasks: 'Sarcini',
-  disputes: 'Dispute',
-  ledger: 'Registru',
-  partners: 'Parteneri',
-  events: 'Evenimente',
-  logs: 'Jurnal',
-};
-const statusLabel: Record<string, string> = {
-  active: 'Activ', suspended: 'Suspendat', open: 'Deschisă', hidden: 'Ascunsă',
-  assigned: 'Atribuită', completed: 'Finalizată', resolved: 'Rezolvată',
+const REFRESH_MS = 60_000;
+
+const views: Record<Section, (props: { desk: Desk }) => ReactNode> = {
+  overview: Overview, users: Users, tasks: Tasks, applications: Applications, reviews: Reviews, disputes: Disputes,
+  identity: Identity, ledger: Ledger, partners: Partners, events: Events, logs: Logs, system: System,
 };
 
-function cell(value: unknown) {
-  return value == null || value === '' ? '—' : String(value);
-}
-function money(bani: unknown) {
-  const amount = Number(bani);
-  if (!Number.isFinite(amount)) return '—';
-  return `${(amount / 100).toFixed(2)} RON`;
-}
-function when(value: unknown) {
-  const date = new Date(cell(value));
-  if (Number.isNaN(date.getTime())) return cell(value);
-  return new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Bucharest' }).format(date);
+type Toast = { id: number; kind: 'ok' | 'error'; text: string; undo?: () => Promise<unknown> };
+type Drawer = { kind: 'user' | 'task'; id: string } | null;
+
+function isSection(value: string | null): value is Section {
+  return !!value && (sections as readonly string[]).includes(value);
 }
 
 export default function AdminPage() {
-  const [params, setParams] = useSearchParams();
-  const requested = params.get('section');
-  const section: Section = sections.includes(requested as Section) ? requested as Section : 'overview';
   const [token, setToken] = useState(() => sessionStorage.getItem(TOKEN_KEY) || '');
-  const [name, setName] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const signOut = useCallback((reason = '') => {
+    const old = sessionStorage.getItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+    if (old) void adminApi.logout(old).catch(() => undefined);
+    setToken('');
+    setLoginError(reason);
+  }, []);
+  if (!token) return <Login error={loginError} onToken={value => { sessionStorage.setItem(TOKEN_KEY, value); setLoginError(''); setToken(value); }} />;
+  return <Desk key={token} token={token} onExit={signOut} />;
+}
+
+/* ------------------------------------------------------------------- login */
+
+function Login({ onToken, error: initial }: { onToken: (token: string) => void; error: string }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [query, setQuery] = useState('');
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
-  const [undo, setUndo] = useState<null | (() => Promise<unknown>)>(null);
-  const [loading, setLoading] = useState(false);
-  const [confirmId, setConfirmId] = useState('');
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [tasks, setTasks] = useState<Record<string, unknown>[]>([]);
-  const [disputes, setDisputes] = useState<AdminDispute[]>([]);
-  const [entries, setEntries] = useState<Record<string, unknown>[]>([]);
-  const [partners, setPartners] = useState<Record<string, unknown>[]>([]);
-  const [events, setEvents] = useState<Record<string, unknown>[]>([]);
-  const [logs, setLogs] = useState<AdminLog[]>([]);
-
-  async function load(next = token) {
-    setLoading(true);
-    setError('');
-    const me = await adminApi.me(next);
-    if (me.user.role !== 'admin') throw new Error('Contul nu este de administrator.');
-    setName(me.user.display_name);
-    const [userRows, taskRows, disputeRows, ledgerRows, partnerRows, eventRows, logRows] = await Promise.all([
-      adminApi.users(next), adminApi.tasks(next), adminApi.disputes(next), adminApi.ledger(next),
-      adminApi.partners(next), adminApi.events(next), adminApi.logs(next),
-    ]);
-    setUsers(userRows.users || []);
-    setTasks(taskRows.tasks || []);
-    setDisputes(disputeRows.disputes || []);
-    setEntries(ledgerRows.entries || []);
-    setPartners(partnerRows.partners || []);
-    setEvents(eventRows.events || []);
-    setLogs(logRows.logs || []);
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    if (!token) return;
-    void load(token).catch(cause => {
-      sessionStorage.removeItem(TOKEN_KEY);
-      setToken('');
-      setError(errorMessage(cause));
-      setLoading(false);
-    });
-  }, [token]);
-
-  async function login(event: FormEvent) {
+  const [error, setError] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => setError(initial), [initial]);
+  async function submit(event: FormEvent) {
     event.preventDefault();
+    setBusy(true);
     setError('');
-    setLoading(true);
     try {
       const result = await adminApi.login(email.trim(), password);
-      if (result.user.role !== 'admin') throw new Error('Contul nu este de administrator.');
-      sessionStorage.setItem(TOKEN_KEY, result.token);
-      setToken(result.token);
+      if (result.user.role !== 'admin') {
+        void adminApi.logout(result.token).catch(() => undefined);
+        throw new Error('Contul nu este de administrator.');
+      }
       setPassword('');
+      onToken(result.token);
     } catch (cause) {
       setError(errorMessage(cause));
-      setLoading(false);
+    } finally {
+      setBusy(false);
     }
   }
+  return <main className="dk-login" id="main-content">
+    <div className="dk-login-art" aria-hidden="true">
+      <span className="dk-login-word">NOVA</span>
+      <span className="dk-login-dot is-a" /><span className="dk-login-dot is-b" /><span className="dk-login-dot is-c" />
+    </div>
+    <form className="dk-login-card" onSubmit={event => void submit(event)}>
+      <span className="dk-mark" aria-hidden="true">N</span>
+      <h1>Biroul Nova</h1>
+      <p>Intră cu contul de administrator. Sesiunea se închide odată cu fila.</p>
+      <label className="dk-field"><span>Email</span><input value={email} onChange={event => setEmail(event.target.value)} type="email" autoComplete="username" required autoFocus placeholder="admin@nimbusnova.cc" /></label>
+      <label className="dk-field"><span>Parolă</span><input value={password} onChange={event => setPassword(event.target.value)} type="password" autoComplete="current-password" required /></label>
+      {error && <p className="dk-alert" role="alert">{error}</p>}
+      <button className="dk-btn is-block" type="submit" disabled={busy}>{busy ? 'Se verifică…' : 'Intră în birou'}</button>
+      <Link className="dk-link" to="/">← Înapoi la site</Link>
+    </form>
+  </main>;
+}
 
-  async function run(action: () => Promise<unknown>, done: string, reverse?: () => Promise<unknown>) {
-    setError('');
-    setNotice('');
-    setUndo(null);
-    setConfirmId('');
-    setLoading(true);
+/* -------------------------------------------------------------------- desk */
+
+function Desk({ token, onExit }: { token: string; onExit: (reason?: string) => void }) {
+  const [params, setParams] = useSearchParams();
+  const requested = params.get('section');
+  const section: Section = isSection(requested) ? requested : 'overview';
+  const [me, setMe] = useState<{ id: string; display_name: string } | null>(null);
+  const [data, setData] = useState<DeskData>(emptyData);
+  const [days, setDays] = useState<14 | 30>(14);
+  const [loading, setLoading] = useState(true);
+  const [loadedAt, setLoadedAt] = useState<string>('');
+  const [partial, setPartial] = useState('');
+  const [toast, setToast] = useState<Toast | null>(null);
+  const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null);
+  const [drawer, setDrawer] = useState<Drawer>(null);
+  const [palette, setPalette] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+  const request = useRef(0);
+  const toastId = useRef(0);
+  const timer = useRef<number | undefined>(undefined);
+
+  const load = useCallback(async (silent = false) => {
+    const current = ++request.current;
+    if (!silent) setLoading(true);
+    const settled = await Promise.allSettled([
+      adminApi.stats(token, days), adminApi.system(token), adminApi.users(token), adminApi.tasks(token), adminApi.applications(token),
+      adminApi.disputes(token), adminApi.reviews(token), adminApi.ledger(token), adminApi.partners(token), adminApi.events(token),
+      adminApi.identity(token), adminApi.logs(token),
+    ]);
+    if (current !== request.current) return;
+    const expired = settled.find(item => item.status === 'rejected' && item.reason instanceof NovaError && (item.reason.status === 401 || item.reason.status === 403));
+    if (expired) { onExit('Sesiunea a expirat. Intră din nou.'); return; }
+    const value = <T,>(index: number): T | undefined => {
+      const item = settled[index];
+      return item.status === 'fulfilled' ? item.value as T : undefined;
+    };
+    const failed = settled.filter(item => item.status === 'rejected').length;
+    setData(previous => ({
+      stats: value<{ stats: DeskData['stats'] }>(0)?.stats ?? previous.stats,
+      system: value<{ system: DeskData['system'] }>(1)?.system ?? previous.system,
+      users: value<{ users: DeskData['users'] }>(2)?.users ?? previous.users,
+      tasks: value<{ tasks: DeskData['tasks'] }>(3)?.tasks ?? previous.tasks,
+      applications: value<{ applications: DeskData['applications'] }>(4)?.applications ?? previous.applications,
+      disputes: value<{ disputes: DeskData['disputes'] }>(5)?.disputes ?? previous.disputes,
+      reviews: value<{ reviews: DeskData['reviews'] }>(6)?.reviews ?? previous.reviews,
+      entries: value<{ entries: DeskData['entries'] }>(7)?.entries ?? previous.entries,
+      partners: value<{ partners: DeskData['partners'] }>(8)?.partners ?? previous.partners,
+      events: value<{ events: DeskData['events'] }>(9)?.events ?? previous.events,
+      identity: value<{ sessions: DeskData['identity'] }>(10)?.sessions ?? previous.identity,
+      logs: value<{ logs: DeskData['logs'] }>(11)?.logs ?? previous.logs,
+    }));
+    setPartial(failed ? `${failed} din 12 surse nu s-au putut încărca. Datele afișate pot fi vechi.` : '');
+    setLoadedAt(new Date().toISOString());
+    setLoading(false);
+  }, [token, days, onExit]);
+
+  useEffect(() => {
+    let live = true;
+    adminApi.me(token).then(result => {
+      if (!live) return;
+      if (result.user.role !== 'admin') onExit('Contul nu este de administrator.');
+      else setMe({ id: result.user.id, display_name: result.user.display_name });
+    }).catch(cause => { if (live) onExit(errorMessage(cause)); });
+    return () => { live = false; };
+  }, [token, onExit]);
+
+  useEffect(() => { if (me) void load(); }, [me, load]);
+
+  useEffect(() => {
+    if (!me) return;
+    const id = window.setInterval(() => { if (document.visibilityState === 'visible') void load(true); }, REFRESH_MS);
+    return () => window.clearInterval(id);
+  }, [me, load]);
+
+  const showToast = useCallback((next: Omit<Toast, 'id'>) => {
+    window.clearTimeout(timer.current);
+    toastId.current += 1;
+    setToast({ ...next, id: toastId.current });
+    timer.current = window.setTimeout(() => setToast(null), next.undo ? 9000 : 5000);
+  }, []);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  const run = useCallback(async (action: () => Promise<unknown>, done: string, undo?: () => Promise<unknown>) => {
     try {
       await action();
-      setNotice(done);
-      setUndo(() => reverse || null);
-      await load();
+      showToast({ kind: 'ok', text: done, undo });
+      await load(true);
+      return true;
     } catch (cause) {
-      setError(errorMessage(cause));
-      setLoading(false);
+      showToast({ kind: 'error', text: errorMessage(cause) });
+      return false;
     }
-  }
+  }, [load, showToast]);
 
-  const needle = query.trim().toLowerCase();
-  const shownUsers = useMemo(() => users.filter(user => `${user.display_name} ${user.email} ${user.role}`.toLowerCase().includes(needle)), [users, needle]);
-  const shownTasks = useMemo(() => tasks.filter(task => `${cell(task.title)} ${cell(task.city)} ${cell(task.poster_name)}`.toLowerCase().includes(needle)), [tasks, needle]);
-  const shownDisputes = useMemo(() => disputes.filter(item => `${item.reason} ${item.task_id} ${item.status}`.toLowerCase().includes(needle)), [disputes, needle]);
-  const openTasks = tasks.filter(task => task.status === 'open');
-  const openDisputes = disputes.filter(item => item.status === 'open').length;
+  const go = useCallback((next: Section) => { setDrawer(null); setNavOpen(false); setParams(next === 'overview' ? {} : { section: next }); }, [setParams]);
 
-  if (!token) {
-    return <main className="ops-login" id="main-content">
-      <form className="ops-card" onSubmit={login}>
-        <div className="ops-mark" aria-hidden="true">n</div>
-        <h1>Intrare în birou</h1>
-        <p>Contul de administrator pentru sarcinile, oamenii și plățile Nova. Modul demo este oprit.</p>
-        <label>Email<input value={email} onChange={event => setEmail(event.target.value)} type="email" autoComplete="username" required placeholder="admin@nimbusnova.cc" /></label>
-        <label>Parolă<input value={password} onChange={event => setPassword(event.target.value)} type="password" autoComplete="current-password" required /></label>
-        {error && <p className="ops-alert" role="alert">{error}</p>}
-        <button className="ops-btn" type="submit" disabled={loading}>{loading ? 'Se verifică…' : 'Intră'}</button>
-      </form>
-    </main>;
-  }
+  const names = useMemo(() => new Map(data.users.map(user => [user.id, user.display_name])), [data.users]);
+  const userName = useCallback((id: string) => names.get(id) ?? (id === 'system' ? 'Sistem' : id), [names]);
 
-  return <div className="ops">
-    <aside className="ops-side">
-      <a className="ops-brand" href="/admin"><span className="ops-mark" aria-hidden="true">n</span><span><strong>Nova birou</strong><span>{name}</span></span></a>
-      <nav className="ops-nav" aria-label="Secțiuni">
-        {sections.map(item => <button key={item} type="button" aria-current={item === section ? 'page' : undefined} onClick={() => { setQuery(''); setParams({ section: item }); }}>{titles[item]}{item === 'disputes' && openDisputes > 0 ? <span className="ops-count">{openDisputes}</span> : null}</button>)}
+  const desk: Desk | null = me ? {
+    token, me, data, loading, days, setDays, run, go, reload: () => load(true), userName,
+    confirm: setConfirmReq,
+    openUser: id => setDrawer({ kind: 'user', id }),
+    openTask: id => setDrawer({ kind: 'task', id }),
+  } : null;
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); setPalette(value => !value); return; }
+      const target = event.target as HTMLElement;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName) || target.isContentEditable || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (document.querySelector('dialog[open]')) return;
+      if (event.key === '/') { event.preventDefault(); document.querySelector<HTMLInputElement>('[data-desk-search]')?.focus(); return; }
+      const match = sections.find(item => sectionMeta[item].key === event.key);
+      if (match) go(match);
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [go]);
+
+  if (!desk) return <div className="dk-boot" role="status"><span className="dk-spinner" aria-hidden="true" />Se deschide biroul…</div>;
+
+  const meta = sectionMeta[section];
+  const View = views[section];
+  const openDisputes = data.disputes.filter(item => item.status === 'open').length;
+  const inReview = data.identity.filter(item => item.status === 'review').length;
+  const badge: Partial<Record<Section, number>> = { disputes: openDisputes, identity: inReview };
+  const groups = [...new Set(sections.map(item => sectionMeta[item].group))];
+
+  return <div className="dk">
+    <a className="skip-link" href="#desk-main">Mergi la conținut</a>
+    <aside className={`dk-side${navOpen ? ' is-open' : ''}`}>
+      <div className="dk-side-top">
+        <Link className="dk-brand" to="/admin" onClick={() => go('overview')}><span className="dk-mark" aria-hidden="true">N</span><span><strong>Nova birou</strong><small>{desk.me.display_name}</small></span></Link>
+        <button type="button" className="dk-icon-btn dk-nav-toggle" aria-expanded={navOpen} aria-label="Meniu" onClick={() => setNavOpen(value => !value)}>{navOpen ? <XIcon size={20} aria-hidden="true" /> : <ListIcon size={20} aria-hidden="true" />}</button>
+      </div>
+      <button type="button" className="dk-palette-trigger" onClick={() => setPalette(true)}><MagnifyingGlassIcon size={16} aria-hidden="true" />Caută<kbd>Ctrl K</kbd></button>
+      <nav className="dk-nav" aria-label="Secțiuni">
+        {groups.map(group => <div key={group} className="dk-nav-group">
+          <span>{group}</span>
+          {sections.filter(item => sectionMeta[item].group === group).map(item => {
+            const Icon = sectionMeta[item].icon;
+            const count = badge[item] ?? 0;
+            return <button key={item} type="button" aria-current={item === section ? 'page' : undefined} onClick={() => go(item)}>
+              <Icon size={18} weight={item === section ? 'fill' : 'regular'} aria-hidden="true" />{sectionMeta[item].title}
+              {count > 0 && <b className="dk-count">{count}</b>}
+            </button>;
+          })}
+        </div>)}
       </nav>
-      <div className="ops-side-foot">
-        <button className="ops-btn-quiet" type="button" onClick={() => { sessionStorage.removeItem(TOKEN_KEY); void adminApi.logout(token).catch(() => undefined); setToken(''); }}>Ieși</button>
+      <div className="dk-side-foot">
+        <Link className="dk-side-link" to="/" target="_blank">Deschide site-ul<ArrowUpRightIcon size={14} aria-hidden="true" /></Link>
+        <button type="button" className="dk-side-link" onClick={() => onExit()}><SignOutIcon size={16} aria-hidden="true" />Ieși</button>
       </div>
     </aside>
-    <main className="ops-main" id="main-content">
-      <header className="ops-head">
-        <div>
-          <h1>{titles[section]}</h1>
-          <p>{section === 'overview' ? 'Ce este deschis acum, apoi oamenii din baza live.' : 'Filtrează lista. Suspendarea și ascunderea se pot anula din aviz.'}</p>
+
+    <main className="dk-main" id="desk-main" tabIndex={-1}>
+      <header className="dk-head">
+        <div><h1>{meta.title}</h1><p>{meta.blurb}</p></div>
+        <div className="dk-head-tools">
+          {loadedAt && <span className="dk-muted" title={loadedAt}>Actualizat {ago(loadedAt)}</span>}
+          <button type="button" className="dk-btn is-ghost is-small" onClick={() => void load()} disabled={loading}><ArrowClockwiseIcon size={15} className={loading ? 'is-spinning' : undefined} aria-hidden="true" />Reîncarcă</button>
         </div>
       </header>
-      {notice && <p className="ops-note" role="status">{notice} {undo && <button className="ops-btn-quiet" type="button" onClick={() => void run(undo, 'Anulat.')}>Anulează</button>}</p>}
-      {error && <p className="ops-alert" role="alert">{error}</p>}
-      {section === 'overview' && <>
-        <p className="ops-lead"><strong>{openDisputes}</strong><span>{openDisputes === 1 ? 'dispută deschisă' : 'dispute deschise'}</span></p>
-        <div className="ops-split">
-          <section>
-            <h2>Sarcini deschise</h2>
-            <Grid headers={['Sarcină', 'Oraș', 'Sumă', 'Stare']} numeric={[2]} rows={openTasks.map(task => [cell(task.title), cell(task.city), money(task.amount_bani), <Pill key={cell(task.id)} value={cell(task.status)} />])} />
-          </section>
-          <section>
-            <h2>Oameni</h2>
-            <Grid headers={['Nume', 'Rol', 'Stare']} rows={users.map(user => [user.display_name, user.role, <Pill key={user.id} value={user.status} />])} />
-          </section>
-        </div>
-      </>}
-      {section !== 'overview' && <input className="ops-search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Caută nume, oraș sau motiv" aria-label="Caută în secțiune" />}
-      {section === 'users' && <Grid headers={['Nume', 'Email', 'Rol', 'Stare', '']} rows={shownUsers.map(user => [user.display_name, user.email || '—', user.role, <Pill key={user.id} value={user.status} />, <button key={`${user.id}-a`} className="ops-btn-quiet" type="button" disabled={loading} onClick={() => void run(() => adminApi.setUserStatus(token, user.id, user.status === 'suspended' ? 'active' : 'suspended'), user.status === 'suspended' ? 'Cont reactivat.' : 'Cont suspendat.', () => adminApi.setUserStatus(token, user.id, user.status === 'suspended' ? 'suspended' : 'active'))}>{user.status === 'suspended' ? 'Reactivează' : 'Suspendă'}</button>])} />}
-      {section === 'tasks' && <Grid headers={['Sarcină', 'Poster', 'Oraș', 'Sumă', 'Stare', '']} numeric={[3]} rows={shownTasks.map(task => [cell(task.title), cell(task.poster_name), cell(task.city), money(task.amount_bani), <Pill key={cell(task.id)} value={cell(task.status)} />, task.status === 'hidden'
-        ? <button key={`${cell(task.id)}-u`} className="ops-btn-quiet" type="button" disabled={loading} onClick={() => void run(() => adminApi.unhideTask(token, cell(task.id)), 'Sarcina este din nou publică.', () => adminApi.hideTask(token, cell(task.id)))}>Arată</button>
-        : <button key={`${cell(task.id)}-h`} className="ops-btn-quiet" type="button" disabled={loading} onClick={() => void run(() => adminApi.hideTask(token, cell(task.id)), 'Sarcina a fost ascunsă.', () => adminApi.unhideTask(token, cell(task.id)))}>Ascunde</button>])} />}
-      {section === 'disputes' && <Grid headers={['Motiv', 'Sarcină', 'Stare', '']} rows={shownDisputes.map(item => [item.reason, item.task_id, <Pill key={item.id} value={item.status} />, item.status !== 'open' ? '—' : confirmId === item.id
-        ? <button key={item.id} className="ops-btn-danger is-solid" type="button" disabled={loading} onClick={() => void run(() => adminApi.resolveDispute(token, item.id, 'refund'), 'Plata a fost returnată.')}>Confirmă returnarea</button>
-        : <span key={item.id}><button className="ops-btn-quiet" type="button" disabled={loading} onClick={() => void run(() => adminApi.resolveDispute(token, item.id, 'release'), 'Plata a fost eliberată.')}>Eliberează</button> <button className="ops-btn-danger" type="button" disabled={loading} onClick={() => setConfirmId(item.id)}>Returnează</button></span>])} />}
-      {section === 'ledger' && <Grid headers={['Cont', 'Direcție', 'Sumă', 'Sarcină', 'Când']} numeric={[2]} rows={entries.filter(entry => `${cell(entry.account)} ${cell(entry.task_id)}`.toLowerCase().includes(needle)).map(entry => [cell(entry.account), cell(entry.direction), money(entry.amount_bani), cell(entry.task_id), when(entry.created_at)])} />}
-      {section === 'partners' && <Grid headers={['Nume', 'Stare', '']} rows={partners.filter(partner => cell(partner.name).toLowerCase().includes(needle)).map(partner => [cell(partner.name), <Pill key={cell(partner.id)} value={cell(partner.status)} />, partner.status === 'active' ? 'Activ' : <button key={cell(partner.id)} className="ops-btn-quiet" type="button" disabled={loading} onClick={() => void run(() => adminApi.activatePartner(token, cell(partner.id)), 'Partener activat.')}>Activează</button>])} />}
-      {section === 'events' && <Grid headers={['Titlu', 'Oraș', 'Începe', 'Locuri']} numeric={[3]} rows={events.filter(event => cell(event.title).toLowerCase().includes(needle)).map(event => [cell(event.title), cell(event.city), when(event.starts_at), cell(event.slots)])} />}
-      {section === 'logs' && <Grid headers={['Când', 'Acțiune', 'Țintă', 'Detaliu']} rows={logs.filter(log => `${log.action} ${log.target} ${log.detail}`.toLowerCase().includes(needle)).map(log => [when(log.created_at), log.action, log.target, log.detail || '—'])} />}
+      {partial && <p className="dk-alert" role="alert">{partial}</p>}
+      <div key={section} className="dk-view"><View desk={desk} /></div>
     </main>
+
+    <div className="dk-toasts" aria-live="polite">
+      {toast && <div key={toast.id} className={`dk-toast is-${toast.kind}`} role={toast.kind === 'error' ? 'alert' : 'status'}>
+        <span>{toast.text}</span>
+        {toast.undo && <button type="button" onClick={() => { const undo = toast.undo; setToast(null); if (undo) void run(undo, 'Anulat.'); }}>Anulează</button>}
+        <button type="button" className="dk-toast-x" aria-label="Închide" onClick={() => setToast(null)}><XIcon size={14} aria-hidden="true" /></button>
+      </div>}
+    </div>
+
+    {drawer?.kind === 'user' && <UserDrawer key={drawer.id} desk={desk} id={drawer.id} onClose={() => setDrawer(null)} />}
+    {drawer?.kind === 'task' && <TaskDrawer key={drawer.id} desk={desk} id={drawer.id} onClose={() => setDrawer(null)} />}
+
+    <Dialog open={!!confirmReq} onClose={() => setConfirmReq(null)} title={confirmReq?.title ?? ''}
+      footer={confirmReq && <><button type="button" className="dk-btn is-ghost" onClick={() => setConfirmReq(null)}>Renunță</button><button type="button" className={`dk-btn${confirmReq.danger ? ' is-danger' : ''}`} autoFocus onClick={() => { const action = confirmReq.onConfirm; setConfirmReq(null); action(); }}>{confirmReq.label}</button></>}>
+      {confirmReq && <p>{confirmReq.body}</p>}
+    </Dialog>
+
+    <Palette open={palette} onClose={() => setPalette(false)} desk={desk} />
   </div>;
 }
 
-function Pill({ value }: { value: string }) {
-  return <span className={`ops-pill ${value}`}>{statusLabel[value] || value || '—'}</span>;
-}
+/* ----------------------------------------------------------------- palette */
 
-function Grid({ headers, rows, numeric = [] }: { headers: string[]; rows: ReactNode[][]; numeric?: number[] }) {
-  if (rows.length === 0) return <p className="ops-empty">Nimic de arătat aici.</p>;
-  return <div className="ops-table-wrap"><table className="ops-table">
-    <thead><tr>{headers.map((header, index) => <th key={header || index} className={numeric.includes(index) ? 'num' : undefined}>{header}</th>)}</tr></thead>
-    <tbody>{rows.map((row, index) => <tr key={index}>{row.map((item, cellIndex) => <td key={cellIndex} className={numeric.includes(cellIndex) ? 'num' : 'ops-clip'}>{item}</td>)}</tr>)}</tbody>
-  </table></div>;
+type Hit = { key: string; label: string; hint: string; run: () => void };
+
+function Palette({ open, onClose, desk }: { open: boolean; onClose: () => void; desk: Desk }) {
+  const [q, setQ] = useState('');
+  const [active, setActive] = useState(0);
+  const needle = fold(q.trim());
+  const hits = useMemo<Hit[]>(() => {
+    const close = (fn: () => void) => () => { onClose(); fn(); };
+    const list: Hit[] = sections
+      .filter(item => !needle || fold(sectionMeta[item].title).includes(needle))
+      .map(item => ({ key: `s-${item}`, label: sectionMeta[item].title, hint: 'Secțiune', run: close(() => desk.go(item)) }));
+    if (needle.length >= 2) {
+      desk.data.users.filter(user => fold(`${user.display_name} ${user.email} ${user.id}`).includes(needle)).slice(0, 6)
+        .forEach(user => list.push({ key: `u-${user.id}`, label: user.display_name, hint: `${roleLabel[user.role] ?? user.role} · ${user.email || user.id}`, run: close(() => desk.openUser(user.id)) }));
+      desk.data.tasks.filter(task => fold(`${task.title} ${task.city} ${task.id}`).includes(needle)).slice(0, 6)
+        .forEach(task => list.push({ key: `t-${task.id}`, label: task.title, hint: `Sarcină · ${task.city}`, run: close(() => desk.openTask(task.id)) }));
+    }
+    return list;
+  }, [needle, desk, onClose]);
+  useEffect(() => setActive(0), [needle]);
+  useEffect(() => { if (!open) setQ(''); }, [open]);
+  function onKey(event: React.KeyboardEvent) {
+    if (event.key === 'ArrowDown') { event.preventDefault(); setActive(value => Math.min(hits.length - 1, value + 1)); }
+    else if (event.key === 'ArrowUp') { event.preventDefault(); setActive(value => Math.max(0, value - 1)); }
+    else if (event.key === 'Enter') { event.preventDefault(); hits[active]?.run(); }
+  }
+  return <Dialog open={open} onClose={onClose} variant="palette" title="Caută în birou">
+    <div className="dk-palette" onKeyDown={onKey}>
+      <input autoFocus value={q} onChange={event => setQ(event.target.value)} placeholder="Caută oameni, sarcini sau secțiuni…" aria-label="Caută" role="combobox" aria-expanded="true" aria-controls="palette-list" />
+      <ul id="palette-list" role="listbox">{hits.length === 0
+        ? <li className="dk-muted">Niciun rezultat.</li>
+        : hits.map((hit, index) => <li key={hit.key} role="option" aria-selected={index === active}><button type="button" tabIndex={-1} className={index === active ? 'is-active' : undefined} onMouseEnter={() => setActive(index)} onClick={hit.run}><b>{hit.label}</b><small>{hit.hint}</small></button></li>)}</ul>
+    </div>
+  </Dialog>;
 }
