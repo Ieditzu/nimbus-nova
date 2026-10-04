@@ -57,3 +57,5 @@ Identity requests require an HTTPS API URL. HTTP LAN development supports existi
 Selfie verification now records an eight-second silent video directly with the front camera. The guided prompts ask for forward, left, right and forward poses. Browsers use MediaRecorder with MP4/WebM negotiation; native iOS/Android use Expo Camera. Videos have an 8 MB limit, are uploaded to `selfie_video`, and are passed to the provider's `faceVideo` check. Older single-photo uploads remain supported by the API. Native video recording still needs physical-device QA.
 
 Classic CI signup asks only for the front photograph because its reverse is blank. CEI still requires front, back and the original Reader PDF. Backend compatibility accepts legacy CI back uploads but excludes them from provider recognition.
+
+Document preparation preserves up to 3200 pixels on the longest edge at JPEG quality 0.96. It lowers quality/resolution only if needed to meet the 2 MB file limit. The API includes a server-side Tesseract fallback for a missing/unusable CI CNP after document acceptance; checksum, birth date and biometric checks remain mandatory.

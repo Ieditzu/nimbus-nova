@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 	"unicode"
@@ -47,6 +49,68 @@ func parseProviderDate(value string) (time.Time, error) {
 	}
 	return time.Parse("2006-01-02", value)
 }
+func normalizeCNP(value string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) || r == '-' || r == '<' {
+			return -1
+		}
+		return r
+	}, value)
+}
+
+var ocrCNPPattern = regexp.MustCompile(`[0-9](?:[ \t-]*[0-9]){12}`)
+
+func cnpFromOCR(text string, birth time.Time) (string, bool) {
+	candidates := map[string]bool{}
+	for _, line := range strings.Split(text, "\n") {
+		for _, match := range ocrCNPPattern.FindAllStringIndex(line, -1) {
+			// Do not extract a 13-digit substring from a longer number.
+			if match[0] > 0 && line[match[0]-1] >= '0' && line[match[0]-1] <= '9' {
+				continue
+			}
+			if match[1] < len(line) && line[match[1]] >= '0' && line[match[1]] <= '9' {
+				continue
+			}
+			value := normalizeCNP(line[match[0]:match[1]])
+			parsed, valid := parseCNP(value)
+			if valid {
+				if !parsed.Equal(birth) {
+					return "", false
+				}
+				candidates[value] = true
+			}
+		}
+	}
+	if len(candidates) != 1 {
+		return "", false
+	}
+	for value := range candidates {
+		return value, true
+	}
+	return "", false
+}
+func readCNPFromImage(ctx context.Context, image []byte, birth time.Time) (string, bool) {
+	if len(image) == 0 {
+		return "", false
+	}
+	ctx, cancel := context.WithTimeout(ctx, 12*time.Second)
+	defer cancel()
+	for _, mode := range []string{"11", "6"} {
+		command := exec.CommandContext(ctx, "tesseract", "stdin", "stdout", "-l", "eng", "--psm", mode)
+		command.Env = append(os.Environ(), "OMP_THREAD_LIMIT=2")
+		command.Stdin = bytes.NewReader(image)
+		var output limitedPDFText
+		command.Stdout = &output
+		command.Stderr = io.Discard
+		if command.Run() != nil {
+			return "", false
+		}
+		if value, ok := cnpFromOCR(output.String(), birth); ok {
+			return value, true
+		}
+	}
+	return "", false
+}
 func validateScannedIdentity(ctx context.Context, kind string, files map[string][]byte, scan identityScan, checks map[string]string) (time.Time, *AppError) {
 	if ae := scan.faceFailure(checks); ae != nil {
 		return time.Time{}, ae
@@ -82,6 +146,12 @@ func validateScannedIdentity(ctx context.Context, kind string, files map[string]
 		return time.Time{}, appErr(422, "document_unreadable", "Numărul actului nu a putut fi citit. Refă fotografiile.")
 	}
 	cnp, hasCNP := scan.field("personalNumber")
+	if kind == "ci" && scan.Decision == "accept" {
+		_, valid := parseCNP(cnp)
+		if !hasCNP || !valid {
+			cnp, hasCNP = readCNPFromImage(ctx, files["ci_front"], birth)
+		}
+	}
 	if kind == "cei" {
 		text, err := readerPDFText(ctx, files["cei_pdf"])
 		if err != nil {
@@ -107,7 +177,7 @@ func validateScannedIdentity(ctx context.Context, kind string, files map[string]
 			return time.Time{}, appErr(422, "document_mismatch", "CNP-ul și data nașterii din act nu corespund.")
 		}
 	} else if kind == "ci" {
-		return time.Time{}, appErr(422, "document_unreadable", "CNP-ul nu a putut fi citit din CI. Refă fotografiile fără reflexii.")
+		return time.Time{}, appErr(422, "document_unreadable", "CNP-ul nu a putut fi confirmat nici după citirea OCR suplimentară. Încadrează CI-ul mai aproape, cu rândul CNP clar și toate colțurile vizibile. (CNP_OCR_UNREADABLE)")
 	}
 	checks["cnp"] = "passed"
 	if scan.Decision != "accept" {

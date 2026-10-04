@@ -11,6 +11,8 @@ import (
 	"image/png"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -554,5 +556,66 @@ func TestCEIStillRequiresItsBack(t *testing.T) {
 	status, body := identityRequest(t, api, "/v1/auth/identity/"+id+"/complete", map[string]any{})
 	if status != 409 || body["proof"] != nil || calls.Load() != 0 {
 		t.Fatalf("CEI back bypassed: %d %v", status, body)
+	}
+}
+
+func TestFormattedProviderCNPIsNormalized(t *testing.T) {
+	for _, value := range []string{"5150315400013", "5 150315 400013", "5150315-400013", "5150315400013<<<"} {
+		scan := scanFixture()
+		scan.Data["personalNumber"][0].Value = value
+		cnp, ok := scan.field("personalNumber")
+		if !ok || cnp != "5150315400013" {
+			t.Fatalf("formatted CNP lost: %q", value)
+		}
+	}
+}
+func TestOCRCNPCandidatesMustBeUniqueAndMatchBirth(t *testing.T) {
+	birth, _ := time.Parse("2006-01-02", "2015-03-15")
+	for _, tc := range []struct {
+		text  string
+		valid bool
+	}{
+		{"CNP 5150315400013", true},
+		{"CNP 5 150315 400013", true},
+		{"CNP 5150315400013\nMRZ 5150315400013", true},
+		{"CNP 5150315400014", false},
+		{"CNP 51503154000130", false},
+		{"CNP 5150315400013\nCNP 5150315400021", false},
+		{"CNP 515O315400013", false},
+	} {
+		_, valid := cnpFromOCR(tc.text, birth)
+		if valid != tc.valid {
+			t.Fatalf("candidate validation failed: %q", tc.text)
+		}
+	}
+	wrongBirth := birth.AddDate(1, 0, 0)
+	if _, ok := cnpFromOCR("CNP 5150315400013", wrongBirth); ok {
+		t.Fatal("OCR CNP ignored document birth date")
+	}
+}
+func TestIndependentOCRRecoversCIWithoutProviderCNP(t *testing.T) {
+	if _, err := exec.LookPath("tesseract"); err != nil {
+		t.Skip("requires Tesseract (included in production image)")
+	}
+	scan := scanFixture()
+	delete(scan.Data, "personalNumber")
+	s, api, _ := identityHarness(t, scan, 200, 0)
+	id := collectIdentity(t, api, "ci", nil)
+	image, err := os.ReadFile("testdata/cnp-synthetic.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	status, body := identityRequest(t, api, "/v1/auth/identity/"+id+"/files", map[string]any{"slot": "ci_front", "content_type": "image/png", "content_base64": base64.StdEncoding.EncodeToString(image)})
+	if status != 201 {
+		t.Fatalf("fixture upload %d %v", status, body)
+	}
+	status, body = identityRequest(t, api, "/v1/auth/identity/"+id+"/complete", map[string]any{})
+	if status != 200 || body["proof"] == nil {
+		t.Fatalf("real OCR fallback failed: %d %v", status, body)
+	}
+	var files int
+	s.DB().QueryRow("SELECT COUNT(*) FROM identity_files WHERE session_id=?", id).Scan(&files)
+	if files != 0 {
+		t.Fatal("OCR fallback retained identity image")
 	}
 }

@@ -55,16 +55,24 @@ async function photoAsset(uri: string): Promise<IdentityAsset> {
   let output: string | undefined;
   try {
     const context = ImageManipulator.manipulate(uri);
-    let rendered = await context.renderAsync();
-    if (Math.max(rendered.width, rendered.height) > 1800) {
-      context.resize(photoSize(rendered.width, rendered.height));
-      rendered = await context.renderAsync();
+    const original = await context.renderAsync();
+    let size = 0;
+    // Preserve small text first. Reduce JPEG quality/resolution only when required
+    // by the upload limit; never upscale or sharpen identity-document content.
+    for (const edge of [3200, 2400, 1800]) {
+      context.reset();
+      if (Math.max(original.width, original.height) > edge) context.resize(photoSize(original.width, original.height, edge));
+      const rendered = await context.renderAsync();
+      for (const quality of [0.96, 0.9, 0.84]) {
+        const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: quality });
+        output = saved.uri;
+        size = Platform.OS === "web" ? (await (await fetch(output)).blob()).size : new File(output).size;
+        if (size >= 8 && size <= MAX_IDENTITY_BYTES) break;
+        removeCacheCopy(output); output = undefined;
+      }
+      if (output) break;
     }
-    const saved = await rendered.saveAsync({
-      format: SaveFormat.JPEG,
-      compress: 0.88,
-    });
-    output = saved.uri;
+    if (!output) throw new IdentityError("Fotografia depășește limita de 2 MB. Încearcă din nou.");
     if (Platform.OS !== "web") {
       const destination = new File(
         privateDirectory(),
@@ -73,14 +81,6 @@ async function photoAsset(uri: string): Promise<IdentityAsset> {
       new File(output).move(destination);
       output = destination.uri;
     }
-    const size =
-      Platform.OS === "web"
-        ? (await (await fetch(output)).blob()).size
-        : new File(output).size;
-    if (size < 8 || size > MAX_IDENTITY_BYTES)
-      throw new IdentityError(
-        "Fotografia este prea mare. Încearcă din nou; limita este 2 MB.",
-      );
     return {
       uri: output,
       name: "fotografie.jpg",

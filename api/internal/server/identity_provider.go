@@ -185,6 +185,9 @@ func (r identityScan) field(name string) (string, bool) {
 	value := ""
 	for _, field := range values {
 		candidate := strings.TrimSpace(field.Value)
+		if name == "personalNumber" {
+			candidate = normalizeCNP(candidate)
+		}
 		if candidate == "" {
 			continue
 		}

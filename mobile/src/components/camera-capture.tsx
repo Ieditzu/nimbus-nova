@@ -60,7 +60,7 @@ export function CameraCapture({
     try {
       const preparation = (async () => {
         const photo = await view.takePictureAsync({
-          quality: 0.9,
+          quality: 1,
           imageType: "jpg",
           exif: false,
         });
