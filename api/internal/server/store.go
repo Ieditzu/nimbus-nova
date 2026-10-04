@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"math"
 	"net/url"
 	"strings"
 
@@ -224,6 +225,10 @@ func addColumns(db *sql.DB) error {
 		{"tasks", "kind", "TEXT NOT NULL DEFAULT 'local_task'"},
 		{"tasks", "pay_status", "TEXT NOT NULL DEFAULT 'unpaid'"},
 		{"tasks", "partner_id", "TEXT"},
+		{"tasks", "photo_url", "TEXT NOT NULL DEFAULT ''"},
+		{"tasks", "sector", "TEXT NOT NULL DEFAULT ''"},
+		{"tasks", "lat", "REAL NOT NULL DEFAULT 0"},
+		{"tasks", "lng", "REAL NOT NULL DEFAULT 0"},
 	}
 	for _, column := range columns {
 		exists, err := columnExists(db, column.table, column.name)
@@ -429,6 +434,7 @@ func (s *Store) FindUser(id string) (*User, error) {
 
 const taskSelect = `
 SELECT t.id, t.poster_id, pu.display_name, t.title, t.category, t.city,
+       t.photo_url, t.sector, t.lat, t.lng,
        t.starts_at, t.ends_at, t.amount_bani, t.description, t.safety_note,
        t.status, t.assignee_id, au.display_name, t.created_at
 FROM tasks t
@@ -441,6 +447,7 @@ func scanTask(sc interface{ Scan(...any) error }) (TaskPublic, error) {
 	var assigneeID, assigneeName sql.NullString
 	err := sc.Scan(
 		&t.ID, &t.PosterID, &t.PosterName, &t.Title, &t.Category, &t.City,
+		&t.PhotoURL, &t.Sector, &t.Lat, &t.Lng,
 		&t.StartsAt, &t.EndsAt, &t.AmountBani, &t.Description, &t.SafetyNote,
 		&t.Status, &assigneeID, &assigneeName, &t.CreatedAt,
 	)
@@ -490,7 +497,7 @@ func (s *Store) taskByID(id string) (TaskPublic, error) {
 	return t, nil
 }
 
-func (s *Store) ListOpen(category, city string) ([]TaskPublic, error) {
+func (s *Store) ListOpen(category, city, sector string, near *nearQuery) ([]TaskPublic, error) {
 	q := taskSelect + ` WHERE t.status = 'open'`
 	var args []any
 	if c := strings.TrimSpace(category); c != "" {
@@ -502,17 +509,44 @@ func (s *Store) ListOpen(category, city string) ([]TaskPublic, error) {
 	if err != nil {
 		return nil, err
 	}
-	want := strings.TrimSpace(city)
-	if want == "" {
-		return tasks, nil
-	}
+	wantCity := strings.TrimSpace(city)
+	wantSector := strings.TrimSpace(sector)
 	out := []TaskPublic{}
 	for _, t := range tasks {
-		if strings.EqualFold(strings.TrimSpace(t.City), want) {
-			out = append(out, t)
+		if wantCity != "" && !strings.EqualFold(strings.TrimSpace(t.City), wantCity) {
+			continue
 		}
+		if wantSector != "" && !strings.EqualFold(strings.TrimSpace(t.Sector), wantSector) {
+			continue
+		}
+		if near != nil && haversineKm(near.Lat, near.Lng, t.Lat, t.Lng) > near.RadiusKm {
+			continue
+		}
+		out = append(out, t)
 	}
 	return out, nil
+}
+
+type nearQuery struct {
+	Lat      float64
+	Lng      float64
+	RadiusKm float64
+}
+
+func haversineKm(lat1, lng1, lat2, lng2 float64) float64 {
+	const earth = 6371.0
+	rad := math.Pi / 180
+	dLat := (lat2 - lat1) * rad
+	dLng := (lng2 - lng1) * rad
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) + math.Cos(lat1*rad)*math.Cos(lat2*rad)*math.Sin(dLng/2)*math.Sin(dLng/2)
+	return 2 * earth * math.Asin(math.Sqrt(a))
+}
+
+func coordOrZero(v *float64) float64 {
+	if v == nil {
+		return 0
+	}
+	return *v
 }
 
 func (s *Store) PublicTask(id string) (TaskPublic, error) {
@@ -541,9 +575,9 @@ func (s *Store) CreateTask(poster User, req CreateTaskRequest) (TaskPublic, erro
 	safety := strings.TrimSpace(req.SafetyNote)
 	category := strings.TrimSpace(req.Category)
 	_, err = s.db.Exec(`INSERT INTO tasks (
-		id, poster_id, title, category, city, starts_at, ends_at, amount_bani, description, safety_note, status, assignee_id, created_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', NULL, ?)`,
-		id, poster.ID, title, category, city, starts, ends, req.AmountBani, description, safety, created)
+		id, poster_id, title, category, city, photo_url, sector, lat, lng, starts_at, ends_at, amount_bani, description, safety_note, status, assignee_id, created_at
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', NULL, ?)`,
+		id, poster.ID, title, category, city, strings.TrimSpace(req.PhotoURL), strings.TrimSpace(req.Sector), coordOrZero(req.Lat), coordOrZero(req.Lng), starts, ends, req.AmountBani, description, safety, created)
 	if err != nil {
 		return TaskPublic{}, errInternal
 	}

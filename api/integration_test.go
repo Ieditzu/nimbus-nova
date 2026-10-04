@@ -1279,3 +1279,33 @@ func TestIdentityProof(t *testing.T) {
 		t.Fatalf("reuse %d %s", status, body)
 	}
 }
+
+func TestListingPlaceFields(t *testing.T) {
+	h := start(t)
+	body := cloneMap(h.t, "create-task-request.json")
+	body["photo_url"] = "https://example.com/task.jpg"
+	body["sector"] = "Sector 1"
+	body["lat"] = 44.0
+	body["lng"] = 26.0
+	status, _, raw := h.do(http.MethodPost, "/v1/tasks", "poster-1", body, true)
+	if status != http.StatusCreated {
+		t.Fatalf("create %d %s", status, raw)
+	}
+	task := asMap(t, asMap(t, decode(t, raw))["task"])
+	if task["photo_url"] != "https://example.com/task.jpg" || task["sector"] != "Sector 1" || task["lat"] != json.Number("44") || task["lng"] != json.Number("26") {
+		t.Fatalf("created %#v", task)
+	}
+	id := task["id"].(string)
+	status, _, raw = h.do(http.MethodGet, "/v1/tasks?sector=sector%201", "", nil, false)
+	if status != 200 || !contains(ids(t, raw), id) {
+		t.Fatalf("sector %d %s", status, raw)
+	}
+	status, _, raw = h.do(http.MethodGet, "/v1/tasks?lat=44&lng=26&radius_km=5", "", nil, false)
+	if status != 200 || !contains(ids(t, raw), id) || contains(ids(t, raw), "task_seed_event_setup") {
+		t.Fatalf("near %d %s", status, raw)
+	}
+	status, _, raw = h.do(http.MethodGet, "/v1/tasks?radius_km=5", "", nil, false)
+	h.errorCode(status, raw, 400, "invalid_input", "Pentru căutare în apropiere trimite lat, lng și radius_km.")
+	status, _, raw = h.do(http.MethodGet, "/v1/tasks?lat=44&lng=26", "", nil, false)
+	h.errorCode(status, raw, 400, "invalid_input", "Pentru căutare în apropiere trimite lat, lng și radius_km.")
+}

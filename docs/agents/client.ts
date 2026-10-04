@@ -30,7 +30,8 @@ export interface PublicAccount {
 
 export interface NovaClient {
   getHealth(): Promise<{ ok: true }>;
-  listOpenTasks(query?: { category?: Category; city?: string }): Promise<{ tasks: TaskPublic[] }>;
+  listOpenTasks(query?: { category?: Category; city?: string; sector?: string; lat?: number; lng?: number; radius_km?: number }): Promise<{ tasks: TaskPublic[] }>;
+  searchTasks(query?: { kind?: string; from?: string; to?: string; city?: string }): Promise<{ tasks: TaskPublic[] }>;
   getTask(id: string): Promise<{ task: TaskPublic }>;
   createTask(body: CreateTaskRequest): Promise<{ task: TaskPublic }>;
   listMyTasks(): Promise<{ tasks: TaskPublic[] }>;
@@ -89,8 +90,21 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
       const params = new URLSearchParams();
       if (query.category) params.set("category", query.category);
       if (query.city) params.set("city", query.city);
+      if (query.sector) params.set("sector", query.sector);
+      if (query.lat !== undefined) params.set("lat", String(query.lat));
+      if (query.lng !== undefined) params.set("lng", String(query.lng));
+      if (query.radius_km !== undefined) params.set("radius_km", String(query.radius_km));
       const suffix = params.size ? `?${params}` : "";
       return request(`/v1/tasks${suffix}`, {}, false);
+    },
+    searchTasks: (query = {}) => {
+      const params = new URLSearchParams();
+      if (query.kind) params.set("kind", query.kind);
+      if (query.from) params.set("from", query.from);
+      if (query.to) params.set("to", query.to);
+      if (query.city) params.set("city", query.city);
+      const suffix = params.size ? `?${params}` : "";
+      return request(`/v1/tasks/search${suffix}`);
     },
     getTask: (id) => request(`/v1/tasks/${id}`, {}, false),
     createTask: (body) => request("/v1/tasks", { method: "POST", body: JSON.stringify(body) }),

@@ -10,6 +10,10 @@ export interface TaskPublic {
   title: string;
   category: Category;
   city: string;
+  photo_url: string;
+  sector: string;
+  lat: number;
+  lng: number;
   starts_at: string;
   ends_at: string;
   amount_bani: number;
@@ -30,6 +34,10 @@ export interface CreateTaskRequest {
   amount_bani: number;
   description: string;
   safety_note: string;
+  photo_url?: string;
+  sector?: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface Profile {

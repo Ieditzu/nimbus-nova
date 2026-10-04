@@ -1,8 +1,11 @@
 package server
 
 import (
+	"math"
 	"net/http"
+	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 func (s *Server) routes() http.Handler {
@@ -110,11 +113,21 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleListTasks(w http.ResponseWriter, r *http.Request) {
 	category := strings.TrimSpace(r.URL.Query().Get("category"))
 	city := strings.TrimSpace(r.URL.Query().Get("city"))
+	sector := strings.TrimSpace(r.URL.Query().Get("sector"))
 	if category != "" && !knownCategory(category) {
 		writeAppError(w, invalidInput(msgCategory))
 		return
 	}
-	tasks, err := s.store.ListOpen(category, city)
+	if utf8.RuneCountInString(sector) > 40 {
+		writeAppError(w, invalidInput(msgSector))
+		return
+	}
+	near, ae := parseNear(r)
+	if ae != nil {
+		writeAppError(w, ae)
+		return
+	}
+	tasks, err := s.store.ListOpen(category, city, sector, near)
 	if err != nil {
 		s.writeErr(w, err)
 		return
@@ -122,6 +135,40 @@ func (s *Server) handleListTasks(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, struct {
 		Tasks []TaskPublic `json:"tasks"`
 	}{Tasks: tasksOrEmpty(tasks)})
+}
+
+func parseNear(r *http.Request) (*nearQuery, *AppError) {
+	latSet, lat, latBad := parseQueryFloat(r.URL.Query().Get("lat"))
+	lngSet, lng, lngBad := parseQueryFloat(r.URL.Query().Get("lng"))
+	radiusSet, radius, radiusBad := parseQueryFloat(r.URL.Query().Get("radius_km"))
+	if latBad || lngBad || radiusBad {
+		return nil, invalidInput(msgNear)
+	}
+	if !latSet && !lngSet && !radiusSet {
+		return nil, nil
+	}
+	if !latSet || !lngSet || !radiusSet {
+		return nil, invalidInput(msgNear)
+	}
+	if lat < -90 || lat > 90 || lng < -180 || lng > 180 {
+		return nil, invalidInput(msgCoords)
+	}
+	if radius <= 0 || radius > 100 {
+		return nil, invalidInput(msgRadius)
+	}
+	return &nearQuery{Lat: lat, Lng: lng, RadiusKm: radius}, nil
+}
+
+func parseQueryFloat(raw string) (bool, float64, bool) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return false, 0, false
+	}
+	value, err := strconv.ParseFloat(raw, 64)
+	if err != nil || math.IsNaN(value) || math.IsInf(value, 0) {
+		return false, 0, true
+	}
+	return true, value, false
 }
 
 func (s *Server) handleGetTask(w http.ResponseWriter, r *http.Request) {

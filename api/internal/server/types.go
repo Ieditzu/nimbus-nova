@@ -24,6 +24,10 @@ type TaskPublic struct {
 	Title        string  `json:"title"`
 	Category     string  `json:"category"`
 	City         string  `json:"city"`
+	PhotoURL     string  `json:"photo_url"`
+	Sector       string  `json:"sector"`
+	Lat          float64 `json:"lat"`
+	Lng          float64 `json:"lng"`
 	StartsAt     string  `json:"starts_at"`
 	EndsAt       string  `json:"ends_at"`
 	AmountBani   int64   `json:"amount_bani"`
@@ -36,14 +40,18 @@ type TaskPublic struct {
 }
 
 type CreateTaskRequest struct {
-	Title       string `json:"title"`
-	Category    string `json:"category"`
-	City        string `json:"city"`
-	StartsAt    string `json:"starts_at"`
-	EndsAt      string `json:"ends_at"`
-	AmountBani  int64  `json:"amount_bani"`
-	Description string `json:"description"`
-	SafetyNote  string `json:"safety_note"`
+	Title       string   `json:"title"`
+	Category    string   `json:"category"`
+	City        string   `json:"city"`
+	PhotoURL    string   `json:"photo_url"`
+	Sector      string   `json:"sector"`
+	Lat         *float64 `json:"lat"`
+	Lng         *float64 `json:"lng"`
+	StartsAt    string   `json:"starts_at"`
+	EndsAt      string   `json:"ends_at"`
+	AmountBani  int64    `json:"amount_bani"`
+	Description string   `json:"description"`
+	SafetyNote  string   `json:"safety_note"`
 }
 
 type Profile struct {
@@ -147,6 +155,11 @@ const (
 	msgAmount       = "Suma trebuie să fie un număr întreg de bani între 0 și 500000."
 	msgDescription  = "Descrierea trebuie să aibă între 10 și 500 de caractere."
 	msgSafety       = "Nota de siguranță poate avea cel mult 200 de caractere."
+	msgPhoto        = "Fotografia trebuie să fie un URL http sau https de cel mult 500 de caractere."
+	msgSector       = "Sectorul poate avea cel mult 40 de caractere."
+	msgCoords       = "lat și lng se trimit împreună. lat este între -90 și 90, lng între -180 și 180."
+	msgNear         = "Pentru căutare în apropiere trimite lat, lng și radius_km."
+	msgRadius       = "radius_km trebuie să fie un număr mai mare decât 0 și cel mult 100."
 	msgMessage      = "Mesajul trebuie să aibă între 1 și 280 de caractere."
 	msgSkills       = "Competențele trebuie să conțină între 1 și 8 elemente, fiecare de cel mult 40 de caractere."
 	msgAvailability = "Disponibilitatea trebuie să aibă între 1 și 80 de caractere."
@@ -219,6 +232,27 @@ func ValidateCreateTask(req CreateTaskRequest) *AppError {
 	}
 	if utf8.RuneCountInString(strings.TrimSpace(req.SafetyNote)) > 200 {
 		return invalidInput(msgSafety)
+	}
+	photo := strings.TrimSpace(req.PhotoURL)
+	if photo != "" {
+		if utf8.RuneCountInString(photo) > 500 || strings.ContainsAny(photo, " \t\r\n") || (!strings.HasPrefix(photo, "https://") && !strings.HasPrefix(photo, "http://")) {
+			return invalidInput(msgPhoto)
+		}
+	}
+	if utf8.RuneCountInString(strings.TrimSpace(req.Sector)) > 40 {
+		return invalidInput(msgSector)
+	}
+	if ae := validateCoords(req.Lat, req.Lng); ae != nil {
+		return ae
+	}
+	return nil
+}
+func validateCoords(lat, lng *float64) *AppError {
+	if lat == nil && lng == nil {
+		return nil
+	}
+	if lat == nil || lng == nil || *lat < -90 || *lat > 90 || *lng < -180 || *lng > 180 {
+		return invalidInput(msgCoords)
 	}
 	return nil
 }
