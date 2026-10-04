@@ -1,17 +1,19 @@
-import { useState } from "react";
-import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { useAuth } from "../../auth/session";
-import type { Category } from "../../api/types";
+import type { Category, TaskPublic } from "../../api/types";
 import { categories, categoryLabel } from "../../lib/labels";
 import { amountToBani, romanianDateTime } from "../../lib/job-form";
 import { errorMessage } from "../../lib/errors";
 import { AuthField } from "../../components/auth-fields";
-import { Button, Header, Page } from "../../components/ui";
+import { Button, Header, Page, State } from "../../components/ui";
 import { useTheme } from "../../components/theme";
 import { jobStyles } from "../../components/job-ui";
 export default function NewJobScreen() {
   const { client, session } = useAuth();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const [existing, setExisting] = useState<TaskPublic>();
   const { colors, isDark } = useTheme();
   const s = jobStyles(colors);
   const [title, setTitle] = useState("");
@@ -25,6 +27,21 @@ export default function NewJobScreen() {
   const [safety, setSafety] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    void client.getTask(id).then(({ task }) => {
+      if (cancelled) return;
+      if (task.poster_id !== session?.user.id || task.status !== "open") throw new Error("Poți edita doar anunțurile tale deschise.");
+      const local = (value: string) => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Bucharest", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(value)).split(" ");
+      const [day, begins] = local(task.starts_at);
+      setTitle(task.title); setCity(task.city); setCategory(task.category);
+      setDate(day); setStart(begins); setEnd(local(task.ends_at)[1]);
+      setAmount((task.amount_bani / 100).toFixed(2));
+      setDescription(task.description); setSafety(task.safety_note); setExisting(task);
+    }).catch((e: unknown) => { if (!cancelled) setError(errorMessage(e)); });
+    return () => { cancelled = true; };
+  }, [id, client, session?.user.id]);
   async function publish() {
     if (busy) return;
     setError("");
@@ -41,7 +58,7 @@ export default function NewJobScreen() {
         throw new Error(
           "Sfârșitul trebuie să fie după început, la cel mult 12 ore.",
         );
-      const result = await client.createTask({
+      const body = {
         title: title.trim(),
         city: city.trim(),
         category,
@@ -50,7 +67,9 @@ export default function NewJobScreen() {
         amount_bani: amountToBani(amount),
         description: description.trim(),
         safety_note: safety.trim(),
-      });
+        photo_url: existing?.photo_url, sector: existing?.sector, lat: existing?.lat, lng: existing?.lng,
+      };
+      const result = id ? await client.updateTask(id, body) : await client.createTask(body);
       router.replace({
         pathname: "/jobs/[id]",
         params: { id: result.task.id },
@@ -61,6 +80,7 @@ export default function NewJobScreen() {
       setBusy(false);
     }
   }
+  if (id && existing?.id !== id) return <Page><Header title="Editează anunțul" /><State loading={!error} error={error} /><Button variant="outline" onPress={() => router.replace("/jobs")}>Toate anunțurile</Button></Page>;
   if (session?.user.volunteer_only)
     return (
       <Page>
@@ -73,7 +93,7 @@ export default function NewJobScreen() {
   return (
     <Page>
       <Header
-        title="Publică o sarcină"
+        title={id ? "Editează anunțul" : "Publică o sarcină"}
         subtitle="Detalii clare, pentru omul potrivit."
       />
       <AuthField
@@ -188,7 +208,7 @@ export default function NewJobScreen() {
         }
         onPress={() => void publish()}
       >
-        {busy ? "Se publică..." : "Publică anunțul"}
+        {busy ? "Se salvează..." : id ? "Salvează modificările" : "Publică anunțul"}
       </Button>
       <Button
         variant="outline"

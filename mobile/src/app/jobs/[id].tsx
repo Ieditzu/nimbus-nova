@@ -32,6 +32,7 @@ export default function ManageJobScreen() {
     return { task, applications };
   }, [id, client, session?.user.id]);
   const { data, loading, error, reload } = useData(load);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
   async function action(call: () => Promise<unknown>) {
@@ -46,6 +47,12 @@ export default function ManageJobScreen() {
     } finally {
       setBusy(false);
     }
+  }
+  async function remove() {
+    if (busy) return;
+    setBusy(true); setActionError("");
+    try { await client.deleteTask(id); router.replace("/jobs"); }
+    catch (e) { setActionError(errorMessage(e)); setBusy(false); }
   }
   async function chat(participant: string) {
     if (busy) return;
@@ -93,6 +100,15 @@ export default function ManageJobScreen() {
               {actionError}
             </Text>
           ) : null}
+          {data.task.status === "open" ? <View style={s.card}>
+            <Button variant="outline" icon="create-outline" disabled={busy}
+              onPress={() => router.push({ pathname: "/jobs/new", params: { id } })}>Editează anunțul</Button>
+            {confirmDelete ? <>
+              <Text style={s.body}>Ștergi anunțul? Nu va mai apărea în căutări, iar aplicările în așteptare vor fi respinse.</Text>
+              <Button disabled={busy} onPress={() => void remove()}>{busy ? "Se șterge..." : "Da, șterge anunțul"}</Button>
+              <Button variant="outline" disabled={busy} onPress={() => setConfirmDelete(false)}>Păstrează anunțul</Button>
+            </> : <Button variant="outline" icon="trash-outline" disabled={busy} onPress={() => setConfirmDelete(true)}>Șterge anunțul</Button>}
+          </View> : null}
           <Text style={s.title}>Aplicări ({data.applications.length})</Text>
           {!data.applications.length ? (
             <Text style={s.body}>

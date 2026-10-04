@@ -21,6 +21,7 @@ type ChatMessage struct {
 type ChatParticipant struct {
 	ID          string `json:"id"`
 	DisplayName string `json:"display_name"`
+	PhoneNumber string `json:"phone_number"`
 }
 type Conversation struct {
 	ID          string          `json:"id"`
@@ -70,11 +71,11 @@ func (s *Server) chatUser(r *http.Request) (User, *AppError) {
 }
 func (s *Store) conversationFor(id, userID string) (Conversation, error) {
 	var c Conversation
-	err := s.db.QueryRow(`SELECT c.id,c.task_id,t.title,u.id,u.display_name,c.updated_at
+	err := s.db.QueryRow(`SELECT c.id,c.task_id,t.title,u.id,u.display_name,u.phone_number,c.updated_at
  FROM conversations c JOIN tasks t ON t.id=c.task_id
  JOIN users u ON u.id=CASE WHEN c.owner_id=? THEN c.peer_id ELSE c.owner_id END
  WHERE c.id=? AND (c.owner_id=? OR c.peer_id=?)`, userID, id, userID, userID).
-		Scan(&c.ID, &c.TaskID, &c.TaskTitle, &c.OtherUser.ID, &c.OtherUser.DisplayName, &c.UpdatedAt)
+		Scan(&c.ID, &c.TaskID, &c.TaskTitle, &c.OtherUser.ID, &c.OtherUser.DisplayName, &c.OtherUser.PhoneNumber, &c.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return c, errNotFound
 	}

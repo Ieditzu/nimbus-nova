@@ -40,8 +40,8 @@ export function PhoneForm() {
         Numărul tău de telefon
       </Text>
       <Text style={[s.body, { color: colors.muted }]}>
-        Completează numărul pentru a deschide aplicația. Nu este afișat în
-        anunțuri sau conversații.
+        Completează numărul pentru a deschide aplicația. Îl văd persoanele cu
+        care discuți despre joburi, în conversație. Nu apare în anunțurile publice.
       </Text>
       <AuthField
         label="Număr de telefon"

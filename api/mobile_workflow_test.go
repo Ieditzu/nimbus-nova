@@ -152,7 +152,7 @@ func TestConversationMembershipMessagesAndHistory(t *testing.T) {
 		t.Fatalf("cursor %d %s", status, raw)
 	}
 	status, raw = h.doBearer(http.MethodGet, "/v1/me/conversations", ownerToken, nil)
-	if status != 200 || !strings.Contains(string(raw), peer) || strings.Contains(string(raw), "phone_number") {
+	if status != 200 || !strings.Contains(string(raw), peer) || !strings.Contains(string(raw), "+40723456789") || strings.Contains(string(raw), "+40712345678") {
 		t.Fatalf("inbox %d %s", status, raw)
 	}
 	if _, err := h.DB.Exec(`UPDATE users SET status='suspended' WHERE id=?`, peer); err != nil {

@@ -245,6 +245,7 @@ export function SignupForm({
             placeholder="+40 712 345 678"
             maxLength={30}
           />
+          <Text style={[s.body, { color: colors.muted }]}>Numărul tău va apărea pentru persoanele cu care discuți despre joburi.</Text>
           <PasswordField
             newPassword
             editable={!busy}

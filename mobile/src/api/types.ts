@@ -125,7 +125,7 @@ export interface Conversation {
   id: string;
   task_id: string;
   task_title: string;
-  other_user: { id: string; display_name: string };
+  other_user: { id: string; display_name: string; phone_number: string };
   last_message: ChatMessage | null;
   updated_at: string;
 }

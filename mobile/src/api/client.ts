@@ -49,6 +49,8 @@ export interface NovaClient {
   listTaskApplications(taskId: string): Promise<{ applications: ApplicationView[] }>;
   acceptApplication(applicationId: string): Promise<{ task: TaskPublic }>;
   completeTask(taskId: string): Promise<{ task: TaskPublic }>;
+  updateTask(taskId: string, body: CreateTaskRequest): Promise<{ task: TaskPublic }>;
+  deleteTask(taskId: string): Promise<{ ok: boolean }>;
   cancelTask(taskId: string): Promise<{ task: TaskPublic }>;
   openDispute(taskId: string, body: { reason: string }): Promise<{ dispute: { id: string; status: "open" } }>;
   createReview(taskId: string, body: { stars: number; text: string }): Promise<{ review: Review }>;
@@ -129,6 +131,8 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
     acceptApplication: (applicationId) =>
       request(`/v1/applications/${applicationId}/accept`, { method: "POST", body: "{}" }),
     completeTask: (taskId) => request(`/v1/tasks/${taskId}/complete`, { method: "POST", body: "{}" }),
+    updateTask: (taskId, body) => request(`/v1/tasks/${encodeURIComponent(taskId)}`, { method: "PUT", body: JSON.stringify(body) }),
+    deleteTask: (taskId) => request(`/v1/tasks/${encodeURIComponent(taskId)}`, { method: "DELETE" }),
     cancelTask: (taskId) => request(`/v1/tasks/${taskId}/cancel`, { method: "POST", body: "{}" }),
     openDispute: (taskId, body) => request(`/v1/tasks/${taskId}/dispute`, { method: "POST", body: JSON.stringify(body) }),
     createReview: (taskId, body) =>

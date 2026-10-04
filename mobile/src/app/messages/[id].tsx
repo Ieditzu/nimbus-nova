@@ -5,6 +5,7 @@ import {
   AppState,
   FlatList,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   StyleSheet,
@@ -157,6 +158,17 @@ export default function ConversationScreen() {
             </Text>
           </View>
         </View>
+        {conversation?.other_user.phone_number ? <View style={[s.notice, { flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" }]}>
+          <Text selectable style={[s.meta, { color: colors.text }]}>{conversation.other_user.phone_number}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Sună persoana" style={s.back}
+            onPress={() => void Linking.openURL(`tel:${conversation.other_user.phone_number}`).catch(() => setSendError("Telefonul nu poate deschide apelul."))}>
+            <Icon name="call-outline" color={colors.text} />
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Trimite SMS" style={s.back}
+            onPress={() => void Linking.openURL(`sms:${conversation.other_user.phone_number}`).catch(() => setSendError("Dispozitivul nu poate deschide aplicația SMS."))}>
+            <Icon name="chatbox-outline" color={colors.text} /><Text style={[s.meta, { color: colors.text }]}>SMS</Text>
+          </Pressable>
+        </View> : null}
         {error || sendError ? (
           <View style={s.notice}>
             <Text

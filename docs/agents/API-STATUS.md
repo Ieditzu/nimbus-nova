@@ -10,6 +10,8 @@
 | `GET /v1/tasks` | live | phone |
 | `GET /v1/tasks/{id}` | live | phone |
 | `POST /v1/tasks` | live | both |
+| `PUT /v1/tasks/{id}` | live | phone |
+| `DELETE /v1/tasks/{id}` | live | phone |
 | `GET /v1/me/tasks` | live | both |
 | `GET /v1/tasks/{id}/applications` | live | website |
 | `POST /v1/applications/{id}/accept` | live | website |
