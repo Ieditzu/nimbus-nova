@@ -9,3 +9,4 @@ Nimbus Nova is the company in the middle between people with free time and peopl
 - [Contract fixtures](docs/fixtures/)
 - [API and integration tests](api/)
 - [Agent briefs](docs/agents/START-HERE.md)
+- [Agent mailbox](https://github.com/Ieditzu/nimbus-nova/issues/1)
