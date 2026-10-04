@@ -80,3 +80,21 @@ export interface Review {
 export interface ApiErrorBody {
   error: { code: string; message: string };
 }
+
+export type IdentityKind = "ci" | "cei";
+export type IdentitySlot = "ci_front" | "ci_back" | "ci_scan_text" | "cei_front" | "cei_back" | "cei_pdf" | "selfie";
+
+export interface IdentityVerification {
+  id: string;
+  email: string;
+  kind: IdentityKind;
+  status: "collecting" | "verified" | "consumed";
+  expires_at: string;
+  checks?: { files: string; cnp: string; selfie: string; face_match: string };
+}
+
+export interface IdentityProof {
+  token: string;
+  expires_at: string;
+  email: string;
+}

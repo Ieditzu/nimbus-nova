@@ -21,6 +21,9 @@
 | `POST /v1/tasks/{id}/applications` | live | phone |
 | `GET /v1/me/applications` | live | phone |
 | `POST /v1/auth/register` | live | both, later |
+| `POST /v1/auth/identity` | live | phone |
+| `POST /v1/auth/identity/{id}/files` | live | phone |
+| `POST /v1/auth/identity/{id}/complete` | live | phone |
 | `POST /v1/auth/login` | live | both, later |
 | `POST /v1/auth/logout` | live | both, later |
 | `GET /v1/me` | live | both, later |

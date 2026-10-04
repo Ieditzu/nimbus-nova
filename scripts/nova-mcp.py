@@ -146,33 +146,21 @@ class Link:
         self.ensure()
         deadline = time.monotonic() + timeout
         found = []
+        skipped = []
         while time.monotonic() < deadline:
             try:
                 event = self.events.get(timeout=max(0.05, deadline - time.monotonic()))
             except queue.Empty:
                 break
-            if accept(event):
-                found.append(event)
-                if event[0] in {"history_end", "search_end", "who_end", "sent"}:
-                    break
-        return found
-
-    def drain_noise(self):
-        kept = []
-        while True:
-            try:
-                event = self.events.get_nowait()
-            except queue.Empty:
+            if not accept(event):
+                skipped.append(event)
+                continue
+            found.append(event)
+            if event[0] in {"history_end", "search_end", "who_end", "sent"}:
                 break
-            if event[0] == "message":
-                kept.append(event)
-        for event in kept:
+        for event in skipped:
             self.events.put(event)
-
-    def command(self, line):
-        self.ensure()
-        self.drain_noise()
-        self.send(line)
+        return found
 
 
 def result(payload, error=False):

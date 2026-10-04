@@ -29,12 +29,13 @@ type publicUser struct {
 }
 
 type registerRequest struct {
-	Role           string `json:"role"`
-	Email          string `json:"email"`
-	Password       string `json:"password"`
-	DisplayName    string `json:"display_name"`
-	BirthDate      string `json:"birth_date"`
-	GuardianEmail  string `json:"guardian_email"`
+	Role          string `json:"role"`
+	Email         string `json:"email"`
+	Password      string `json:"password"`
+	DisplayName   string `json:"display_name"`
+	BirthDate     string `json:"birth_date"`
+	GuardianEmail string `json:"guardian_email"`
+	IdentityProof string `json:"identity_proof"`
 }
 
 func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
@@ -134,11 +135,29 @@ func (s *Store) Register(req registerRequest) (publicUser, *AppError) {
 	if n := len([]rune(name)); n < 2 || n > 80 {
 		return publicUser{}, invalidInput("Numele trebuie să aibă între 2 și 80 de caractere.")
 	}
-	birth, err := time.Parse("2006-01-02", strings.TrimSpace(req.BirthDate))
-	if err != nil {
-		return publicUser{}, invalidInput("Data nașterii trebuie să fie YYYY-MM-DD.")
+	var birth time.Time
+	var volunteer bool
+	if role == "worker" {
+		if strings.TrimSpace(req.IdentityProof) == "" {
+			return publicUser{}, appErr(409, "identity_required", "Verifică identitatea înainte de cont.")
+		}
+		proofID, parsed, minor, err := s.lookupIdentityProof(email, strings.TrimSpace(req.IdentityProof))
+		if err != nil {
+			if ae, ok := asAppError(err); ok {
+				return publicUser{}, ae
+			}
+			return publicUser{}, errInternal
+		}
+		birth, volunteer = parsed, minor
+		req.IdentityProof = proofID
+	} else {
+		parsed, err := time.Parse("2006-01-02", strings.TrimSpace(req.BirthDate))
+		if err != nil {
+			return publicUser{}, invalidInput("Data nașterii trebuie să fie YYYY-MM-DD.")
+		}
+		birth = parsed
+		volunteer = time.Now().In(zoneEEST).Before(birth.AddDate(18, 0, 0))
 	}
-	volunteer := time.Now().In(zoneEEST).Before(birth.AddDate(18, 0, 0))
 	if volunteer {
 		if role != "worker" {
 			return publicUser{}, invalidInput("Un minor nu poate fi poster.")
@@ -170,6 +189,11 @@ func (s *Store) Register(req registerRequest) (publicUser, *AppError) {
 		id, role, name, email, string(hash), birth.Format("2006-01-02"), flag, strings.TrimSpace(req.GuardianEmail))
 	if err != nil {
 		return publicUser{}, errInternal
+	}
+	if role == "worker" {
+		if err := s.markIdentityConsumed(req.IdentityProof); err != nil {
+			return publicUser{}, errInternal
+		}
 	}
 	return publicUser{ID: id, Role: role, DisplayName: name, VolunteerOnly: volunteer}, nil
 }
