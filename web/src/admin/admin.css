@@ -46,7 +46,8 @@
 .dk h1, .dk h2, .dk h3, .dk p, .dk ul, .dk dl, .dk dd, .dk blockquote, .dk figure,
 .dk-login h1, .dk-login p { margin: 0; padding: 0; }
 .dk ul, .dk-login ul { list-style: none; }
-.dk button, .dk input, .dk select, .dk textarea, .dk-login button, .dk-login input { font: inherit; color: inherit; }
+.dk button, .dk input, .dk select, .dk textarea, .dk-login button, .dk-login input { font: inherit; }
+.dk input, .dk select, .dk textarea, .dk-login input { color: inherit; }
 .dk button, .dk-login button { cursor: pointer; }
 .dk button:disabled, .dk-login button:disabled { opacity: .5; cursor: not-allowed; }
 .dk :focus-visible, .dk-login :focus-visible { outline: 3px solid var(--dk-blue); outline-offset: 2px; }
@@ -118,20 +119,22 @@
 
 /* ------------------------------------------------------------- controls */
 
-.dk-btn {
+.dk button.dk-btn,
+.dk-login button.dk-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 18px;
   border: 1px solid var(--dk-ink); border-radius: 99px; background: var(--dk-ink); color: var(--dk-surface);
   font-weight: 800; letter-spacing: .01em; white-space: nowrap; transition: transform 120ms ease, background 120ms ease;
 }
-.dk-btn:hover:not(:disabled) { transform: translateY(-1px); }
-.dk-btn:active:not(:disabled) { transform: translateY(0) scale(.98); }
-.dk-btn.is-small { min-height: 32px; padding: 0 12px; font-size: 13px; }
-.dk-btn.is-ghost { background: var(--dk-surface); color: var(--dk-ink); }
-.dk-btn.is-ghost:hover:not(:disabled) { background: var(--dk-soft); }
-.dk-btn.is-danger { background: var(--dk-orange); color: #fff; }
-.dk-btn.is-danger-ghost { background: var(--dk-surface); color: var(--dk-danger); border-color: var(--dk-danger); }
-.dk-btn.is-danger-ghost:hover:not(:disabled) { background: var(--dk-danger-bg); }
-.dk-btn.is-block { width: 100%; }
+.dk button.dk-btn:hover:not(:disabled) { transform: translateY(-1px); }
+.dk button.dk-btn:active:not(:disabled) { transform: translateY(0) scale(.98); }
+.dk button.dk-btn.is-small { min-height: 32px; padding: 0 12px; font-size: 13px; }
+.dk button.dk-btn.is-ghost,
+.dk-login button.dk-btn.is-ghost { background: var(--dk-surface); color: var(--dk-ink); }
+.dk button.dk-btn.is-ghost:hover:not(:disabled) { background: var(--dk-soft); }
+.dk button.dk-btn.is-danger { background: var(--dk-orange); color: #fff; }
+.dk button.dk-btn.is-danger-ghost { background: var(--dk-surface); color: var(--dk-danger); border-color: var(--dk-danger); }
+.dk button.dk-btn.is-danger-ghost:hover:not(:disabled) { background: var(--dk-danger-bg); }
+.dk button.dk-btn.is-block { width: 100%; }
 .dk-link { padding: 0; border: 0; background: transparent; color: inherit; font-weight: 700; text-decoration: underline; text-decoration-color: var(--dk-line); text-underline-offset: 3px; text-align: left; }
 .dk-link:hover { text-decoration-color: currentColor; }
 .dk-icon-btn { display: inline-grid; place-items: center; flex: none; width: 36px; height: 36px; border: 1px solid transparent; border-radius: 50%; background: transparent; color: var(--dk-muted); }
@@ -160,7 +163,7 @@
   border: 1px solid var(--dk-ink); border-radius: 99px; background: var(--dk-surface); font-size: 13px; font-weight: 700;
 }
 .dk-chips button:hover { background: var(--dk-soft); }
-.dk-chips button[aria-pressed="true"] { background: var(--dk-ink); color: var(--dk-surface); }
+.dk .dk-chips button[aria-pressed="true"] { background: var(--dk-ink); color: var(--dk-surface); }
 .dk-chips button span { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 99px; background: var(--dk-soft); color: var(--dk-ink); font-size: 11px; }
 .dk-chips button[aria-pressed="true"] span { background: var(--dk-yellow); color: #0d0d10; }
 
@@ -170,7 +173,7 @@
   border: 1px solid var(--dk-ink); border-radius: var(--dk-radius); background: var(--dk-yellow); color: #0d0d10; animation: dk-rise 180ms ease both;
 }
 .dk-bulk .dk-link { margin-left: auto; }
-.dk-bulk .dk-btn.is-ghost { background: #fff; }
+.dk-bulk button.dk-btn.is-ghost { background: #fff; color: #0d0d10; }
 
 .dk-alert { padding: 10px 14px; border: 1px solid var(--dk-danger); border-radius: 12px; background: var(--dk-danger-bg); color: var(--dk-danger); font-weight: 600; }
 .dk-note { padding: 10px 14px; border: 1px dashed var(--dk-muted); border-radius: 12px; color: var(--dk-muted); }
