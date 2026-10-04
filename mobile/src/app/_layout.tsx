@@ -2,6 +2,9 @@ import { useFonts } from "expo-font";
 import { Anton_400Regular } from "@expo-google-fonts/anton/400Regular";
 import { Inter_500Medium } from "@expo-google-fonts/inter/500Medium";
 import { Inter_700Bold } from "@expo-google-fonts/inter/700Bold";
+import { View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { BottomNav } from "../components/ui";
 import { AuthProvider } from "../auth/session";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -25,7 +28,7 @@ export default function RootLayout() {
 function Navigation() {
   const { colors, isDark } = useTheme();
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <Stack
         screenOptions={{
@@ -39,6 +42,9 @@ function Navigation() {
         <Stack.Screen name="profile" />
         <Stack.Screen name="applications" />
       </Stack>
-    </>
+      <SafeAreaView edges={["bottom", "left", "right"]}>
+        <BottomNav />
+      </SafeAreaView>
+    </View>
   );
 }

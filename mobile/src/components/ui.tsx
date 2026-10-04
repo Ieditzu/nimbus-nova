@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useCallback,
   useRef,
   useState,
@@ -11,6 +12,9 @@ import { Link, useFocusEffect, usePathname } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
+  AccessibilityInfo,
+  Animated,
+  Easing,
   useWindowDimensions,
   Pressable,
   RefreshControl,
@@ -209,7 +213,7 @@ export function Page({
   return (
     <SafeAreaView
       style={[s.safe, { backgroundColor: colors.background }]}
-      edges={["top", "left", "right", "bottom"]}
+      edges={["top", "left", "right"]}
     >
       <ScrollView
         ref={scroll}
@@ -241,69 +245,167 @@ export function Page({
           {footer}
         </View>
       ) : null}
-      <BottomNav />
     </SafeAreaView>
   );
 }
+const dockTabs = [
+  { href: "/" as const, icon: "search-outline" as const, label: "Sarcini" },
+  {
+    href: "/applications" as const,
+    icon: "file-tray-outline" as const,
+    label: "Aplicări",
+  },
+  {
+    href: "/profile" as const,
+    icon: "person-outline" as const,
+    label: "Profil",
+  },
+];
+// Mounted beside the stack so the indicator survives screen changes.
 export function BottomNav() {
   const path = usePathname();
   const { colors } = useTheme();
-  const tabs = [
-    { href: "/" as const, icon: "search-outline" as const, label: "Sarcini" },
-    {
-      href: "/applications" as const,
-      icon: "file-tray-outline" as const,
-      label: "Aplicări",
-    },
-    {
-      href: "/profile" as const,
-      icon: "person-outline" as const,
-      label: "Profil",
-    },
-  ];
+  const selectedIndex = path.startsWith("/profile")
+    ? 2
+    : path.startsWith("/applications")
+      ? 1
+      : 0;
+  const [position] = useState(() => new Animated.Value(selectedIndex));
+  const [width, setWidth] = useState(0);
+  const [reduceMotion, setReduceMotion] = useState(true);
+  useEffect(() => {
+    let active = true;
+    let changed = false;
+    const subscription = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      (value) => {
+        changed = true;
+        if (active) setReduceMotion(value);
+      },
+    );
+    void AccessibilityInfo.isReduceMotionEnabled()
+      .then((value) => {
+        if (active && !changed) setReduceMotion(value);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
+  useEffect(() => {
+    if (reduceMotion) {
+      position.stopAnimation();
+      position.setValue(selectedIndex);
+      return;
+    }
+    const animation = Animated.spring(position, {
+      toValue: selectedIndex,
+      stiffness: 320,
+      damping: 30,
+      mass: 0.8,
+      overshootClamping: true,
+      useNativeDriver: true,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [position, selectedIndex, reduceMotion]);
+  const tabWidth = Math.max(0, (width - 12) / dockTabs.length);
   return (
     <View
+      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
       style={[
         s.bottom,
         { backgroundColor: colors.surface, borderColor: colors.border },
       ]}
     >
-      {tabs.map((tab) => {
-        const selected =
-          path === tab.href || (tab.href === "/" && path.startsWith("/task/"));
-        return (
-          <Link href={tab.href} replace asChild key={tab.href}>
-            <Pressable
-              accessibilityRole="tab"
-              accessibilityState={{ selected }}
-              style={StyleSheet.flatten([
-                s.navItem,
-                selected && {
-                  backgroundColor: colors.accent,
-                  borderColor: colors.accent,
-                },
-              ])}
-            >
-              <View style={[s.navIcon]}>
-                <Icon
-                  name={tab.icon}
-                  size={22}
-                  color={selected ? colors.onAccent : colors.text}
-                />
-              </View>
-              <Text
-                style={[
-                  s.navText,
-                  { color: selected ? colors.onAccent : colors.text },
-                ]}
-              >
-                {tab.label}
-              </Text>
-            </Pressable>
-          </Link>
-        );
-      })}
+      {tabWidth > 0 ? (
+        <Animated.View
+          pointerEvents="none"
+          accessible={false}
+          style={[
+            s.dockIndicator,
+            {
+              backgroundColor: colors.accent,
+              width: tabWidth,
+              transform: [
+                { translateX: Animated.multiply(position, tabWidth) },
+              ],
+            },
+          ]}
+        />
+      ) : null}
+      {dockTabs.map((tab, index) => (
+        <DockTab
+          key={tab.href}
+          tab={tab}
+          selected={selectedIndex === index}
+          reduceMotion={reduceMotion}
+        />
+      ))}
     </View>
+  );
+}
+function DockTab({
+  tab,
+  selected,
+  reduceMotion,
+}: {
+  tab: (typeof dockTabs)[number];
+  selected: boolean;
+  reduceMotion: boolean;
+}) {
+  const { colors } = useTheme();
+  const [progress] = useState(() => new Animated.Value(selected ? 1 : 0));
+  useEffect(() => {
+    if (reduceMotion) {
+      progress.stopAnimation();
+      progress.setValue(selected ? 1 : 0);
+      return;
+    }
+    const animation = Animated.timing(progress, {
+      toValue: selected ? 1 : 0,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [selected, reduceMotion, progress]);
+  return (
+    <Link href={tab.href} replace asChild>
+      <Pressable
+        accessibilityRole="tab"
+        accessibilityLabel={tab.label}
+        accessibilityState={{ selected }}
+        style={s.navItem}
+      >
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            s.navContent,
+            {
+              opacity: Animated.subtract(1, progress),
+            },
+          ]}
+        >
+          <Icon name={tab.icon} size={22} color={colors.text} />
+          <Text style={[s.navText, { color: colors.text }]}>{tab.label}</Text>
+        </Animated.View>
+        <Animated.View
+          pointerEvents="none"
+          accessible={false}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={[s.navContent, StyleSheet.absoluteFill, { opacity: progress }]}
+        >
+          <Icon name={tab.icon} size={22} color={colors.onAccent} />
+          <Text style={[s.navText, { color: colors.onAccent }]}>
+            {tab.label}
+          </Text>
+        </Animated.View>
+      </Pressable>
+    </Link>
   );
 }
 export function Button({
@@ -499,7 +601,14 @@ const s = StyleSheet.create({
     justifyContent: "center",
     gap: 3,
   },
-  navIcon: { alignItems: "center" },
+  dockIndicator: {
+    position: "absolute",
+    left: 6,
+    top: 6,
+    bottom: 6,
+    borderRadius: 999,
+  },
+  navContent: { alignItems: "center", justifyContent: "center", gap: 3 },
   navText: { fontFamily: fonts.bold, fontSize: 11, letterSpacing: 0.3 },
   button: {
     minHeight: 50,
