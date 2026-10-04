@@ -27,7 +27,7 @@ function fixture(kind = "ci") {
   };
   const slots =
     kind === "ci"
-      ? ["ci_front", "ci_back", "selfie"]
+      ? ["ci_front", "selfie"]
       : ["cei_front", "cei_back", "cei_pdf", "selfie"];
   const assets = Object.fromEntries(
     slots.map((slot) => [

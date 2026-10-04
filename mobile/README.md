@@ -46,7 +46,7 @@ The supplied test login uses normal backend password hashing and bearer sessions
 
 ## Identity signup
 
-Signup has three steps: account details, Romanian identity document, then a live camera selfie. There is no manual birth date input. Both CI and CEI support importing front/back photographs from the photo library or capturing them with the camera. CEI also requires the original PDF export from RO CEI Reader. Photos are converted to JPEG; every uploaded file must be at most 2 MB. A minor can enter a guardian email; the server derives age and volunteer eligibility from the verified document.
+Signup has three steps: account details, Romanian identity document, then a live camera selfie. There is no manual birth date input. Classic CI requires a front photograph; CEI requires front/back photographs. Both support photo-library import or camera capture. CEI also requires the original PDF export from RO CEI Reader. Photos are converted to JPEG; every uploaded file must be at most 2 MB. A minor can enter a guardian email; the server derives age and volunteer eligibility from the verified document.
 
 Temporary native copies are kept in the app's cache, never saved to the gallery, and removed when signup closes or a file is replaced. Starting another file selection also prunes interrupted copies older than 15 minutes. Browser previews stay in memory. Camera permission is requested only when the user opens capture. Camera and navigation screens use no slide transition.
 
@@ -55,3 +55,5 @@ New account creation uses the backend's ID Analyzer API v2 EU integration. The b
 Identity requests require an HTTPS API URL. HTTP LAN development supports existing login and tasks but cannot receive identity documents. The backend needs `IDANALYZER_REGION=eu`, a private `IDANALYZER_KEY`, available provider credits/quota, and `pdftotext` for CEI. No key or provider SDK belongs in the mobile app. iOS/Android native camera capture still requires physical-device verification; browser QA and platform bundle exports do not replace it.
 
 Selfie verification now records an eight-second silent video directly with the front camera. The guided prompts ask for forward, left, right and forward poses. Browsers use MediaRecorder with MP4/WebM negotiation; native iOS/Android use Expo Camera. Videos have an 8 MB limit, are uploaded to `selfie_video`, and are passed to the provider's `faceVideo` check. Older single-photo uploads remain supported by the API. Native video recording still needs physical-device QA.
+
+Classic CI signup asks only for the front photograph because its reverse is blank. CEI still requires front, back and the original Reader PDF. Backend compatibility accepts legacy CI back uploads but excludes them from provider recognition.

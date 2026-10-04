@@ -63,7 +63,10 @@ func identityHarness(t *testing.T, response identityScan, scanStatus int, delay 
 		if json.NewDecoder(r.Body).Decode(&payload) != nil {
 			t.Error("invalid scan payload")
 		}
-		fields := []string{"document", "documentBack"}
+		fields := []string{"document"}
+		if payload["documentBack"] != nil {
+			fields = append(fields, "documentBack")
+		}
 		if payload["faceVideo"] != nil {
 			fields = append(fields, "faceVideo")
 		} else {
@@ -74,7 +77,7 @@ func identityHarness(t *testing.T, response identityScan, scanStatus int, delay 
 				t.Error("provider expects plain base64, not data URI")
 			}
 		}
-		if payload["restrictCountry"] != "RO" || payload["restrictType"] != "I" || (payload["face"] == nil && payload["faceVideo"] == nil) || payload["documentBack"] == nil {
+		if payload["restrictCountry"] != "RO" || payload["restrictType"] != "I" || (payload["face"] == nil && payload["faceVideo"] == nil) {
 			t.Error("document/face constraints missing")
 		}
 		overrides := payload["profileOverride"].(map[string]any)
@@ -489,5 +492,67 @@ func TestVideoFileFormatBounds(t *testing.T) {
 	}
 	if validIdentityType("selfie_video", "image/jpeg") {
 		t.Fatal("video slot accepts photographs")
+	}
+}
+
+func TestClassicCIRequiresOnlyFrontAndKeepsSelfieChecks(t *testing.T) {
+	s, api, _ := identityHarness(t, scanFixture(), 200, 0)
+	id := collectIdentity(t, api, "ci", nil)
+	if _, err := s.DB().Exec("DELETE FROM identity_files WHERE session_id=? AND slot='ci_back'", id); err != nil {
+		t.Fatal(err)
+	}
+	status, body := identityRequest(t, api, "/v1/auth/identity/"+id+"/complete", map[string]any{})
+	if status != 200 || body["proof"] == nil {
+		t.Fatalf("front-only CI rejected: %d %v", status, body)
+	}
+}
+func TestProviderDocumentSidesAreSpecificToKind(t *testing.T) {
+	for _, kind := range []string{"ci", "cei"} {
+		t.Run(kind, func(t *testing.T) {
+			provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				var body map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Error(err)
+					w.WriteHeader(400)
+					return
+				}
+				decisions := body["profileOverride"].(map[string]any)["decisions"].(map[string]any)
+				if kind == "ci" {
+					if _, exists := body["documentBack"]; exists {
+						t.Error("blank classic CI back sent for recognition")
+					}
+					for _, code := range []string{"UNRECOGNIZED_BACK_DOCUMENT", "UNRECOGNIZED_BACK_BARCODE", "INVALID_BACK_DOCUMENT"} {
+						if decisions[code].(map[string]any)["enabled"] != false {
+							t.Error("blank back can block classic CI")
+						}
+					}
+				} else {
+					if body["documentBack"] == nil || decisions["INVALID_BACK_DOCUMENT"].(map[string]any)["enabled"] != true {
+						t.Error("CEI reverse check removed")
+					}
+				}
+				if decisions["FACE_LIVENESS_ERR"].(map[string]any)["enabled"] != true || decisions["FACE_MISMATCH"].(map[string]any)["enabled"] != true {
+					t.Error("biometrics disabled")
+				}
+				json.NewEncoder(w).Encode(scanFixture())
+			}))
+			defer provider.Close()
+			p := identityProvider{key: "synthetic", endpoint: provider.URL, http: provider.Client()}
+			if _, err := p.scan(t.Context(), kind, map[string][]byte{kind + "_front": []byte("front"), kind + "_back": []byte("blank"), "selfie": []byte("face")}); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestCEIStillRequiresItsBack(t *testing.T) {
+	s, api, calls := identityHarness(t, scanFixture(), 200, 0)
+	id := collectIdentity(t, api, "cei", testPDF("CNP 5150315400013 Document RX123456"))
+	if _, err := s.DB().Exec("DELETE FROM identity_files WHERE session_id=? AND slot='cei_back'", id); err != nil {
+		t.Fatal(err)
+	}
+	status, body := identityRequest(t, api, "/v1/auth/identity/"+id+"/complete", map[string]any{})
+	if status != 409 || body["proof"] != nil || calls.Load() != 0 {
+		t.Fatalf("CEI back bypassed: %d %v", status, body)
 	}
 }

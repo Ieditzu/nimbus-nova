@@ -161,6 +161,14 @@ func (p *identityProvider) scan(ctx context.Context, kind string, files map[stri
 			"thresholds": map[string]float64{"face": 0.5, "faceLiveness": 0.2, "faceRecapture": 0.5},
 		},
 	}
+	if kind == "ci" {
+		// The classic Romanian CI has no identity data on its reverse side.
+		// Keep accepting legacy back uploads, but do not send them for recognition.
+		delete(body, "documentBack")
+		for _, code := range []string{"UNRECOGNIZED_BACK_DOCUMENT", "UNRECOGNIZED_BACK_BARCODE", "INVALID_BACK_DOCUMENT"} {
+			decisions[code] = map[string]any{"enabled": false, "reject": -1, "review": -1, "weight": 0}
+		}
+	}
 	if len(files["selfie_video"]) > 0 {
 		delete(body, "face")
 		body["faceVideo"] = encoded("selfie_video")

@@ -7,7 +7,7 @@ export type IdentityResult = Awaited<
   ReturnType<NovaClient["completeIdentity"]>
 >;
 export const documentSlots: Record<IdentityKind, CaptureSlot[]> = {
-  ci: ["ci_front", "ci_back"],
+  ci: ["ci_front"],
   cei: ["cei_front", "cei_back", "cei_pdf"],
 };
 export const slotLabels: Record<CaptureSlot, string> = {

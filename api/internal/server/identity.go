@@ -21,12 +21,12 @@ import (
 const identityTTL = 15 * time.Minute
 
 var identityRequired = map[string][]string{
-	"ci":  {"ci_front", "ci_back", "selfie"},
+	"ci":  {"ci_front", "selfie"},
 	"cei": {"cei_front", "cei_back", "cei_pdf", "selfie"},
 }
 
 var identityOptional = map[string][]string{
-	"ci":  {"ci_scan_text", "selfie_video"},
+	"ci":  {"ci_back", "ci_scan_text", "selfie_video"},
 	"cei": {"selfie_video"},
 }
 
