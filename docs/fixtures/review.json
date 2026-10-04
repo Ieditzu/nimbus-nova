@@ -1,0 +1,13 @@
+{
+  "review": {
+    "id": "rev_example01234567",
+    "task_id": "task_seed_event_setup",
+    "author_id": "poster-1",
+    "author_name": "Andrei Popescu",
+    "subject_id": "worker-1",
+    "subject_name": "Maria Ionescu",
+    "stars": 5,
+    "text": "A ajuns la timp și a terminat amenajarea.",
+    "created_at": "2026-10-04T13:00:00+03:00"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "invalid_input",
+    "message": "Categoria trebuie să fie event_setup, light_moving, shop_cover sau other."
+  }
+}

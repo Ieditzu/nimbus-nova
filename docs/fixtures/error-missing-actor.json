@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "missing_actor",
+    "message": "Lipsește antetul X-Demo-Actor."
+  }
+}

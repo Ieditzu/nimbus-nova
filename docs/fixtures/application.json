@@ -1,0 +1,14 @@
+{
+  "application": {
+    "id": "app_example01234567",
+    "task_id": "task_seed_event_setup",
+    "worker_id": "worker-1",
+    "worker_name": "Maria Ionescu",
+    "skills": ["amenajare eveniment", "cărat obiecte ușoare"],
+    "city": "București",
+    "bio": "Disponibilă pentru sarcini locale scurte. Profil demo pentru adult.",
+    "message": "Pot ajunge la 13:45 și ajut la amenajare.",
+    "status": "pending",
+    "created_at": "2026-10-04T12:30:00+03:00"
+  }
+}

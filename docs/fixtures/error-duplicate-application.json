@@ -1,0 +1,6 @@
+{
+  "error": {
+    "code": "duplicate_application",
+    "message": "Ai aplicat deja la această sarcină."
+  }
+}
