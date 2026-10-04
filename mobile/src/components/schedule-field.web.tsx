@@ -5,14 +5,14 @@ import type { ScheduleFieldProps } from "./schedule-field-types";
 export function ScheduleField({ label, mode, value, minDate, disabled, onChange }: ScheduleFieldProps) {
  const { colors, isDark } = useTheme();
  return <View style={{ gap: 8 }}>
-  <Text style={{ fontFamily: fonts.bold, fontSize: 15, color: colors.text }}>{label}</Text>
+  <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.muted }}>{label}</Text>
   {createElement("input", {
-   type: mode, value, min: mode === "date" ? minDate : undefined, disabled,
+   type: mode, lang: "ro", value, min: mode === "date" ? minDate : undefined, disabled,
    "aria-label": label,
    onChange: (event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value),
-   style: { width: "100%", boxSizing: "border-box", minHeight: 52, padding: 14, borderRadius: 16,
-    border: `1px solid ${colors.border}`, background: colors.surface, color: colors.text,
-    colorScheme: isDark ? "dark" : "light", fontFamily: "Inter, sans-serif", fontSize: 16 },
+   style: { width: "100%", boxSizing: "border-box", minHeight: 52, padding: "12px 8px", borderRadius: 12, minWidth: 0,
+    border: "none", background: colors.raised, color: colors.text,
+    colorScheme: isDark ? "dark" : "light", fontFamily: "Inter, sans-serif", fontSize: mode === "date" ? 12 : 14 },
   })}
  </View>;
 }

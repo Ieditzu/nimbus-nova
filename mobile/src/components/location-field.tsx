@@ -18,9 +18,9 @@ export function LocationField({ county, city, disabled, onChange }: {
  }, [mode, county, query]);
  function open(next: "county" | "city") { setQuery(""); setMode(next); }
  const field = (label: string, value: string, next: "county" | "city") => <View style={{ gap: 8 }}>
-  <Text style={{ fontFamily: fonts.bold, color: colors.text, fontSize: 15 }}>{label}</Text>
+  <Text style={{ fontFamily: fonts.body, color: colors.muted, fontSize: 12 }}>{label}</Text>
   <Pressable disabled={disabled || (next === "city" && !county)} accessibilityRole="button" accessibilityLabel={label}
-   onPress={() => open(next)} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 52, padding: 14, borderWidth: 1, borderColor: colors.border, borderRadius: 16, backgroundColor: colors.surface }}>
+   onPress={() => open(next)} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 52, padding: 12, borderRadius: 12, backgroundColor: colors.raised }}>
    <Text style={{ fontFamily: fonts.body, color: value ? colors.text : colors.muted }}>{value || (next === "county" ? "Alege județul" : "Alege localitatea")}</Text>
    <Icon name="chevron-down-outline" color={colors.muted} />
   </Pressable>

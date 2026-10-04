@@ -28,12 +28,12 @@ export function ScheduleField({ label, mode, value, date, minDate, disabled, onC
    else if (selected) setPending(selected);
   }} />;
  return <View style={{ gap: 8 }}>
-  <Text style={{ fontFamily: fonts.bold, fontSize: 15, color: colors.text }}>{label}</Text>
+  <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.muted }}>{label}</Text>
   <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled}
    onPress={() => { setPending(initial()); setOpen(true); }}
-   style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 52, padding: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: 16 }}>
-   <Icon name={mode === "date" ? "calendar-outline" : "time-outline"} color={colors.text} />
-   <Text style={{ color: colors.text, fontFamily: fonts.body }}>{value || (mode === "date" ? "Alege data" : "Alege ora")}</Text>
+   style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 52, padding: 12, backgroundColor: colors.raised, borderRadius: 12 }}>
+   <Icon name={mode === "date" ? "calendar-outline" : "time-outline"} color={colors.muted} size={18} />
+   <Text style={{ color: colors.text, fontFamily: fonts.body }}>{value ? (mode === "date" ? new Date(`${value}T12:00:00Z`).toLocaleDateString("ro-RO", { day: "numeric", month: "short", year: "numeric" }) : value) : (mode === "date" ? "Alege data" : "Alege ora")}</Text>
   </Pressable>
   {open && Platform.OS === "android" ? picker : null}
   {Platform.OS === "ios" ? <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
