@@ -55,6 +55,9 @@ export interface NovaClient {
   pay(taskId: string): Promise<{ payment: { task_id: string; pay_status: string; amount_bani: number; platform_fee_bani: number; worker_payout_bani: number; provider: string } }>;
   frameworkContract(): Promise<{ contract: { id: string; worker_id: string; kind: string; status: string } }>;
   signContract(id: string): Promise<{ contract: { id: string; status: string } }>;
+  listAdminTasks(): Promise<{ tasks: TaskPublic[] }>;
+  hideTask(taskId: string): Promise<{ task: TaskPublic }>;
+  resetDemo(): Promise<{ ok: true }>;
   listEvents(): Promise<{ events: Array<{ id: string; title: string; city: string; starts_at: string; ends_at: string; slots: number; min_age: number; description: string }> }>;
 }
 
@@ -115,6 +118,9 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
     pay: (taskId) => request(`/v1/tasks/${taskId}/pay`, { method: "POST", body: "{}" }),
     frameworkContract: () => request("/v1/contracts/framework", { method: "POST", body: "{}" }),
     signContract: (id) => request(`/v1/contracts/${id}/sign`, { method: "POST", body: "{}" }),
+    listAdminTasks: () => request("/v1/admin/tasks"),
+    hideTask: (taskId) => request(`/v1/admin/tasks/${taskId}/hide`, { method: "POST", body: "{}" }),
+    resetDemo: () => request("/v1/demo/reset", { method: "POST", body: "{}" }),
     listEvents: () => request("/v1/events", {}, false),
   };
 }
