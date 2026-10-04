@@ -1,3 +1,4 @@
+import { NotificationsProvider } from "../notifications/provider";
 import { useFonts } from "expo-font";
 import { Anton_400Regular } from "@expo-google-fonts/anton/400Regular";
 import { Inter_500Medium } from "@expo-google-fonts/inter/500Medium";
@@ -20,7 +21,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Navigation />
+        <NotificationsProvider><Navigation /></NotificationsProvider>
       </AuthProvider>
     </ThemeProvider>
   );

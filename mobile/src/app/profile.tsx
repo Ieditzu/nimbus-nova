@@ -1,3 +1,4 @@
+import { NotificationSettings } from "../notifications/provider";
 import { router } from "expo-router";
 import { PhoneForm } from "../components/phone-form";
 import { useCallback, useState } from "react";
@@ -122,6 +123,7 @@ function WorkerProfile() {
   return (
     <>
       {notice ? <Text style={s.help}>{notice}</Text> : null}
+      <NotificationSettings />
       <Text style={s.help}>Telefon: {session?.user.phone_number}</Text>
       <Button
         variant="outline"

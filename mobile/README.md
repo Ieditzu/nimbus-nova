@@ -59,3 +59,9 @@ Selfie verification now records an eight-second silent video directly with the f
 Classic CI signup asks only for the front photograph because its reverse is blank. CEI still requires front, back and the original Reader PDF. Backend compatibility accepts legacy CI back uploads but excludes them from provider recognition.
 
 Document preparation preserves up to 3200 pixels on the longest edge at JPEG quality 0.96. It lowers quality/resolution only if needed to meet the 2 MB file limit. The API includes a server-side Tesseract fallback for a missing/unusable CI CNP after document acceptance; checksum, birth date and biometric checks remain mandatory.
+
+### Notification initialization
+
+The first signed-in session with a completed phone number shows a one-time notification opt-in on supported devices. The choice is persisted per installation/browser, including “later”; notification permission remains optional and can be requested from Profile. Web requests permission directly from the button gesture. Native builds use `expo-notifications` and configure the `nova` Android notification channel. Expo Go is reported as unsupported.
+
+This initializes permission only. Remote delivery, device token/subscription registration, notification taps, and backend message/application dispatch are not wired yet. Native remote delivery additionally needs an EAS project and APNs/FCM credentials in a rebuilt Nova binary; browser delivery needs a service worker, VAPID configuration, and authenticated subscription storage. No keys or tokens are hardcoded.
