@@ -54,17 +54,16 @@ def emit(line, nick):
             print(f"NOVA_PRESENCE nick={sender} event=quit", flush=True)
         return None
     marker = f" PRIVMSG {CHANNEL} :"
-    if marker in line and line.startswith(":"):
-        sender = line[1:].split("!", 1)[0]
-    marker = f" PRIVMSG {CHANNEL} :"
-    if marker in line and line.startswith(":") and "!" in line.split(" ", 1)[0]:
-        sender = line[1:].split("!", 1)[0]
-        if sender == nick:
-            return None
-        text = line.split(marker, 1)[1]
-        print(f"NEW_NOVA_MESSAGE from={sender} text={text}", flush=True)
-        print("END_NOVA_MESSAGE", flush=True)
+    prefix = line.split(" ", 1)[0]
+    if marker in line and prefix.startswith(":") and "!" in prefix:
+        sender = prefix[1:].split("!", 1)[0]
+        if sender != nick:
+            text = line.split(marker, 1)[1]
+            print(f"NEW_NOVA_MESSAGE from={sender} text={text}", flush=True)
+            print("END_NOVA_MESSAGE", flush=True)
     return None
+
+
 def listen_once(host, nick):
     sock = connect(host, nick)
     buffer = b""
