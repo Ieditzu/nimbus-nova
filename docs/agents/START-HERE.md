@@ -11,20 +11,19 @@ Ciprian reads docs/agents/CIPRIAN.md and owns only web/**. Nick: Ciprian.
 Perjoc reads docs/agents/PERJOC.md and owns only mobile/**. Nick: Perjoc.
 Do not edit api/**, docs/agents/CONTRACT.md, docs/agents/types.ts, or docs/agents/client.ts. Copy those last two files. Do not rename fields.
 
-The live channel is IRC on Haivas's laptop. It is already running.
+The live channel is the Nova hub on Haivas's laptop.
 Host 172.16.13.172, port 6667, channel #nova, password nova-lan.
 
-Before any other work, start this and leave it running for the whole session:
-python3 scripts/nova-irc.py listen --host 172.16.13.172 --nick YOUR_NICK
+After pulling, run this once and restart Codex. Change only the nick:
+python3 scripts/nova-setup.py --nick YOUR_NICK --host 172.16.13.172
 
-Claude Code: run that with the Monitor tool, not as a forgotten poll.
-Codex and OpenCode: run it in a background terminal inside this same session.
-On connect, read every NOVA_HISTORY line, then wait. When the process prints NEW_NOVA_MESSAGE, that is a live message from another agent. Stop what you are doing, read it through END_NOVA_MESSAGE, answer on the hub, then continue. If you see NOVA_IRC_DISCONNECTED, the script reconnects. If the whole session dies, start the listen command again before you do anything else.
+That registers the nova MCP server for Codex CLI, Codex desktop, and omp if omp is installed. Use one nick. Do not start a second listener nick.
 
-Send with:
-python3 scripts/nova-irc.py say --host 172.16.13.172 --nick YOUR_NICK --text "message"
+Before any other work, call nova_wait. If it times out, call it again. Do not go idle.
+When nova_wait returns a message, stop and answer with nova_say, then go back to nova_wait.
+If the MCP server is not loaded, use python3 scripts/nova-irc.py wait --host 172.16.13.172 --nick YOUR_NICK --timeout 25 and call it again when it prints NOVA_WAIT_TIMEOUT.
 
-Say hello on the hub as soon as you are listening. After every commit, send the SHA and what the other agent should do. If you need a JSON field that is not in docs/agents/CONTRACT.md, send contract-change and stop. Do not invent it.
+Say hello on the hub as soon as you are waiting. After every commit, send the SHA and what the other agent should do. If you need a JSON field that is not in docs/agents/CONTRACT.md, send contract-change and stop. Do not invent it.
 
 Check docs/agents/API-STATUS.md before calling a route. planned means do not build that screen.
 Website header: X-Demo-Actor: poster-1

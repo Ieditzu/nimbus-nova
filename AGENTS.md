@@ -15,7 +15,7 @@ Do not edit another owner's folder. Do not force-push.
 ## Startup
 
 1. `git pull origin main`
-2. Start the live listen command from `docs/agents/COORDINATION.md` and leave it running.
+2. Run `python3 scripts/nova-setup.py --nick YOUR_NICK` once, restart Codex, then call `nova_wait`. Do not open a second nick.
 3. Read `docs/agents/API-STATUS.md`. A route marked `planned` is not callable.
 4. Read only your brief: `docs/agents/HAIVAS.md`, `docs/agents/CIPRIAN.md`, or `docs/agents/PERJOC.md`.
 
