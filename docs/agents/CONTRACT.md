@@ -159,6 +159,8 @@ CI CNP reading normalizes whitespace, separators and MRZ padding without guessin
 
 ## Account job management and contact details
 
-`PUT /v1/tasks/{id}` accepts the complete `CreateTaskRequest` and returns `{ task: TaskPublic }`. `DELETE /v1/tasks/{id}` returns `{ ok: true }`. Both require a real bearer session, completed phone number, adult publishing eligibility and ownership. Only open tasks without held payment may be changed or removed; other states return `409 task_locked`. Deletion hides the task and rejects pending applications atomically, preserving existing conversations and records.
+`PUT /v1/tasks/{id}` accepts the complete `CreateTaskRequest` and returns `{ task: TaskPublic }`. `DELETE /v1/tasks/{id}` returns `{ ok: true }`. Both require a real bearer session, completed phone number, publishing eligibility from age 16 and ownership. Only open tasks without held payment may be changed or removed; other states return `409 task_locked`. Deletion hides the task and rejects pending applications atomically, preserving existing conversations and records.
 
 Authenticated conversation responses include `other_user.phone_number` for the other participant. It is not exposed on public task lists, details, or account directories. Existing conversation membership checks apply.
+
+Account age policy: `volunteer_only` means under 16, computed from the verified birth date on registration, login and session reads. Ages 16–17 may publish and apply to paid jobs. Under 16 requires a guardian email and is restricted to unpaid volunteering; paid application and acceptance are rejected server-side. Zero-amount jobs are stored as volunteer jobs.

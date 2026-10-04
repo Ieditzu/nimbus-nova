@@ -300,7 +300,7 @@ func (s *Store) lookupIdentityProof(email, token string) (string, time.Time, boo
 	if err != nil {
 		return "", time.Time{}, false, errInternal
 	}
-	volunteer := time.Now().In(zoneEEST).Before(birth.AddDate(18, 0, 0))
+	volunteer := volunteerOnlyAt(birth, time.Now())
 	return id, birth, volunteer, nil
 }
 

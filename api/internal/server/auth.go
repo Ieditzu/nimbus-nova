@@ -160,10 +160,10 @@ func (s *Store) Register(req registerRequest) (publicUser, *AppError) {
 
 	if volunteer {
 		if role != "worker" {
-			return publicUser{}, invalidInput("Un minor nu poate fi poster.")
+			return publicUser{}, invalidInput("Sub 16 ani contul este doar pentru voluntariat.")
 		}
 		if !strings.Contains(req.GuardianEmail, "@") {
-			return publicUser{}, invalidInput("Un minor are nevoie de emailul tutorelui.")
+			return publicUser{}, invalidInput("Sub 16 ani ai nevoie de emailul tutorelui.")
 		}
 	}
 	var existing int
@@ -209,10 +209,10 @@ func (s *Store) Register(req registerRequest) (publicUser, *AppError) {
 
 func (s *Store) Login(email, password string) (string, publicUser, *AppError) {
 	email = strings.ToLower(strings.TrimSpace(email))
-	var id, role, name, hash, status, phone string
+	var id, role, name, hash, status, phone, birthText string
 	var volunteer int
-	err := s.db.QueryRow(`SELECT id, role, display_name, COALESCE(password_hash, ''), status, volunteer_only, phone_number FROM users WHERE email = ?`, email).
-		Scan(&id, &role, &name, &hash, &status, &volunteer, &phone)
+	err := s.db.QueryRow(`SELECT id, role, display_name, COALESCE(password_hash, ''), status, volunteer_only, phone_number, COALESCE(birth_date,'') FROM users WHERE email = ?`, email).
+		Scan(&id, &role, &name, &hash, &status, &volunteer, &phone, &birthText)
 	if err == sql.ErrNoRows || hash == "" || bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) != nil {
 		return "", publicUser{}, errInvalidCredentials
 	}
@@ -237,7 +237,7 @@ func (s *Store) Login(email, password string) (string, publicUser, *AppError) {
 	if err != nil {
 		return "", publicUser{}, errInternal
 	}
-	return token, publicUser{ID: id, Role: role, DisplayName: name, VolunteerOnly: volunteer == 1, PhoneNumber: phone}, nil
+	return token, publicUser{ID: id, Role: role, DisplayName: name, VolunteerOnly: accountVolunteerOnly(birthText, volunteer == 1), PhoneNumber: phone}, nil
 }
 
 func (s *Store) Logout(token string) *AppError {
@@ -260,18 +260,19 @@ func (s *Store) UserByToken(token string) (*User, error) {
 	sum := sha256.Sum256([]byte(token))
 	var u User
 	var volunteer int
+	var birthText string
 	err := s.db.QueryRow(`
-		SELECT u.id, u.role, u.display_name, u.volunteer_only, u.phone_number
+		SELECT u.id, u.role, u.display_name, u.volunteer_only, u.phone_number, COALESCE(u.birth_date,'')
 		FROM sessions s
 		JOIN users u ON u.id = s.user_id
 		WHERE s.token_hash = ? AND s.expires_at > ? AND u.status = 'active'`, hex.EncodeToString(sum[:]), NowRFC3339()).
-		Scan(&u.ID, &u.Role, &u.DisplayName, &volunteer, &u.PhoneNumber)
+		Scan(&u.ID, &u.Role, &u.DisplayName, &volunteer, &u.PhoneNumber, &birthText)
 	if err == sql.ErrNoRows {
 		return nil, errInvalidToken
 	}
 	if err != nil {
 		return nil, errInternal
 	}
-	u.VolunteerOnly = volunteer == 1
+	u.VolunteerOnly = accountVolunteerOnly(birthText, volunteer == 1)
 	return &u, nil
 }

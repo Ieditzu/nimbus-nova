@@ -77,7 +77,7 @@ func TestWorkerCanPublishButCannotApplyOwnJob(t *testing.T) {
 	if status != 200 || !strings.Contains(string(raw), job) {
 		t.Fatalf("my jobs %d %s", status, raw)
 	}
-	if _, err := h.DB.Exec(`UPDATE users SET volunteer_only=1 WHERE id=?`, id); err != nil {
+	if _, err := h.DB.Exec(`UPDATE users SET volunteer_only=1,birth_date='2015-03-15' WHERE id=?`, id); err != nil {
 		t.Fatal(err)
 	}
 	status, _ = h.doBearer(http.MethodPost, "/v1/tasks", token, cloneMap(t, "create-task-request.json"))

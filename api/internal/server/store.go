@@ -581,9 +581,9 @@ func (s *Store) CreateTask(poster User, req CreateTaskRequest) (TaskPublic, erro
 	safety := strings.TrimSpace(req.SafetyNote)
 	category := strings.TrimSpace(req.Category)
 	_, err = s.db.Exec(`INSERT INTO tasks (
-		id, poster_id, title, category, city, photo_url, sector, lat, lng, starts_at, ends_at, amount_bani, description, safety_note, status, assignee_id, created_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', NULL, ?)`,
-		id, poster.ID, title, category, city, strings.TrimSpace(req.PhotoURL), strings.TrimSpace(req.Sector), coordOrZero(req.Lat), coordOrZero(req.Lng), starts, ends, req.AmountBani, description, safety, created)
+		id, poster_id, title, category, city, photo_url, sector, lat, lng, starts_at, ends_at, amount_bani, description, safety_note, status, assignee_id, created_at, kind
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', NULL, ?, CASE WHEN ?=0 THEN 'volunteer' ELSE 'paid' END)`,
+		id, poster.ID, title, category, city, strings.TrimSpace(req.PhotoURL), strings.TrimSpace(req.Sector), coordOrZero(req.Lat), coordOrZero(req.Lng), starts, ends, req.AmountBani, description, safety, created, req.AmountBani)
 	if err != nil {
 		return TaskPublic{}, errInternal
 	}
@@ -705,12 +705,16 @@ func (s *Store) Apply(worker User, taskID, message string) (ApplicationView, err
 	var appID string
 	err := s.withImmediate(func(ctx context.Context, conn *sql.Conn) error {
 		var posterID, status string
-		err := conn.QueryRowContext(ctx, `SELECT poster_id, status FROM tasks WHERE id = ?`, taskID).Scan(&posterID, &status)
+		var amount int
+		err := conn.QueryRowContext(ctx, `SELECT poster_id, status, amount_bani FROM tasks WHERE id = ?`, taskID).Scan(&posterID, &status, &amount)
 		if err == sql.ErrNoRows || (err == nil && status == "hidden") {
 			return errNotFound
 		}
 		if err != nil {
 			return errInternal
+		}
+		if worker.VolunteerOnly && amount > 0 {
+			return errVolunteerOnly
 		}
 		if worker.Role != "worker" {
 			return errForbidden
@@ -833,7 +837,8 @@ func (s *Store) Accept(applicationID, posterID string) (TaskPublic, error) {
 			return errInternal
 		}
 		var owner, taskStatus string
-		err = conn.QueryRowContext(ctx, `SELECT poster_id, status FROM tasks WHERE id = ?`, taskID).Scan(&owner, &taskStatus)
+		var amount int
+		err = conn.QueryRowContext(ctx, `SELECT poster_id, status, amount_bani FROM tasks WHERE id = ?`, taskID).Scan(&owner, &taskStatus, &amount)
 		if err == sql.ErrNoRows {
 			return errNotFound
 		}
@@ -842,6 +847,14 @@ func (s *Store) Accept(applicationID, posterID string) (TaskPublic, error) {
 		}
 		if owner != posterID {
 			return errForbidden
+		}
+		var birthText string
+		var volunteer int
+		if err := conn.QueryRowContext(ctx, `SELECT COALESCE(birth_date,''),volunteer_only FROM users WHERE id=?`, workerID).Scan(&birthText, &volunteer); err != nil {
+			return errInternal
+		}
+		if amount > 0 && accountVolunteerOnly(birthText, volunteer == 1) {
+			return errVolunteerOnly
 		}
 		if taskStatus != "open" || appStatus != "pending" {
 			return errTaskAlreadyAssigned

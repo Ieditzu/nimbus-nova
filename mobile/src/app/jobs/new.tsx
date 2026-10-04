@@ -86,7 +86,7 @@ export default function NewJobScreen() {
       <Page>
         <Header title="Publică o sarcină" />
         <Text style={s.body}>
-          Publicarea este disponibilă conturilor de adult.
+          Publicarea este disponibilă de la 16 ani.
         </Text>
       </Page>
     );

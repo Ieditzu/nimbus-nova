@@ -35,7 +35,7 @@ func requirePublisher(u User) *AppError {
 		return ae
 	}
 	if u.VolunteerOnly {
-		return appErr(403, "adult_required", "Doar un cont de adult poate publica sarcini.")
+		return appErr(403, "publishing_age_required", "Publicarea joburilor este disponibilă de la 16 ani.")
 	}
 	return nil
 }

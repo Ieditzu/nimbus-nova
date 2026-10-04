@@ -252,6 +252,7 @@ export function SignupForm({
             value={password}
             onChangeText={setPassword}
           />
+          <Text style={s.help}>De la 16 ani poți publica și aplica la joburi plătite. Sub 16 ani poți participa doar la voluntariat.</Text>
           <Pressable
             accessibilityRole="button"
             accessibilityState={{ expanded: guardianVisible }}
@@ -259,7 +260,7 @@ export function SignupForm({
             onPress={() => setGuardianVisible(!guardianVisible)}
             style={s.guardianToggle}
           >
-            <Text style={s.link}>Ai sub 18 ani?</Text>
+            <Text style={s.link}>Ai sub 16 ani?</Text>
             <Icon
               name={
                 guardianVisible ? "chevron-up-outline" : "chevron-down-outline"
@@ -281,7 +282,7 @@ export function SignupForm({
                 placeholder="Emailul părintelui sau tutorelui"
               />
               <Text style={s.help}>
-                Sub 18 ani, contul este pentru voluntariat. Vârsta se stabilește
+                De la 16 ani poți publica și aplica la joburi plătite. Sub 16 ani, contul este doar pentru voluntariat. Vârsta se stabilește
                 din actul de identitate.
               </Text>
             </>

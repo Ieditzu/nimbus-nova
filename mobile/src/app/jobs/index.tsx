@@ -28,7 +28,7 @@ export default function MyJobsScreen() {
       />
       {session?.user.volunteer_only ? (
         <Text style={s.body}>
-          Publicarea este disponibilă conturilor de adult.
+          Publicarea este disponibilă de la 16 ani.
         </Text>
       ) : (
         <Button icon="add-outline" onPress={() => router.push("/jobs/new")}>

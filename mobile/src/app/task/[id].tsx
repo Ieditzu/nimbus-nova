@@ -133,7 +133,9 @@ export default function TaskDetailScreen() {
           ) : null}
           {session &&
           (task.poster_id === session.user.id ||
-            session.user.role === "poster") ? null : task.status === "open" &&
+            session.user.role === "poster") ? null : session?.user.volunteer_only && task.amount_bani > 0 ? (
+            <Text style={s.body}>Sub 16 ani poți participa doar la voluntariat, fără plată. Joburile plătite sunt disponibile de la 16 ani.</Text>
+          ) : task.status === "open" &&
             restoring ? (
             <State loading />
           ) : task.status === "open" && !session ? (
