@@ -1,0 +1,8 @@
+# Nimbus Nova
+
+Nimbus Nova is an adult-only simulated local-task marketplace. Posters use the website and workers use a separate mobile app. Both interact through the shared Go API. This demo does not collect payments or arrange employment.
+
+## Public content
+- [Landing page](/): Romanian product explanation and API availability.
+
+The poster dashboard and admin surface are demo controls, not public indexable content.
