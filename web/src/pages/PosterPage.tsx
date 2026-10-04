@@ -3,7 +3,9 @@ import { ArrowLeftIcon, ArrowUpRightIcon, CheckCircleIcon, CircleIcon, SquaresFo
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api/instance';
 import { clearPosterSession, posterAccount, savePosterSession, type PosterAccount } from '../api/session';
-import type { TaskStatus } from '../api/types';
+import type { IdentityKind, TaskStatus } from '../api/types';
+import { IdentityFields, type IdentityFiles } from '../components/IdentityFields';
+import { documentSlots, IdentityError, releaseFile, verifyIdentity } from '../lib/identity';
 import { TaskForm } from '../components/TaskForm';
 import { MyTaskList, useMyTasks } from '../components/MyTaskList';
 import { errorMessage } from '../lib/format';
@@ -39,17 +41,28 @@ function PosterLogin({ onReady }: { onReady: (user: PosterAccount) => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [birthDate, setBirthDate] = useState('1990-01-01');
+  const [phone, setPhone] = useState('');
+  const [kind, setKind] = useState<IdentityKind>('ci');
+  const [files, setFiles] = useState<IdentityFiles>({});
+  const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (busy) return;
     setBusy(true);
     setError('');
     try {
       if (mode === 'register') {
-        await api.register({ role: 'poster', email: email.trim(), password, display_name: displayName.trim(), birth_date: birthDate });
+        if ([...documentSlots[kind], 'selfie' as const].some(slot => !files[slot])) {
+          throw new IdentityError('Adaugă toate fotografiile și documentele necesare pentru verificare.');
+        }
+        const result = await verifyIdentity(api, { email: email.trim(), kind, files, progress: setProgress });
+        setProgress('Se creează contul...');
+        await api.register({ role: 'poster', email: email.trim().toLowerCase(), password, display_name: displayName.trim(), phone_number: phone.trim(), identity_proof: result.proof!.token });
+        Object.values(files).forEach(releaseFile);
+        setFiles({});
       }
       const result = await api.login({ email: email.trim(), password });
       if (result.user.role !== 'poster') throw new Error('Acest cont nu este de poster.');
@@ -61,6 +74,7 @@ function PosterLogin({ onReady }: { onReady: (user: PosterAccount) => void }) {
       setError(errorMessage(cause));
     } finally {
       setBusy(false);
+      setProgress('');
     }
   }
 
@@ -75,13 +89,14 @@ function PosterLogin({ onReady }: { onReady: (user: PosterAccount) => void }) {
       {mode === 'register' && <label className="field">Nume<input value={displayName} onChange={event => setDisplayName(event.target.value)} required minLength={2} autoComplete="name" /></label>}
       <label className="field">Email<input value={email} onChange={event => setEmail(event.target.value)} type="email" required autoComplete="username" /></label>
       <label className="field">Parolă<input value={password} onChange={event => setPassword(event.target.value)} type="password" required minLength={8} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /></label>
-      {mode === 'register' && <label className="field">Data nașterii<input value={birthDate} onChange={event => setBirthDate(event.target.value)} type="date" required /></label>}
-      {mode === 'register' && <div className="legal-accept"><label><input type="checkbox" required /> <span>Accept Termenii și condițiile și confirm că am citit Nota de confidențialitate.</span></label><p>Citește <Link to="/termeni" target="_blank" rel="noopener noreferrer">Termenii și condițiile</Link> și <Link to="/confidentialitate" target="_blank" rel="noopener noreferrer">Nota de confidențialitate</Link>. Acesta este un demo; nu trimite acte reale până la completarea informațiilor despre operator.</p></div>}
+      {mode === 'register' && <label className="field">Număr de telefon<input value={phone} onChange={event => setPhone(event.target.value)} type="tel" required minLength={8} maxLength={30} autoComplete="tel" placeholder="+40 712 345 678" /></label>}
+      {mode === 'register' && <IdentityFields kind={kind} onKind={setKind} files={files} onFiles={setFiles} disabled={busy} />}
+      {mode === 'register' && <div className="legal-accept"><label><input type="checkbox" required /> <span>Accept Termenii și condițiile și confirm că am citit Nota de confidențialitate.</span></label><p>Citește <Link to="/termeni" target="_blank" rel="noopener noreferrer">Termenii și condițiile</Link> și <Link to="/confidentialitate" target="_blank" rel="noopener noreferrer">Nota de confidențialitate</Link>. Actul și selfie-ul se folosesc doar pentru verificarea identității și vârstei.</p></div>}
       {mode === 'login' && <p className="legal-inline">Despre datele contului: <Link to="/confidentialitate">Nota de confidențialitate</Link>.</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="form-bottom">
         <button className="button button-secondary" type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}>{mode === 'login' ? 'Nu am cont' : 'Am deja cont'}</button>
-        <button className="button button-primary" type="submit" disabled={busy}>{busy ? 'Se verifică…' : mode === 'login' ? 'Intră' : 'Creează contul'}</button>
+        <button className="button button-primary" type="submit" disabled={busy}>{busy ? (progress || 'Se verifică…') : mode === 'login' ? 'Intră' : 'Verifică și creează contul'}</button>
       </div>
     </form>
     </div>

@@ -1,4 +1,5 @@
 import type {
+  JobType,
   ChatMessage,
   Conversation,
   MessagePage,
@@ -41,7 +42,7 @@ export interface NovaClient {
   listMessages(id: string, after?: number, before?: number): Promise<MessagePage>;
   sendMessage(id: string, text: string): Promise<{ message: ChatMessage }>;
   getHealth(): Promise<{ ok: true }>;
-  listOpenTasks(query?: { category?: Category; city?: string; sector?: string; lat?: number; lng?: number; radius_km?: number }): Promise<{ tasks: TaskPublic[] }>;
+  listOpenTasks(query?: { job_type?: JobType; category?: Category; county?: string; locality_id?: string; city?: string; sector?: string; lat?: number; lng?: number; radius_km?: number }): Promise<{ tasks: TaskPublic[] }>;
   searchTasks(query?: { kind?: string; from?: string; to?: string; city?: string }): Promise<{ tasks: TaskPublic[] }>;
   getTask(id: string): Promise<{ task: TaskPublic }>;
   createTask(body: CreateTaskRequest): Promise<{ task: TaskPublic }>;
@@ -107,6 +108,9 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
     listOpenTasks: (query = {}) => {
       const params = new URLSearchParams();
       if (query.category) params.set("category", query.category);
+      if (query.job_type) params.set("job_type", query.job_type);
+      if (query.county) params.set("county", query.county);
+      if (query.locality_id) params.set("locality_id", query.locality_id);
       if (query.city) params.set("city", query.city);
       if (query.sector) params.set("sector", query.sector);
       if (query.lat !== undefined) params.set("lat", String(query.lat));
