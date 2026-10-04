@@ -14,7 +14,7 @@ There is no login yet. Each app hardcodes one actor. There is no role switcher.
 | Perjoc mobile app | `X-Demo-Actor: worker-1` | Maria Ionescu, worker |
 | Nobody in this three-person build | `X-Demo-Actor: admin-1` | Leave admin routes alone |
 
-The server looks up the role from that id. The client never sends a role field.
+The server looks up the role from that id. The client never sends a role field. Demo screens may keep the header above. Real login screens call `createNovaClient(baseUrl, { token })`. That form sends `Authorization: Bearer <token>` and does not send `X-Demo-Actor`. CORS allows `Authorization`.
 
 ## Transport
 

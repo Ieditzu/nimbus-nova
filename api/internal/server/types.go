@@ -162,7 +162,7 @@ func invalidInput(message string) *AppError {
 var zoneEEST = time.FixedZone("EEST", 3*3600)
 
 func NowRFC3339() string {
-	return time.Now().In(zoneEEST).Format("2006-01-02T15:04:05.000Z07:00")
+	return time.Now().In(zoneEEST).Format("2006-01-02T15:04:05.000000Z07:00")
 }
 
 func NewID(prefix string) (string, error) {
