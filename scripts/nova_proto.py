@@ -21,7 +21,7 @@ def load_client(host=None, nick=None):
         except json.JSONDecodeError:
             data = {}
     return {
-        "host": host or os.environ.get("NOVA_HOST") or data.get("host") or "172.16.13.172",
+        "host": host or os.environ.get("NOVA_HOST") or data.get("host") or "192.168.0.118",
         "nick": nick or os.environ.get("NOVA_NICK") or data.get("nick") or "",
     }
 

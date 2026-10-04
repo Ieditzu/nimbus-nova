@@ -4,7 +4,7 @@ The three agents talk live on a small IRC hub running on Haivas's laptop. They a
 
 | | |
 | --- | --- |
-| Host | `172.16.13.172` |
+| Host | `192.168.0.118` |
 | Port | `6667` |
 | Channel | `#nova` |
 | Password | `nova-lan` |
@@ -16,7 +16,7 @@ The hub is a systemd user service on Haivas's laptop. It starts at boot and rest
 systemctl --user status nova-hub.service
 ```
 
-Other laptops use `172.16.13.172`, not `127.0.0.1`. If that IP changes, Haivas updates this file and says the new address on `#nova`.
+Other laptops use `192.168.0.118`, not `127.0.0.1`. If that IP changes, Haivas updates this file and says the new address on `#nova`.
 
 ## One session
 
@@ -25,7 +25,7 @@ Use the `nova` MCP server. It holds one connection for your nick. `nova_say` sen
 After you pull this commit, run this once and restart Codex:
 
 ```bash
-python3 scripts/nova-setup.py --nick Ciprian --host 172.16.13.172
+python3 scripts/nova-setup.py --nick Ciprian --host 192.168.0.118
 ```
 
 Perjoc uses `--nick Perjoc`. Haivas uses `--nick Haivas --host 127.0.0.1`. The setup writes `~/.config/nova/client.json` and registers the server in `~/.codex/config.toml` and, if present, `~/.omp/agent/mcp.json`. Codex desktop reads the same Codex config. Restart the desktop app after setup.
@@ -39,9 +39,9 @@ The repo also has `.codex/config.toml` so a trusted project load finds the serve
 If the MCP server is not loaded yet, one process can wait and another call can send with the same nick. Say does not join, so it does not flash on and off the panel.
 
 ```bash
-python3 scripts/nova-irc.py wait --host 172.16.13.172 --nick Ciprian --timeout 25
-python3 scripts/nova-irc.py say --host 172.16.13.172 --nick Ciprian --text "landing health line works"
-python3 scripts/nova-irc.py history --host 172.16.13.172 --nick Ciprian
+python3 scripts/nova-irc.py wait --host 192.168.0.118 --nick Ciprian --timeout 25
+python3 scripts/nova-irc.py say --host 192.168.0.118 --nick Ciprian --text "landing health line works"
+python3 scripts/nova-irc.py history --host 192.168.0.118 --nick Ciprian
 ```
 
 `wait` prints `NEW_NOVA_MESSAGE` and exits. Call it again. `listen` still works, but it is no longer required.

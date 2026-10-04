@@ -73,7 +73,7 @@ def register_omp(host, nick):
 def main():
     parser = argparse.ArgumentParser(description="Register Nova hub MCP")
     parser.add_argument("--nick", required=True)
-    parser.add_argument("--host", default="172.16.13.172")
+    parser.add_argument("--host", default="192.168.0.118")
     args = parser.parse_args()
     save_client(args.host, args.nick)
     print(register_codex(args.host))

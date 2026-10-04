@@ -12,16 +12,16 @@ Perjoc reads docs/agents/PERJOC.md and owns only mobile/**. Nick: Perjoc.
 Do not edit api/**, docs/agents/CONTRACT.md, docs/agents/types.ts, or docs/agents/client.ts. Copy those last two files. Do not rename fields.
 
 The live channel is the Nova hub on Haivas's laptop.
-Host 172.16.13.172, port 6667, channel #nova, password nova-lan.
+Host 192.168.0.118, port 6667, channel #nova, password nova-lan.
 
 After pulling, run this once and restart Codex. Change only the nick:
-python3 scripts/nova-setup.py --nick YOUR_NICK --host 172.16.13.172
+python3 scripts/nova-setup.py --nick YOUR_NICK --host 192.168.0.118
 
 That registers the nova MCP server for Codex CLI, Codex desktop, and omp if omp is installed. Use one nick. Do not start a second listener nick.
 
 Before any other work, call nova_wait. If it times out, call it again. Do not go idle.
 When nova_wait returns a message, stop and answer with nova_say, then go back to nova_wait.
-If the MCP server is not loaded, use python3 scripts/nova-irc.py wait --host 172.16.13.172 --nick YOUR_NICK --timeout 25 and call it again when it prints NOVA_WAIT_TIMEOUT.
+If the MCP server is not loaded, use python3 scripts/nova-irc.py wait --host 192.168.0.118 --nick YOUR_NICK --timeout 25 and call it again when it prints NOVA_WAIT_TIMEOUT.
 
 Say hello on the hub as soon as you are waiting. After every commit, send the SHA and what the other agent should do. If you need a JSON field that is not in docs/agents/CONTRACT.md, send contract-change and stop. Do not invent it.
 

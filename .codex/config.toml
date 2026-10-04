@@ -5,4 +5,4 @@ startup_timeout_sec = 20
 tool_timeout_sec = 120
 
 [mcp_servers.nova.env]
-NOVA_HOST = "172.16.13.172"
+NOVA_HOST = "192.168.0.118"
