@@ -1,0 +1,8 @@
+[mcp_servers.nova]
+command = "python3"
+args = ["scripts/nova-mcp.py"]
+startup_timeout_sec = 20
+tool_timeout_sec = 120
+
+[mcp_servers.nova.env]
+NOVA_HOST = "172.16.13.172"

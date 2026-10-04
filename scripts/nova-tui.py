@@ -1,84 +1,34 @@
 #!/usr/bin/env python3
-"""Full-screen control panel for the Nova LAN IRC hub."""
+"""Nova hub panel. Messages wrap. Join and leave stay out of the log."""
 
 import argparse
 import curses
 import locale
 import queue
-import socket
+import sys
+import textwrap
 import threading
 import time
+from pathlib import Path
 
-CHANNEL = "#nova"
-PASSWORD = "nova-lan"
-PORT = 6667
-COLORS = {
-    "Haivas": 1,
-    "Ciprian": 2,
-    "Perjoc": 3,
-    "system": 4,
-    "me": 5,
-}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from nova_proto import CHANNEL, Parser, load_client, open_link
 
-
-def connect(host, nick):
-    sock = socket.create_connection((host, PORT), timeout=10)
-    sock.settimeout(None)
-    def send(line):
-        sock.sendall((line + "\r\n").encode())
-    send(f"PASS {PASSWORD}")
-    send(f"NICK {nick}")
-    send(f"USER {nick} 0 * :{nick}")
-    send(f"JOIN {CHANNEL}")
-    return sock
-
-
-def parse(line, nick, events):
-    if line.startswith("PING"):
-        return "PONG " + (line.split(" ", 1)[1] if " " in line else ":nova-hub")
-    if " 353 " in line and f" = {CHANNEL} :" in line:
-        names = [name for name in line.split(f" = {CHANNEL} :", 1)[1].split() if name]
-        events.put(("online", names))
-        return None
-    if " 433 " in line:
-        events.put(("status", "nick already in use"))
-        return None
-    if " NOTICE " in line and " :HISTORY_BEGIN " in line:
-        return None
-    if " NOTICE " in line and " :HISTORY " in line and "HISTORY_BEGIN" not in line and "HISTORY_END" not in line:
-        payload = line.split(" :HISTORY ", 1)[1]
-        stamp, rest = payload.split(" ", 1)
-        sender = rest.split(">", 1)[0].lstrip("<")
-        text = rest.split("> ", 1)[1] if "> " in rest else ""
-        events.put(("history", stamp, sender, text))
-        return None
-    if " NOTICE " in line and " :HISTORY_END" in line:
-        events.put(("history_end",))
-        return None
-    if " JOIN " in line and line.startswith(":"):
-        sender = line[1:].split("!", 1)[0]
-        if sender != nick:
-            events.put(("presence", sender, "joined"))
-        return None
-    if " QUIT " in line and line.startswith(":"):
-        sender = line[1:].split("!", 1)[0]
-        if sender != nick:
-            events.put(("presence", sender, "left"))
-        return None
-    marker = f" PRIVMSG {CHANNEL} :"
-    prefix = line.split(" ", 1)[0]
-    if marker in line and prefix.startswith(":") and "!" in prefix:
-        sender = prefix[1:].split("!", 1)[0]
-        text = line.split(marker, 1)[1]
-        events.put(("message", time.strftime("%H:%M:%S"), sender, text))
-    return None
+HELP = [
+    "enter send    pgup/pgdn scroll    up/down recall",
+    "/search text  /pin id  /unpin id  /status text",
+    "/who  /help  /quit",
+    "One nick sends and watches. Say does not open a second connection.",
+]
 
 
 def reader(host, nick, events, outgoing, stop):
     while not stop.is_set():
         try:
-            sock = connect(host, nick)
-            events.put(("status", f"connected {host}:{PORT}"))
+            sock, send = open_link(host, nick)
+            send(f"JOIN {CHANNEL}")
+            events.put(("status", "live"))
+            parser = Parser()
             buffer = b""
             sock.setblocking(False)
             while not stop.is_set():
@@ -87,67 +37,118 @@ def reader(host, nick, events, outgoing, stop):
                 except BlockingIOError:
                     chunk = None
                 if chunk == b"":
-                    raise ConnectionError("hub closed the connection")
+                    raise ConnectionError("hub closed")
                 if chunk:
                     buffer += chunk
                     while b"\n" in buffer:
                         raw, buffer = buffer.split(b"\n", 1)
-                        reply = parse(raw.decode(errors="replace").strip(), nick, events)
-                        if reply:
-                            sock.sendall((reply + "\r\n").encode())
+                        event = parser.feed(raw.decode(errors="replace").strip())
+                        if not event:
+                            continue
+                        if event[0] == "ping":
+                            sock.sendall((f"PONG {event[1]}\r\n").encode())
+                            continue
+                        events.put(event)
                 try:
-                    text = outgoing.get_nowait()
+                    command, text = outgoing.get_nowait()
                 except queue.Empty:
-                    time.sleep(0.05)
+                    time.sleep(0.04)
                     continue
-                sock.sendall(f"PRIVMSG {CHANNEL} :{text}\r\n".encode())
-                events.put(("message", time.strftime("%H:%M:%S"), nick, text))
+                send(command if text is None else f"{command} :{text}" if command != "PRIVMSG" else f"PRIVMSG {CHANNEL} :{text}")
         except OSError as exc:
-            events.put(("status", f"disconnected: {exc}"))
-            events.put(("online", []))
+            events.put(("status", f"down: {exc}"))
+            events.put(("names", []))
             if stop.is_set():
                 return
             time.sleep(2)
             events.put(("status", "reconnecting"))
 
 
-def draw(stdscr, state):
+def color_for(name):
+    folded = name.lower()
+    if folded.startswith("haivas"):
+        return 1
+    if folded.startswith("ciprian"):
+        return 2
+    if folded.startswith("perjoc"):
+        return 3
+    if name == "system":
+        return 4
+    return 5
+
+
+def paint(stdscr, state):
     height, width = stdscr.getmaxyx()
     stdscr.erase()
-    if height < 8 or width < 40:
-        stdscr.addnstr(0, 0, "Terminal too small. Need 40x8.", width - 1)
+    if height < 10 or width < 48:
+        stdscr.addnstr(0, 0, "Need a terminal at least 48x10.", width - 1)
         stdscr.refresh()
         return
-    side = 18 if width > 70 else 0
+    side = 24 if width >= 84 else 0
     chat_width = width - side
-    title = f" Nova  {state['host']}:{PORT}  {CHANNEL}  nick={state['nick']}  {state['status']} "
+    title = f" Nova  {CHANNEL}  {state['status']}  {state['nick']}  {state['host']} "
     stdscr.attron(curses.A_REVERSE)
-    stdscr.addnstr(0, 0, title.ljust(width), width)
+    stdscr.addnstr(0, 0, title.ljust(width)[:width], width)
     stdscr.attroff(curses.A_REVERSE)
-    body_height = height - 4
-    visible = state["lines"][-(body_height + state["scroll"]):-state["scroll"] or None]
-    for row, item in enumerate(visible, start=1):
-        kind, stamp, sender, text = item
-        color = COLORS.get(sender, 6)
-        label = f"{stamp} {sender:<12} "
-        stdscr.attron(curses.color_pair(color))
-        stdscr.addnstr(row, 0, label, chat_width - 1)
-        stdscr.attroff(curses.color_pair(color))
-        stdscr.addnstr(row, min(len(label), chat_width - 1), text, max(0, chat_width - len(label) - 1))
+    rows = []
+    query = state["query"].lower()
+    for item in state["lines"]:
+        if query and query not in item["text"].lower() and query not in item["nick"].lower():
+            continue
+        stamp = item["at"][11:19] if len(item["at"]) >= 19 else item["at"]
+        ident = f"{stamp} #{item['id'] or '-'} {item['nick']}"
+        rows.append(("meta", item["nick"], ident))
+        wrapped = textwrap.wrap(item["text"], max(20, chat_width - 3)) or [""]
+        for piece in wrapped:
+            rows.append(("text", item["nick"], "  " + piece))
+        rows.append(("gap", "", ""))
+    body = height - 3
+    start = max(0, len(rows) - body - state["scroll"])
+    visible = rows[start:start + body]
+    for row, (kind, sender, text) in enumerate(visible, start=1):
+        if kind == "gap":
+            continue
+        pair = color_for(sender)
+        attr = curses.color_pair(pair) | (curses.A_BOLD if kind == "meta" else 0)
+        if "contract-change" in text or f"@{state['nick']}" in text:
+            attr |= curses.A_REVERSE
+        stdscr.attron(attr)
+        stdscr.addnstr(row, 0, text[: chat_width - 1], chat_width - 1)
+        stdscr.attroff(attr)
     if side:
         stdscr.attron(curses.A_REVERSE)
-        stdscr.addnstr(1, chat_width, " online ".ljust(side), side)
+        stdscr.addnstr(1, chat_width, " online".ljust(side)[:side], side)
         stdscr.attroff(curses.A_REVERSE)
-        for row, name in enumerate(sorted(state["online"]), start=2):
+        row = 2
+        for name in state["online"]:
             if row >= height - 3:
                 break
-            color = COLORS.get(name, 6)
-            stdscr.attron(curses.color_pair(color))
-            stdscr.addnstr(row, chat_width, f" {name}".ljust(side), side)
-            stdscr.attroff(curses.color_pair(color))
-    help_line = " enter send   pgup/pgdn scroll   up/down recall   /quit   q quits if input is empty "
+            stdscr.attron(curses.color_pair(color_for(name)))
+            label = f" {name}"
+            status = state["statuses"].get(name, "")
+            stdscr.addnstr(row, chat_width, label.ljust(side)[:side], side)
+            stdscr.attroff(curses.color_pair(color_for(name)))
+            row += 1
+            if status and row < height - 3:
+                stdscr.attron(curses.A_DIM)
+                stdscr.addnstr(row, chat_width, f"  {status}".ljust(side)[:side], side)
+                stdscr.attroff(curses.A_DIM)
+                row += 1
+        if row < height - 4:
+            stdscr.attron(curses.A_REVERSE)
+            stdscr.addnstr(row, chat_width, " pins".ljust(side)[:side], side)
+            stdscr.attroff(curses.A_REVERSE)
+            row += 1
+            for pin in state["pins"][:4]:
+                if row >= height - 3:
+                    break
+                stdscr.addnstr(row, chat_width, f" #{pin['id']} {pin['text']}".ljust(side)[:side], side)
+                row += 1
+    hint = " /help  /search  /pin  /status  /quit    pgup scroll "
+    if state["help"]:
+        hint = " ".join(HELP)
     stdscr.attron(curses.A_DIM)
-    stdscr.addnstr(height - 2, 0, help_line.ljust(width), width)
+    stdscr.addnstr(height - 2, 0, hint.ljust(width)[:width], width)
     stdscr.attroff(curses.A_DIM)
     prompt = "> " + state["input"]
     stdscr.addnstr(height - 1, 0, prompt[: width - 1], width - 1)
@@ -155,21 +156,48 @@ def draw(stdscr, state):
     stdscr.refresh()
 
 
+def handle_slash(text, state, outgoing):
+    parts = text.split(" ", 1)
+    command = parts[0].lower()
+    arg = parts[1] if len(parts) > 1 else ""
+    if command in {"/quit", "/q"}:
+        return "quit"
+    if command == "/help":
+        state["help"] = not state["help"]
+    elif command == "/search":
+        state["query"] = arg
+        if arg:
+            outgoing.put(("SEARCH", arg))
+    elif command == "/pin" and arg.isdigit():
+        outgoing.put((f"PIN {arg}", None))
+    elif command == "/unpin" and arg.isdigit():
+        outgoing.put((f"UNPIN {arg}", None))
+    elif command == "/status":
+        outgoing.put(("STATUS", arg))
+    elif command == "/who":
+        outgoing.put(("WHO", None))
+    else:
+        state["lines"].append({"id": None, "at": time.strftime("%H:%M:%S"), "nick": "system", "text": "Unknown command. /help"})
+    return None
+
+
 def run(stdscr, host, nick):
     curses.curs_set(1)
     curses.start_color()
     curses.use_default_colors()
-    pairs = [(1, curses.COLOR_CYAN), (2, curses.COLOR_MAGENTA), (3, curses.COLOR_YELLOW), (4, curses.COLOR_BLUE), (5, curses.COLOR_GREEN), (6, curses.COLOR_WHITE)]
-    for number, color in pairs:
+    for number, color in ((1, curses.COLOR_CYAN), (2, curses.COLOR_MAGENTA), (3, curses.COLOR_YELLOW), (4, curses.COLOR_BLUE), (5, curses.COLOR_WHITE)):
         curses.init_pair(number, color, -1)
     stdscr.nodelay(True)
     stdscr.keypad(True)
-    state = {"host": host, "nick": nick, "status": "connecting", "lines": [], "online": [], "input": "", "scroll": 0, "sent": [], "sent_at": 0}
+    state = {
+        "host": host, "nick": nick, "status": "connecting", "lines": [], "online": [],
+        "pins": [], "statuses": {}, "input": "", "scroll": 0, "sent": [], "sent_at": 0,
+        "query": "", "help": False,
+    }
     events = queue.Queue()
     outgoing = queue.Queue()
     stop = threading.Event()
-    thread = threading.Thread(target=reader, args=(host, nick, events, outgoing, stop), daemon=True)
-    thread.start()
+    threading.Thread(target=reader, args=(host, nick, events, outgoing, stop), daemon=True).start()
     while True:
         while True:
             try:
@@ -179,37 +207,44 @@ def run(stdscr, host, nick):
             kind = event[0]
             if kind == "status":
                 state["status"] = event[1]
-            elif kind == "online":
+            elif kind == "names":
                 state["online"] = event[1]
             elif kind == "history":
-                state["lines"].append(("history", event[1][11:19], event[2], event[3]))
-            elif kind == "history_end":
-                state["status"] = "live"
-                state["scroll"] = 0
+                state["lines"].append(event[1])
+            elif kind == "search":
+                if event[1] not in state["lines"]:
+                    state["lines"].append(event[1])
+                state["lines"].sort(key=lambda item: item["id"] or 0)
+            elif kind == "pin":
+                state["pins"].append(event[1])
+            elif kind == "who":
+                if event[1]["status"]:
+                    state["statuses"][event[1]["nick"]] = event[1]["status"]
             elif kind == "presence":
-                state["lines"].append(("system", time.strftime("%H:%M:%S"), "system", f"{event[1]} {event[2]}"))
-                if event[2] == "joined" and event[1] not in state["online"]:
-                    state["online"].append(event[1])
-                if event[2] == "left":
-                    state["online"] = [name for name in state["online"] if name != event[1]]
+                name = event[1]["nick"]
+                if event[1]["event"] == "joined" and name not in state["online"]:
+                    state["online"].append(name)
+                if event[1]["event"] == "left":
+                    state["online"] = [item for item in state["online"] if item != name]
             elif kind == "message":
-                state["lines"].append(event)
-                if state["scroll"] == 0:
-                    pass
-        draw(stdscr, state)
+                state["lines"].append(event[1])
+                state["scroll"] = 0
+            elif kind == "sent":
+                state["lines"].append({"id": event[1]["id"], "at": event[1]["at"], "nick": nick, "text": state.get("pending", "")})
+        paint(stdscr, state)
         try:
             key = stdscr.get_wch()
         except curses.error:
-            time.sleep(0.05)
+            time.sleep(0.04)
             continue
         if key == curses.KEY_RESIZE:
             continue
-        if key in (curses.KEY_BACKSPACE, 127, "\x7f"):
+        if key in (curses.KEY_BACKSPACE, 127, "\x7f", "\b"):
             state["input"] = state["input"][:-1]
         elif key == curses.KEY_PPAGE:
-            state["scroll"] = min(state["scroll"] + 10, max(0, len(state["lines"]) - 1))
+            state["scroll"] = min(state["scroll"] + 8, max(0, len(state["lines"])))
         elif key == curses.KEY_NPAGE:
-            state["scroll"] = max(0, state["scroll"] - 10)
+            state["scroll"] = max(0, state["scroll"] - 8)
         elif key == curses.KEY_UP and state["sent"]:
             state["sent_at"] = max(0, state["sent_at"] - 1)
             state["input"] = state["sent"][state["sent_at"]]
@@ -224,15 +259,15 @@ def run(stdscr, host, nick):
             state["scroll"] = 0
             if not text:
                 continue
-            if text in {"/quit", "/q"}:
-                break
-            if text == "/history":
-                outgoing.put("HISTORY")
+            if text.startswith("/"):
+                if handle_slash(text, state, outgoing) == "quit":
+                    break
                 continue
             state["sent"].append(text)
             state["sent"] = state["sent"][-50:]
             state["sent_at"] = len(state["sent"])
-            outgoing.put(text)
+            state["pending"] = text
+            outgoing.put(("PRIVMSG", text))
         elif key in ("q", "Q") and state["input"] == "":
             break
         elif isinstance(key, str) and key.isprintable():
@@ -242,11 +277,12 @@ def run(stdscr, host, nick):
 
 def main():
     locale.setlocale(locale.LC_ALL, "")
-    parser = argparse.ArgumentParser(description="Nova IRC control panel")
-    parser.add_argument("--host", default="127.0.0.1")
+    parser = argparse.ArgumentParser(description="Nova hub panel")
+    parser.add_argument("--host", default="")
     parser.add_argument("--nick", default="Haivas")
     args = parser.parse_args()
-    curses.wrapper(run, args.host, args.nick)
+    client = load_client(args.host or None, args.nick)
+    curses.wrapper(run, client["host"], client["nick"])
 
 
 if __name__ == "__main__":

@@ -18,40 +18,35 @@ systemctl --user status nova-hub.service
 
 Other laptops use `172.16.13.172`, not `127.0.0.1`. If that IP changes, Haivas updates this file and says the new address on `#nova`.
 
-## Live listen
+## One session
 
-This is the notification. The command stays open and reconnects if the hub restarts. On connect it prints the saved backlog as `NOVA_HISTORY` lines, then `NOVA_HISTORY_END`, then live `NEW_NOVA_MESSAGE` lines. There is no 15-second poll.
+Use the `nova` MCP server. It holds one connection for your nick. `nova_say` sends. `nova_wait` blocks until someone else speaks. Do not start a listener and a second nick such as `Perjoc-send`. That was the join/leave flood.
+
+After you pull this commit, run this once and restart Codex:
 
 ```bash
-python3 scripts/nova-irc.py listen --host 172.16.13.172 --nick Ciprian
+python3 scripts/nova-setup.py --nick Ciprian --host 172.16.13.172
 ```
 
-To read the backlog once and exit:
+Perjoc uses `--nick Perjoc`. Haivas uses `--nick Haivas --host 127.0.0.1`. The setup writes `~/.config/nova/client.json` and registers the server in `~/.codex/config.toml` and, if present, `~/.omp/agent/mcp.json`. Codex desktop reads the same Codex config. Restart the desktop app after setup.
+
+Then call `nova_wait`. If it returns `timed_out`, call it again. Do not go idle. Answer on the hub with `nova_say` before you keep coding.
+
+The repo also has `.codex/config.toml` so a trusted project load finds the server. The nick still comes from the client file, not from the repo.
+
+## Fallback CLI
+
+If the MCP server is not loaded yet, one process can wait and another call can send with the same nick. Say does not join, so it does not flash on and off the panel.
 
 ```bash
+python3 scripts/nova-irc.py wait --host 172.16.13.172 --nick Ciprian --timeout 25
+python3 scripts/nova-irc.py say --host 172.16.13.172 --nick Ciprian --text "landing health line works"
 python3 scripts/nova-irc.py history --host 172.16.13.172 --nick Ciprian
 ```
 
-Use your own nick. On Haivas's laptop, `--host 127.0.0.1` also works.
-Haivas can open the full panel on his laptop with `nova`. That shows the backlog, who is online, and live messages, and he can type into the channel from there.
+`wait` prints `NEW_NOVA_MESSAGE` and exits. Call it again. `listen` still works, but it is no longer required.
 
-
-When a line like this appears, stop and answer on the hub before you keep coding:
-
-```text
-NEW_NOVA_MESSAGE from=Haivas text=pay route is live, do not block Finalizează on it
-END_NOVA_MESSAGE
-```
-
-Claude Code: run that listen command with the Monitor tool, not as a forgotten background poll. Codex and OpenCode: run it in a background terminal in the same session and treat `NEW_NOVA_MESSAGE` as a wake-up. If the session is closed, the listen command is dead. Start it again when you reopen the agent.
-
-Ignore messages from your own nick. The script already does that.
-
-## Send
-
-```bash
-python3 scripts/nova-irc.py say --host 172.16.13.172 --nick Ciprian --text "landing health line works against poster-1"
-```
+Haivas opens the panel with `nova`. Messages wrap. Join and leave stay in the sidebar, not the log. History is stored in sqlite and survives a hub restart. `/search`, `/pin`, and `/status` are in the panel.
 
 Keep messages short. Include the commit SHA if you changed code. Do not paste secrets, passwords, or real personal data.
 
