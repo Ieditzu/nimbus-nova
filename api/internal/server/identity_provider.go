@@ -186,15 +186,49 @@ func (r identityScan) field(name string) (string, bool) {
 	}
 	return value, value != ""
 }
-func (r identityScan) facePassed() bool {
-	value := r.Scores.FaceCompare
-	if value == nil || math.IsNaN(*value) || math.IsInf(*value, 0) || *value < 0.5 || *value > 1 {
-		return false
+
+// Report the failed stage, rather than blaming the selfie for every absent score.
+// Only fixed public codes/messages leave the server; provider descriptions can contain PII.
+func (r identityScan) faceFailure(checks map[string]string) *AppError {
+	warnings := map[string]string{}
+	for _, warning := range r.Warning {
+		warnings[warning.Code] = warning.Decision
 	}
-	for _, w := range r.Warning {
-		if strings.Contains(w.Code, "FACE") {
-			return false
+	fail := func(code, message, check string) *AppError {
+		checks[check] = "failed"
+		return appErr(422, code, message)
+	}
+	for _, failure := range []struct{ warning, code, message, check string }{
+		{"INTERNAL_FACE_VERIFICATION_ERR", "face_service_error", "Serviciul de comparație facială a întâmpinat o eroare. Identitatea nu a fost evaluată; reîncearcă mai târziu. (FACE_SERVICE_ERROR)", "face_match"},
+		{"UNRECOGNIZED_DOCUMENT", "document_unreadable", "CEI-ul sau CI-ul nu a fost recunoscut. Fotografiază întregul card, cu toate colțurile vizibile și portretul clar, nu doar fotografia feței. (DOCUMENT_UNRECOGNIZED)", "document"},
+		{"UNRECOGNIZED_BACK_DOCUMENT", "document_back_unreadable", "Versoul actului nu a fost recunoscut. Adaugă o fotografie clară a întregului verso al aceluiași card. (DOCUMENT_BACK_UNRECOGNIZED)", "document"},
+		{"DOCUMENT_FACE_NOT_FOUND", "document_face_missing", "Nu a fost detectat portretul din act. Refă fotografia feței CI/CEI cu întregul card și portretul lizibil. (DOCUMENT_FACE_MISSING)", "document"},
+		{"DOCUMENT_FACE_LANDMARK_ERR", "document_face_unclear", "Portretul de pe act este prea neclar pentru comparație. Refă fotografia actului, mai aproape și fără reflexii. (DOCUMENT_FACE_UNCLEAR)", "document"},
+		{"SELFIE_FACE_NOT_FOUND", "selfie_face_missing", "Nu a fost detectată fața în selfie. Privește camera și include întreaga față, într-un loc bine luminat. (SELFIE_FACE_MISSING)", "selfie"},
+		{"SELFIE_MULTIPLE_FACES", "selfie_multiple_faces", "Selfie-ul trebuie să conțină o singură persoană. Refă fotografia fără alte persoane în cadru. (SELFIE_MULTIPLE_FACES)", "selfie"},
+		{"SELFIE_FACE_LANDMARK_ERR", "selfie_face_unclear", "Selfie-ul este prea neclar pentru comparație. Curăță obiectivul, ține telefonul nemișcat și refă fotografia. (SELFIE_FACE_UNCLEAR)", "selfie"},
+		{"FACE_LIVENESS_ERR", "selfie_liveness_failed", "Verificarea că ești prezent în fața camerei nu a trecut. Fă un selfie nou direct cu camera, cu lumină uniformă și fără filtre. (SELFIE_LIVENESS)", "selfie"},
+		{"RECAPTURED_FACE", "selfie_recaptured", "Selfie-ul a fost detectat ca fotografie a unei imagini sau a unui ecran. Fă o fotografie nouă direct a feței tale. (SELFIE_RECAPTURED)", "selfie"},
+		{"FACE_IDENTICAL", "selfie_identical", "Selfie-ul pare identic cu portretul din act. Folosește o fotografie nouă făcută direct cu camera. (SELFIE_IDENTICAL)", "selfie"},
+		{"FACE_MISMATCH", "face_mismatch", "Fața din selfie nu a corespuns suficient portretului din act. Verifică fotografia actului și fă un selfie frontal, la distanța unui braț. (FACE_MISMATCH)", "face_match"},
+	} {
+		if _, present := warnings[failure.warning]; present {
+			return fail(failure.code, failure.message, failure.check)
 		}
 	}
-	return true
+	// Unknown blocking biometric findings still fail closed. Accepted informational
+	// warnings must not independently overturn an accepted provider result.
+	for _, warning := range r.Warning {
+		if strings.Contains(warning.Code, "FACE") && warning.Decision != "accept" {
+			return fail("face_review", "Verificarea facială necesită o verificare suplimentară. Refă fotografiile actului și selfie-ul. (FACE_REVIEW)", "face_match")
+		}
+	}
+	value := r.Scores.FaceCompare
+	if value == nil || math.IsNaN(*value) || math.IsInf(*value, 0) || *value < 0 || *value > 1 {
+		return fail("face_result_missing", "Serviciul nu a furnizat rezultatul comparației faciale. Verifică dacă actul și selfie-ul sunt clare și reîncearcă. (FACE_RESULT_MISSING)", "face_match")
+	}
+	if *value < 0.5 {
+		return fail("face_mismatch", "Fața din selfie nu a corespuns suficient portretului din act. Verifică fotografia actului și fă un selfie frontal, la distanța unui braț. (FACE_MISMATCH)", "face_match")
+	}
+	return nil
 }

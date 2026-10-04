@@ -40,10 +40,8 @@ func compactDocumentNumber(value string) string {
 	}, value)
 }
 func validateScannedIdentity(ctx context.Context, kind string, files map[string][]byte, scan identityScan, checks map[string]string) (time.Time, *AppError) {
-	if !scan.facePassed() {
-		checks["face_match"] = "failed"
-		checks["selfie"] = "failed"
-		return time.Time{}, appErr(422, "identity_rejected", "Selfie-ul nu a confirmat identitatea. Fă o fotografie nouă, clară, cu fața întreagă și fără reflexii.")
+	if ae := scan.faceFailure(checks); ae != nil {
+		return time.Time{}, ae
 	}
 	checks["face_match"] = "passed"
 	checks["selfie"] = "passed"

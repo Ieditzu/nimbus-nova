@@ -322,7 +322,7 @@ export function SignupForm({
           <Text style={s.help}>
             {kind === "ci"
               ? "Importă sau fotografiază ambele fețe ale CI. Nu este nevoie de PDF."
-              : "Importă sau fotografiază fața și verso, apoi importă PDF-ul exportat din RO CEI Reader."}
+              : "Fotografiază sau importă întregul CEI, față și verso, inclusiv portretul de pe card. Nu decupa doar portretul. Apoi importă PDF-ul exportat din RO CEI Reader."}
           </Text>
           {documentSlots[kind].map((slot) => (
             <AssetCard

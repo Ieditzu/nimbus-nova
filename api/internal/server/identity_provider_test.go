@@ -339,3 +339,76 @@ func TestConcurrentRegistrationConsumesProofOnce(t *testing.T) {
 		t.Fatalf("account count=%d error=%v", count, err)
 	}
 }
+
+func TestFacialFailureIdentifiesTheActualStage(t *testing.T) {
+	for _, tc := range []struct{ warning, code, check string }{
+		{"UNRECOGNIZED_DOCUMENT", "document_unreadable", "document"},
+		{"UNRECOGNIZED_BACK_DOCUMENT", "document_back_unreadable", "document"},
+		{"DOCUMENT_FACE_NOT_FOUND", "document_face_missing", "document"},
+		{"DOCUMENT_FACE_LANDMARK_ERR", "document_face_unclear", "document"},
+		{"SELFIE_FACE_NOT_FOUND", "selfie_face_missing", "selfie"},
+		{"SELFIE_MULTIPLE_FACES", "selfie_multiple_faces", "selfie"},
+		{"SELFIE_FACE_LANDMARK_ERR", "selfie_face_unclear", "selfie"},
+		{"FACE_LIVENESS_ERR", "selfie_liveness_failed", "selfie"},
+		{"RECAPTURED_FACE", "selfie_recaptured", "selfie"},
+		{"FACE_IDENTICAL", "selfie_identical", "selfie"},
+		{"FACE_MISMATCH", "face_mismatch", "face_match"},
+		{"INTERNAL_FACE_VERIFICATION_ERR", "face_service_error", "face_match"},
+	} {
+		t.Run(tc.warning, func(t *testing.T) {
+			scan := scanFixture()
+			scan.Warning = append(scan.Warning, struct {
+				Code     string `json:"code"`
+				Decision string `json:"decision"`
+			}{tc.warning, "reject"})
+			if tc.check == "document" {
+				scan.Scores.FaceCompare = nil
+			}
+			checks := map[string]string{"face_match": "pending", "selfie": "pending", "document": "pending"}
+			ae := scan.faceFailure(checks)
+			if ae == nil || ae.Code != tc.code || checks[tc.check] != "failed" {
+				t.Fatalf("incorrect reason: %v %v", ae, checks)
+			}
+			if tc.check == "document" && checks["selfie"] != "pending" {
+				t.Fatal("document failure blamed selfie")
+			}
+		})
+	}
+	scan := scanFixture()
+	scan.Scores.FaceCompare = nil
+	checks := map[string]string{}
+	if ae := scan.faceFailure(checks); ae == nil || ae.Code != "face_result_missing" {
+		t.Fatalf("missing result: %v", ae)
+	}
+	scan = scanFixture()
+	scan.Warning = append(scan.Warning, struct {
+		Code     string `json:"code"`
+		Decision string `json:"decision"`
+	}{"INFORMATIONAL_FACE_CHECK", "accept"})
+	if ae := scan.faceFailure(map[string]string{}); ae != nil {
+		t.Fatalf("accepted informational warning rejected: %v", ae)
+	}
+	scan.Warning[0].Decision = "review"
+	if ae := scan.faceFailure(map[string]string{}); ae == nil {
+		t.Fatal("unknown review bypassed")
+	}
+}
+func TestUnreadableCardReturnsDocumentAdviceAndNoProof(t *testing.T) {
+	scan := scanFixture()
+	scan.Decision = "reject"
+	scan.Scores.FaceCompare = nil
+	scan.Warning = append(scan.Warning, struct {
+		Code     string `json:"code"`
+		Decision string `json:"decision"`
+	}{"UNRECOGNIZED_DOCUMENT", "reject"})
+	_, api, _ := identityHarness(t, scan, 200, 0)
+	id := collectIdentity(t, api, "cei", testPDF("CNP 5150315400013 Document RX123456"))
+	status, body := identityRequest(t, api, "/v1/auth/identity/"+id+"/complete", map[string]any{})
+	if status != 200 || body["proof"] != nil {
+		t.Fatalf("unexpected proof: %d %v", status, body)
+	}
+	view := body["verification"].(map[string]any)
+	if !strings.Contains(view["message"].(string), "DOCUMENT_UNRECOGNIZED") || view["checks"].(map[string]any)["selfie"] != "pending" {
+		t.Fatalf("incorrect advice: %v", view)
+	}
+}
