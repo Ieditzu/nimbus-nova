@@ -364,8 +364,9 @@ export function SignupForm({
           <View style={s.privacy}>
             <Icon name="lock-closed-outline" size={18} />
             <Text style={[s.help, s.grow]}>
-              Documentele sunt folosite pentru verificarea identității. Copiile
-              temporare de pe telefon se șterg când închizi înscrierea.
+              Fotografiile actului și selfie-ul sunt trimise către ID Analyzer
+              în regiunea UE pentru verificare. Copiile temporare de pe telefon
+              se șterg când închizi înscrierea.
             </Text>
           </View>
         </>
