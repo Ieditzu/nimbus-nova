@@ -1,41 +1,71 @@
 import { useCallback, useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../api";
-import { errorMessage } from "../lib/errors";
 import type { Profile } from "../api/types";
-import { Button, Brand, Page, palette, State, useData } from "../components/ui";
+import { errorMessage } from "../lib/errors";
+import { Button, Header, Icon, Page, State, useData } from "../components/ui";
+import {
+  useTheme,
+  type Colors,
+  type ThemePreference,
+} from "../components/theme";
+
 export default function ProfileScreen() {
+  const { colors, preference, setPreference, storageError } = useTheme();
+  const s = styles(colors);
   const load = useCallback(() => api.getMyProfile(), []);
   const { data, loading, error, reload } = useData(load);
+  const options: { value: ThemePreference; label: string }[] = [
+    { value: "dark", label: "Întunecată" },
+    { value: "light", label: "Luminoasă" },
+    { value: "system", label: "Sistem" },
+  ];
   return (
     <Page>
-      <Brand />
-      <Text style={s.eyebrow}>UN PROFIL, MAI MULTE OPORTUNITĂȚI</Text>
-      <Text style={s.title}>
-        Profilul <Text style={{ color: palette.purple }}>meu.</Text>
-      </Text>
-      <Text style={s.intro}>
-        Spune câteva lucruri despre tine. Organizatorii văd doar informațiile
-        utile pentru sarcină.
-      </Text>
+      <Header title="Profil" subtitle="Datele văzute de organizatori." />
+      <View style={s.appearance}>
+        <Text style={s.sectionTitle}>Aspect</Text>
+        <View style={s.options}>
+          {options.map((option) => (
+            <Pressable
+              key={option.value}
+              accessibilityRole="radio"
+              aria-checked={preference === option.value}
+              accessibilityState={{ checked: preference === option.value }}
+              onPress={() => setPreference(option.value)}
+              style={({ pressed }) => [
+                s.option,
+                preference === option.value && s.optionActive,
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <Text
+                style={[
+                  s.optionText,
+                  preference === option.value && s.optionTextActive,
+                ]}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        {storageError ? (
+          <Text accessibilityRole="alert" style={s.help}>
+            {storageError}
+          </Text>
+        ) : null}
+      </View>
       <State loading={loading} error={error} onRetry={() => void reload()} />
-      {!loading && !error && data?.profile && (
-        <ProfileForm
-          key={data.profile.user_id}
-          profile={data.profile}
-          onSaved={reload}
-        />
-      )}
+      {data?.profile ? (
+        <ProfileForm key={data.profile.user_id} profile={data.profile} />
+      ) : null}
     </Page>
   );
 }
-function ProfileForm({
-  profile,
-  onSaved,
-}: {
-  profile: Profile;
-  onSaved: () => Promise<void>;
-}) {
+function ProfileForm({ profile }: { profile: Profile }) {
+  const { colors, isDark } = useTheme();
+  const s = styles(colors);
   const [skills, setSkills] = useState(profile.skills.join(", "));
   const [city, setCity] = useState(profile.city);
   const [availability, setAvailability] = useState(profile.availability);
@@ -43,22 +73,36 @@ function ProfileForm({
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saved, setSaved] = useState(false);
+  const inputProps = {
+    placeholderTextColor: colors.muted,
+    keyboardAppearance: isDark ? ("dark" as const) : ("light" as const),
+    editable: !busy,
+  };
+  function edit(setValue: (value: string) => void) {
+    return (value: string) => {
+      setValue(value);
+      setSaved(false);
+    };
+  }
   async function save() {
     setBusy(true);
     setSaveError("");
     setSaved(false);
     try {
-      await api.putMyProfile({
+      const result = await api.putMyProfile({
         skills: skills
           .split(",")
-          .map((s) => s.trim())
+          .map((item) => item.trim())
           .filter(Boolean),
         city: city.trim(),
         availability: availability.trim(),
         bio: bio.trim(),
       });
+      setSkills(result.profile.skills.join(", "));
+      setCity(result.profile.city);
+      setAvailability(result.profile.availability);
+      setBio(result.profile.bio);
       setSaved(true);
-      await onSaved();
     } catch (e) {
       setSaveError(errorMessage(e));
     } finally {
@@ -66,126 +110,154 @@ function ProfileForm({
     }
   }
   return (
-    <View style={s.card}>
-      <Text style={s.label}>NUME</Text>
-      <Text style={s.readOnly}>{profile.display_name}</Text>
-      <Text style={s.help}>Numele este setat pentru acest demo.</Text>
-      <Text style={s.label}>COMPETENȚE</Text>
-      <TextInput
-        accessibilityLabel="Competențe"
-        value={skills}
-        onChangeText={setSkills}
-        placeholder="Ex. organizare, comunicare"
-        style={s.input}
-      />
-      <Text style={s.help}>Desparte competențele prin virgulă.</Text>
-      <Text style={s.label}>ORAȘ</Text>
-      <TextInput
-        accessibilityLabel="Oraș"
-        value={city}
-        onChangeText={setCity}
-        placeholder="București"
-        style={s.input}
-      />
-      <Text style={s.label}>DISPONIBILITATE</Text>
-      <TextInput
-        accessibilityLabel="Disponibilitate"
-        value={availability}
-        onChangeText={setAvailability}
-        placeholder="Ex. După-amieze"
-        style={s.input}
-      />
-      <Text style={s.label}>DESPRE MINE</Text>
-      <TextInput
-        accessibilityLabel="Despre mine"
-        multiline
-        maxLength={280}
-        value={bio}
-        onChangeText={setBio}
-        placeholder="Câteva cuvinte despre tine"
-        style={[s.input, s.textarea]}
-      />
+    <View style={s.form}>
+      <View style={s.identity}>
+        <View style={s.avatar}>
+          <Icon name="person-outline" size={25} color={colors.accent} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.name}>{profile.display_name}</Text>
+          <Text style={s.help}>Cont demonstrativ</Text>
+        </View>
+      </View>
+      <View style={s.field}>
+        <Text style={s.label}>Competențe</Text>
+        <TextInput
+          {...inputProps}
+          accessibilityLabel="Competențe"
+          value={skills}
+          onChangeText={edit(setSkills)}
+          placeholder="Organizare, comunicare"
+          style={s.input}
+        />
+        <Text style={s.help}>Separă prin virgulă. Maximum 8 competențe.</Text>
+      </View>
+      <View style={s.field}>
+        <Text style={s.label}>Oraș</Text>
+        <TextInput
+          {...inputProps}
+          accessibilityLabel="Oraș"
+          maxLength={80}
+          value={city}
+          onChangeText={edit(setCity)}
+          placeholder="București"
+          style={s.input}
+        />
+      </View>
+      <View style={s.field}>
+        <Text style={s.label}>Disponibilitate</Text>
+        <TextInput
+          {...inputProps}
+          accessibilityLabel="Disponibilitate"
+          maxLength={80}
+          value={availability}
+          onChangeText={edit(setAvailability)}
+          placeholder="De exemplu, după-amiaza"
+          style={s.input}
+        />
+      </View>
+      <View style={s.field}>
+        <Text style={s.label}>
+          Despre mine <Text style={s.optional}>(opțional)</Text>
+        </Text>
+        <TextInput
+          {...inputProps}
+          accessibilityLabel="Despre mine"
+          multiline
+          maxLength={280}
+          value={bio}
+          onChangeText={edit(setBio)}
+          placeholder="Ce ar trebui să știe organizatorul?"
+          style={[s.input, s.textarea]}
+        />
+        <Text style={s.counter}>{bio.length}/280</Text>
+      </View>
       {saveError ? (
-        <Text style={s.error} accessibilityRole="alert">
+        <Text accessibilityRole="alert" style={s.error}>
           {saveError}
         </Text>
       ) : null}
-      {saved ? <Text style={s.success}>Profilul a fost salvat.</Text> : null}
+      {saved ? (
+        <View accessibilityLiveRegion="polite" style={s.success}>
+          <Icon name="checkmark-circle-outline" color={colors.success} />
+          <Text style={s.successText}>Profilul a fost salvat.</Text>
+        </View>
+      ) : null}
       <Button disabled={busy} onPress={() => void save()}>
         {busy ? "Se salvează..." : "Salvează profilul"}
       </Button>
     </View>
   );
 }
-const s = StyleSheet.create({
-  eyebrow: {
-    color: palette.purple,
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.7,
-    marginTop: 40,
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: "800",
-    color: palette.dark,
-    marginTop: 10,
-    letterSpacing: -1.3,
-  },
-  intro: {
-    color: palette.muted,
-    fontSize: 13,
-    lineHeight: 21,
-    marginBottom: 27,
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 21,
-    borderWidth: 1,
-    borderColor: palette.line,
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-    color: palette.purple,
-    marginBottom: 8,
-    marginTop: 16,
-  },
-  readOnly: {
-    color: palette.dark,
-    fontSize: 15,
-    fontWeight: "800",
-    padding: 12,
-    backgroundColor: "#f5f2f6",
-    borderRadius: 9,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: palette.line,
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 13,
-    color: palette.dark,
-    backgroundColor: "#fff",
-  },
-  textarea: { height: 105, textAlignVertical: "top", marginBottom: 22 },
-  help: { fontSize: 10, color: "#aaa4ad", marginTop: 7 },
-  error: {
-    color: "#a44942",
-    backgroundColor: "#fff0ee",
-    padding: 12,
-    marginBottom: 13,
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  success: {
-    color: "#347551",
-    backgroundColor: "#edf7ef",
-    padding: 12,
-    marginBottom: 13,
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-});
+const styles = (c: Colors) =>
+  StyleSheet.create({
+    appearance: { gap: 12 },
+    sectionTitle: { color: c.text, fontSize: 16, fontWeight: "600" },
+    options: { flexDirection: "row", gap: 6 },
+    option: {
+      flex: 1,
+      minHeight: 48,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.surface,
+      borderRadius: 10,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 8,
+    },
+    optionActive: { backgroundColor: c.accentSoft, borderColor: c.accent },
+    optionText: { color: c.muted, fontSize: 13, fontWeight: "500" },
+    optionTextActive: { color: c.accent },
+    form: { gap: 20 },
+    identity: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      borderTopWidth: 1,
+      borderTopColor: c.border,
+      paddingTop: 24,
+    },
+    avatar: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.accentSoft,
+    },
+    name: { color: c.text, fontSize: 19, fontWeight: "600" },
+    field: { gap: 8 },
+    label: { color: c.text, fontSize: 14, fontWeight: "600" },
+    optional: { color: c.muted, fontWeight: "400" },
+    input: {
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 12,
+      padding: 14,
+      minHeight: 50,
+      fontSize: 16,
+      color: c.text,
+      backgroundColor: c.surface,
+    },
+    textarea: { minHeight: 110, textAlignVertical: "top" },
+    help: { fontSize: 12, color: c.muted, lineHeight: 18 },
+    counter: { fontSize: 12, color: c.muted, textAlign: "right" },
+    error: {
+      color: c.danger,
+      backgroundColor: c.dangerSoft,
+      padding: 14,
+      borderRadius: 10,
+      overflow: "hidden",
+      fontSize: 14,
+      lineHeight: 21,
+    },
+    success: {
+      flexDirection: "row",
+      gap: 8,
+      alignItems: "center",
+      padding: 14,
+      backgroundColor: c.successSoft,
+      borderRadius: 10,
+    },
+    successText: { color: c.success, fontSize: 14 },
+  });

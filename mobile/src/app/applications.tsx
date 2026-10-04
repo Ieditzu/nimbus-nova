@@ -1,24 +1,27 @@
-import { formatBani } from "../api/client";
 import { useCallback, useState } from "react";
-import {
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Link } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { api } from "../api";
-import { applicationStatusLabel, taskStatusLabel } from "../lib/labels";
+import { formatBani } from "../api/client";
 import {
-  BottomNav,
-  Brand,
+  applicationStatusLabel,
+  schedule,
+  taskStatusLabel,
+} from "../lib/labels";
+import {
+  Badge,
   Button,
-  palette,
+  Header,
+  Icon,
+  Page,
   State,
   useData,
 } from "../components/ui";
+import { useTheme, type Colors } from "../components/theme";
+
 export default function MyApplicationsScreen() {
+  const { colors } = useTheme();
+  const s = styles(colors);
   const load = useCallback(() => api.listMyApplications(), []);
   const { data, loading, error, reload } = useData(load);
   const [refreshing, setRefreshing] = useState(false);
@@ -28,152 +31,148 @@ export default function MyApplicationsScreen() {
     setRefreshing(false);
   }
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: palette.cream }}
-      edges={["top", "left", "right", "bottom"]}
-    >
-      <View style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={s.content}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => void refresh()}
-              tintColor={palette.purple}
-            />
-          }
+    <Page onRefresh={() => void refresh()} refreshing={refreshing}>
+      <Header
+        title="Aplicările mele"
+        subtitle="Vezi răspunsurile organizatorilor."
+      />
+      <View style={s.summary}>
+        <Text style={s.summaryText}>
+          {data
+            ? `${data.applications.length} ${data.applications.length === 1 ? "aplicare" : "aplicări"}`
+            : "Aplicări"}
+        </Text>
+        <Button
+          variant="outline"
+          icon="refresh-outline"
+          disabled={loading}
+          onPress={() => void refresh()}
         >
-          <Brand />
-          <Text style={s.eyebrow}>DRUMUL TĂU CU NOVA</Text>
-          <Text style={s.title}>
-            Candidaturile <Text style={{ color: palette.purple }}>mele.</Text>
-          </Text>
-          <Text style={s.intro}>
-            Urmărește răspunsul pentru fiecare sarcină. Trage în jos pentru
-            actualizare.
-          </Text>
-          <Button
-            variant="outline"
-            disabled={refreshing}
-            onPress={() => void refresh()}
-          >
-            {refreshing ? "Se încarcă..." : "Actualizează"}
-          </Button>
-          <State
-            loading={loading}
-            error={error}
-            onRetry={() => void reload()}
-            empty={
-              !loading && !error && data?.applications.length === 0
-                ? "Nu ai candidaturi încă. Descoperă o sarcină și aplică."
-                : undefined
-            }
-          />
-          {data?.applications.map((app) => (
-            <View style={s.card} key={app.id}>
-              <View style={s.top}>
-                <Text style={s.badge}>
-                  {applicationStatusLabel[app.status]}
-                </Text>
-                <Text style={s.price}>{formatBani(app.task.amount_bani)}</Text>
-              </View>
-              <Text style={s.cardTitle}>{app.task.title}</Text>
-              <Text style={s.meta}>⌖ {app.task.city}</Text>
-              <Text style={s.meta}>
-                Starea sarcinii:{" "}
-                <Text style={{ fontWeight: "800", color: palette.dark }}>
-                  {taskStatusLabel[app.task.status]}
-                </Text>
-              </Text>
-              <Text style={s.message}>„{app.message}”</Text>
-              {app.status === "accepted" && (
-                <Text style={s.accepted}>
-                  ✦ Ai fost selectată pentru această sarcină.
-                </Text>
-              )}
-            </View>
-          ))}
-        </ScrollView>
-        <BottomNav />
+          Actualizează
+        </Button>
       </View>
-    </SafeAreaView>
+      <State
+        loading={loading}
+        error={error}
+        onRetry={() => void reload()}
+        empty={
+          !loading && !error && data?.applications.length === 0
+            ? "Nu ai aplicat încă la nicio sarcină."
+            : undefined
+        }
+        emptyAction={
+          <Link href="/" replace asChild>
+            <Pressable accessibilityRole="button" style={s.emptyButton}>
+              <Text style={s.emptyButtonText}>Vezi sarcinile disponibile</Text>
+            </Pressable>
+          </Link>
+        }
+      />
+      {data?.applications.map((app) => {
+        const when = schedule(app.task.starts_at, app.task.ends_at);
+        return (
+          <Link
+            href={{ pathname: "/task/[id]", params: { id: app.task.id } }}
+            asChild
+            key={app.id}
+          >
+            <Pressable accessibilityRole="button" style={s.card}>
+              <View style={s.top}>
+                <Badge
+                  tone={
+                    app.status === "accepted"
+                      ? "success"
+                      : app.status === "rejected"
+                        ? "danger"
+                        : "warning"
+                  }
+                >
+                  {applicationStatusLabel[app.status]}
+                </Badge>
+                <Icon name="chevron-forward" size={18} />
+              </View>
+              <Text style={s.title}>{app.task.title}</Text>
+              <Text style={s.meta}>
+                {app.task.city} · {when.date}
+              </Text>
+              <Text style={s.meta}>{when.time}</Text>
+              <View style={s.statusRow}>
+                <Text style={s.meta}>Starea sarcinii</Text>
+                <Text style={s.status}>{taskStatusLabel[app.task.status]}</Text>
+              </View>
+              <View style={s.messageBox}>
+                <Text style={s.messageLabel}>Mesajul tău</Text>
+                <Text style={s.message}>{app.message}</Text>
+              </View>
+              <View style={s.bottom}>
+                <Text style={s.price}>{formatBani(app.task.amount_bani)}</Text>
+                <Text style={s.details}>Vezi sarcina</Text>
+              </View>
+            </Pressable>
+          </Link>
+        );
+      })}
+    </Page>
   );
 }
-const s = StyleSheet.create({
-  content: {
-    padding: 22,
-    paddingBottom: 38,
-    maxWidth: 680,
-    width: "100%",
-    alignSelf: "center",
-  },
-  eyebrow: {
-    color: palette.purple,
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.7,
-    marginTop: 40,
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: "800",
-    color: palette.dark,
-    marginTop: 10,
-    letterSpacing: -1.3,
-  },
-  intro: {
-    color: palette.muted,
-    fontSize: 13,
-    lineHeight: 21,
-    marginBottom: 29,
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: palette.line,
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 13,
-  },
-  top: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  badge: {
-    backgroundColor: palette.lavender,
-    color: palette.purple,
-    padding: 8,
-    borderRadius: 7,
-    overflow: "hidden",
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  price: { fontWeight: "800", color: palette.dark, fontSize: 14 },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: palette.dark,
-    marginTop: 17,
-    marginBottom: 12,
-  },
-  meta: { fontSize: 12, color: palette.muted, marginBottom: 7 },
-  message: {
-    color: "#625c70",
-    fontSize: 12,
-    marginTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: palette.line,
-    paddingTop: 15,
-  },
-  accepted: {
-    color: "#458a71",
-    backgroundColor: "#e5f4ef",
-    padding: 10,
-    borderRadius: 8,
-    overflow: "hidden",
-    fontSize: 11,
-    fontWeight: "800",
-    marginTop: 14,
-  },
-});
+const styles = (c: Colors) =>
+  StyleSheet.create({
+    summary: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+    },
+    summaryText: { fontSize: 14, color: c.muted },
+    card: {
+      backgroundColor: c.surface,
+      borderColor: c.border,
+      borderWidth: 1,
+      borderRadius: 16,
+      padding: 18,
+    },
+    top: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    title: {
+      fontSize: 20,
+      lineHeight: 27,
+      fontWeight: "600",
+      color: c.text,
+      marginTop: 16,
+      marginBottom: 8,
+    },
+    meta: { color: c.muted, fontSize: 14, lineHeight: 22 },
+    statusRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      gap: 12,
+      marginTop: 16,
+    },
+    status: { color: c.text, fontSize: 14, fontWeight: "600", lineHeight: 22 },
+    messageBox: {
+      marginTop: 16,
+      padding: 12,
+      backgroundColor: c.raised,
+      borderRadius: 8,
+    },
+    messageLabel: { color: c.muted, fontSize: 12, marginBottom: 5 },
+    message: { color: c.text, fontSize: 14, lineHeight: 21 },
+    bottom: {
+      marginTop: 16,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    price: { fontSize: 18, color: c.text, fontWeight: "600" },
+    details: { color: c.accent, fontSize: 14, fontWeight: "600" },
+    emptyButton: {
+      minHeight: 48,
+      padding: 14,
+      backgroundColor: c.accent,
+      borderRadius: 12,
+    },
+    emptyButtonText: { color: c.onAccent, fontSize: 14, fontWeight: "600" },
+  });

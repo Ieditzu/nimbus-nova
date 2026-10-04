@@ -1,12 +1,16 @@
-import { formatBani, NovaError } from "../../api/client";
 import { useCallback, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { api } from "../../api";
+import { formatBani, NovaError } from "../../api/client";
 import { errorMessage } from "../../lib/errors";
-import { categoryLabel, interval } from "../../lib/labels";
-import { Button, Page, palette, State, useData } from "../../components/ui";
+import { categoryLabel, schedule, taskStatusLabel } from "../../lib/labels";
+import { Badge, Button, Icon, Page, State, useData } from "../../components/ui";
+import { useTheme, type Colors } from "../../components/theme";
+
 export default function TaskDetailScreen() {
+  const { colors, isDark } = useTheme();
+  const s = styles(colors);
   const { id } = useLocalSearchParams<{ id: string }>();
   const load = useCallback(() => api.getTask(id), [id]);
   const { data, loading, error, reload } = useData(load);
@@ -30,188 +34,201 @@ export default function TaskDetailScreen() {
     }
   }
   const task = data?.task;
+  const when = task ? schedule(task.starts_at, task.ends_at) : undefined;
   return (
     <Page>
-      <Text onPress={() => router.back()} style={s.back}>
-        ← Înapoi la sarcini
-      </Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() =>
+          router.canGoBack() ? router.back() : router.replace("/")
+        }
+        style={s.back}
+      >
+        <Icon name="arrow-back" color={colors.text} />
+        <Text style={s.backText}>Înapoi</Text>
+      </Pressable>
       <State loading={loading} error={error} onRetry={() => void reload()} />
-      {task && (
+      {task && when ? (
         <>
-          <Text style={s.category}>{categoryLabel[task.category]}</Text>
-          <Text style={s.title}>{task.title}</Text>
-          <Text style={s.body}>Publicată de {task.poster_name}</Text>
-          <View style={s.card}>
-            <Text style={s.label}>DETALIILE SARCINII</Text>
-            <View style={s.row}>
-              <Text style={s.icon}>⌖</Text>
-              <View>
-                <Text style={s.detailLabel}>Locație</Text>
-                <Text style={s.detail}>{task.city}</Text>
-              </View>
+          <Badge>{categoryLabel[task.category]}</Badge>
+          <View style={s.headingBlock}>
+            <Text accessibilityRole="header" style={s.title}>
+              {task.title}
+            </Text>
+            <Text style={s.poster}>Publicată de {task.poster_name}</Text>
+          </View>
+          <View style={s.facts}>
+            <View style={s.pay}>
+              <Text style={s.amount}>{formatBani(task.amount_bani)}</Text>
+              <Text style={s.meta}>Sumă propusă</Text>
             </View>
-            <View style={s.row}>
-              <Text style={s.icon}>◷</Text>
-              <View>
-                <Text style={s.detailLabel}>Când</Text>
-                <Text style={s.detail}>
-                  {interval(task.starts_at, task.ends_at)}
-                </Text>
-              </View>
+            <View style={s.fact}>
+              <Icon name="location-outline" />
+              <Text style={s.factText}>{task.city}</Text>
             </View>
-            <View style={s.row}>
-              <Text style={s.icon}>◈</Text>
-              <View>
-                <Text style={s.detailLabel}>Sumă propusă</Text>
-                <Text style={s.detail}>{formatBani(task.amount_bani)}</Text>
-              </View>
+            <View style={s.fact}>
+              <Icon name="calendar-outline" />
+              <Text style={s.factText}>{when.date}</Text>
+            </View>
+            <View style={s.fact}>
+              <Icon name="time-outline" />
+              <Text style={s.factText}>{when.time}</Text>
             </View>
             <Text style={s.note}>
               Sumă propusă. În acest demo nu se încasează plata.
             </Text>
           </View>
-          <Text style={s.heading}>Despre sarcină</Text>
-          <Text style={s.body}>{task.description}</Text>
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>Ce ai de făcut</Text>
+            <Text style={s.body}>{task.description}</Text>
+          </View>
           {task.safety_note ? (
             <View style={s.safety}>
-              <Text style={s.heading}>✳ Siguranță</Text>
+              <View style={s.fact}>
+                <Icon name="shield-checkmark-outline" color={colors.accent} />
+                <Text style={s.sectionTitle}>Siguranță</Text>
+              </View>
               <Text style={s.body}>{task.safety_note}</Text>
             </View>
           ) : null}
-          <Text style={s.heading}>Trimite candidatura</Text>
-          <Text style={s.body}>
-            Spune-i organizatorului de ce poți ajuta. Totul rămâne în Nova.
-          </Text>
-          <TextInput
-            accessibilityLabel="Mesajul candidaturii"
-            multiline
-            maxLength={280}
-            value={message}
-            onChangeText={setMessage}
-            placeholder="Ex. Pot ajunge cu 15 minute mai devreme..."
-            style={s.input}
-          />
-          {actionError ? (
-            <Text style={s.error} accessibilityRole="alert">
-              {actionError}
-            </Text>
-          ) : null}
-          <Button
-            disabled={
-              busy || message.trim().length === 0 || task.status !== "open"
-            }
-            onPress={() => void apply()}
-          >
-            {busy ? "Se trimite..." : "Aplică"}
-          </Button>
-          <Text style={s.disclaimer}>
-            Demo pentru adulți. Fără angajare sau plată prin Nova.
-          </Text>
+          {task.status === "open" ? (
+            <View style={s.section}>
+              <Text style={s.sectionTitle}>Aplică la această sarcină</Text>
+              <Text style={s.body}>
+                Spune-i organizatorului cum poți ajuta.
+              </Text>
+              <View style={s.messageLabel}>
+                <Text style={s.label}>Mesaj</Text>
+                <Text style={s.meta}>{message.length}/280</Text>
+              </View>
+              <TextInput
+                accessibilityLabel="Mesajul candidaturii"
+                keyboardAppearance={isDark ? "dark" : "light"}
+                editable={!busy}
+                multiline
+                maxLength={280}
+                value={message}
+                onChangeText={setMessage}
+                placeholder="De exemplu, pot ajunge la ora stabilită și ajut la amenajare."
+                placeholderTextColor={colors.muted}
+                style={s.input}
+              />
+              {!message.trim() ? (
+                <Text style={s.help}>
+                  Scrie un mesaj pentru a putea aplica.
+                </Text>
+              ) : null}
+              {actionError ? (
+                <Text accessibilityRole="alert" style={s.error}>
+                  {actionError}
+                </Text>
+              ) : null}
+              <Button
+                disabled={busy || !message.trim()}
+                onPress={() => void apply()}
+              >
+                {busy ? "Se trimite..." : "Aplică"}
+              </Button>
+            </View>
+          ) : (
+            <View style={s.closed}>
+              <Badge>{taskStatusLabel[task.status]}</Badge>
+              <Text style={s.body}>
+                Această sarcină nu mai primește aplicări.
+              </Text>
+            </View>
+          )}
         </>
-      )}
+      ) : null}
     </Page>
   );
 }
-const s = StyleSheet.create({
-  back: {
-    color: palette.purple,
-    fontSize: 13,
-    fontWeight: "800",
-    marginBottom: 30,
-  },
-  category: {
-    alignSelf: "flex-start",
-    color: palette.purple,
-    backgroundColor: palette.lavender,
-    padding: 8,
-    borderRadius: 7,
-    overflow: "hidden",
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: "800",
-    color: palette.dark,
-    letterSpacing: -1.2,
-    marginTop: 14,
-    marginBottom: 22,
-    lineHeight: 37,
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: palette.line,
-    borderRadius: 18,
-    padding: 21,
-    marginBottom: 26,
-  },
-  label: {
-    fontSize: 10,
-    color: palette.purple,
-    fontWeight: "800",
-    letterSpacing: 1.5,
-    marginBottom: 15,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 15,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.line,
-  },
-  icon: { fontSize: 25, color: palette.purple, width: 27 },
-  detailLabel: { fontSize: 10, color: palette.muted },
-  detail: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: palette.dark,
-    marginTop: 2,
-  },
-  note: { fontSize: 10, color: palette.muted, marginTop: 15 },
-  heading: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: palette.dark,
-    marginBottom: 10,
-  },
-  body: {
-    fontSize: 13,
-    color: palette.muted,
-    lineHeight: 21,
-    marginBottom: 24,
-  },
-  safety: {
-    padding: 18,
-    backgroundColor: "#f2ecfa",
-    borderRadius: 14,
-    marginBottom: 25,
-  },
-  input: {
-    height: 110,
-    textAlignVertical: "top",
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: palette.line,
-    borderRadius: 13,
-    padding: 14,
-    fontSize: 13,
-    color: palette.dark,
-    marginBottom: 13,
-  },
-  error: {
-    color: "#a44942",
-    backgroundColor: "#fff0ee",
-    padding: 12,
-    borderRadius: 9,
-    overflow: "hidden",
-    marginBottom: 12,
-  },
-  disclaimer: {
-    color: "#9d96a5",
-    fontSize: 10,
-    textAlign: "center",
-    marginTop: 15,
-  },
-});
+const styles = (c: Colors) =>
+  StyleSheet.create({
+    back: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      minHeight: 44,
+      alignSelf: "flex-start",
+    },
+    backText: { color: c.text, fontSize: 15, fontWeight: "500" },
+    headingBlock: { gap: 10 },
+    title: {
+      color: c.text,
+      fontSize: 28,
+      lineHeight: 35,
+      fontWeight: "700",
+      letterSpacing: -0.6,
+    },
+    poster: { color: c.muted, fontSize: 14 },
+    facts: {
+      padding: 18,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 16,
+      gap: 14,
+    },
+    pay: {
+      borderBottomWidth: 1,
+      borderBottomColor: c.border,
+      paddingBottom: 16,
+      gap: 3,
+    },
+    amount: {
+      fontSize: 30,
+      fontWeight: "600",
+      color: c.text,
+      letterSpacing: -0.5,
+    },
+    meta: { color: c.muted, fontSize: 12, lineHeight: 18 },
+    fact: { flexDirection: "row", alignItems: "center", gap: 10 },
+    factText: { flex: 1, fontSize: 15, color: c.text, lineHeight: 22 },
+    note: { color: c.muted, fontSize: 12, lineHeight: 18, paddingTop: 4 },
+    section: { gap: 12 },
+    sectionTitle: { color: c.text, fontSize: 18, fontWeight: "600" },
+    body: { color: c.muted, fontSize: 15, lineHeight: 23 },
+    safety: {
+      backgroundColor: c.accentSoft,
+      borderRadius: 12,
+      padding: 16,
+      gap: 10,
+    },
+    messageLabel: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 8,
+    },
+    label: { fontSize: 14, color: c.text, fontWeight: "600" },
+    input: {
+      minHeight: 120,
+      padding: 14,
+      textAlignVertical: "top",
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.surface,
+      color: c.text,
+      fontSize: 16,
+      lineHeight: 23,
+      borderRadius: 12,
+    },
+    help: { color: c.muted, fontSize: 12, lineHeight: 18 },
+    error: {
+      backgroundColor: c.dangerSoft,
+      color: c.danger,
+      fontSize: 14,
+      lineHeight: 21,
+      borderRadius: 10,
+      padding: 14,
+      overflow: "hidden",
+    },
+    closed: {
+      gap: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 12,
+    },
+  });

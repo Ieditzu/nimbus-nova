@@ -1,15 +1,23 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { palette } from "../components/ui";
+import { ThemeProvider, useTheme } from "../components/theme";
 
 export default function RootLayout() {
   return (
+    <ThemeProvider>
+      <Navigation />
+    </ThemeProvider>
+  );
+}
+function Navigation() {
+  const { colors, isDark } = useTheme();
+  return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? "light" : "dark"} />
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: palette.cream },
+          contentStyle: { backgroundColor: colors.background },
         }}
       >
         <Stack.Screen name="index" />

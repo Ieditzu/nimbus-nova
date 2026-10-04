@@ -22,6 +22,10 @@ npm run typecheck
 npm run lint
 ```
 
+## Appearance
+
+Nova starts in dark mode. Use the sun/moon button for a quick switch, or choose dark, light, or system appearance under **Profil → Aspect**. The choice is stored locally on the device. Larger controls, plain screen titles, and readable task dates keep the main actions easy to find.
+
 ## Screens and demo
 
 - Discover: open tasks filtered by city/category; pull to refresh.
