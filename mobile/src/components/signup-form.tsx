@@ -321,8 +321,8 @@ export function SignupForm({
           </View>
           <Text style={s.help}>
             {kind === "ci"
-              ? "Fotografiază ambele fețe ale CI. Nu este nevoie de PDF."
-              : "Importă fotografiile față și verso, apoi PDF-ul exportat din RO CEI Reader."}
+              ? "Importă sau fotografiază ambele fețe ale CI. Nu este nevoie de PDF."
+              : "Importă sau fotografiază fața și verso, apoi importă PDF-ul exportat din RO CEI Reader."}
           </Text>
           {documentSlots[kind].map((slot) => (
             <AssetCard
@@ -330,18 +330,16 @@ export function SignupForm({
               slot={slot}
               asset={assets[slot]}
               busy={busy}
-              action={
-                kind === "ci"
-                  ? "Fotografiază"
-                  : slot === "cei_pdf"
-                    ? "Importă PDF-ul"
-                    : "Importă fotografia"
+              action={slot === "cei_pdf" ? "Importă PDF-ul" : "Importă fotografia"}
+              onChoose={() => void pick(slot)}
+              onCapture={
+                slot === "cei_pdf"
+                  ? undefined
+                  : () => {
+                      setError("");
+                      setCameraSlot(slot);
+                    }
               }
-              onChoose={() => {
-                setError("");
-                if (kind === "ci") setCameraSlot(slot);
-                else void pick(slot);
-              }}
               onRemove={() => updateAsset(slot)}
             />
           ))}
@@ -445,6 +443,7 @@ function AssetCard({
   busy,
   action,
   onChoose,
+  onCapture,
   onRemove,
 }: {
   slot: CaptureSlot;
@@ -452,6 +451,7 @@ function AssetCard({
   busy: boolean;
   action: string;
   onChoose: () => void;
+  onCapture?: () => void;
   onRemove: () => void;
 }) {
   const { colors } = useTheme();
@@ -516,6 +516,16 @@ function AssetCard({
               : "Refă fotografia"
           : action}
       </Button>
+      {onCapture ? (
+        <Button
+          variant="outline"
+          disabled={busy}
+          icon="camera-outline"
+          onPress={onCapture}
+        >
+          {asset ? "Refă cu camera" : "Fotografiază cu camera"}
+        </Button>
+      ) : null}
     </View>
   );
 }

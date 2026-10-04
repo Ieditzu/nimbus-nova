@@ -46,7 +46,7 @@ The supplied test login uses normal backend password hashing and bearer sessions
 
 ## Identity signup
 
-Signup has three steps: account details, Romanian identity document, then a live camera selfie. There is no manual birth date input. CI uses camera captures of the front and back. CEI uses imported front/back photographs and the original PDF export from RO CEI Reader. Photos are converted to JPEG; every uploaded file must be at most 2 MB. A minor can enter a guardian email; the server derives age and volunteer eligibility from the verified document.
+Signup has three steps: account details, Romanian identity document, then a live camera selfie. There is no manual birth date input. Both CI and CEI support importing front/back photographs from the photo library or capturing them with the camera. CEI also requires the original PDF export from RO CEI Reader. Photos are converted to JPEG; every uploaded file must be at most 2 MB. A minor can enter a guardian email; the server derives age and volunteer eligibility from the verified document.
 
 Temporary native copies are kept in the app's cache, never saved to the gallery, and removed when signup closes or a file is replaced. Starting another file selection also prunes interrupted copies older than 15 minutes. Browser previews stay in memory. Camera permission is requested only when the user opens capture. Camera and navigation screens use no slide transition.
 
