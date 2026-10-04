@@ -1,3 +1,4 @@
+import { PwaProvider } from "../pwa/install";
 import { NotificationsProvider } from "../notifications/provider";
 import { useFonts } from "expo-font";
 import { Anton_400Regular } from "@expo-google-fonts/anton/400Regular";
@@ -21,7 +22,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <NotificationsProvider><Navigation /></NotificationsProvider>
+        <PwaProvider><NotificationsProvider><Navigation /></NotificationsProvider></PwaProvider>
       </AuthProvider>
     </ThemeProvider>
   );

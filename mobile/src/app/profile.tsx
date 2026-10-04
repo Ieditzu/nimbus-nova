@@ -1,3 +1,4 @@
+import { PwaInstallCard } from "../pwa/install";
 import { NotificationSettings } from "../notifications/provider";
 import { router } from "expo-router";
 import { PhoneForm } from "../components/phone-form";
@@ -40,6 +41,7 @@ export default function ProfileScreen() {
       ) : (
         <AuthForm />
       )}
+      <PwaInstallCard />
       <View style={s.appearance}>
         <Text style={s.sectionTitle}>Aspect</Text>
         <View style={s.options}>
