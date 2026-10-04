@@ -51,6 +51,14 @@ Set `VITE_SITE_URL` to the actual public origin before a public build. This gene
 
 Host the static `dist/` output with a rewrite for `/poster`. For unknown routes, hosting must return the app's not-found view with HTTP 404. Vite's preview fallback alone does not implement production HTTP 404 behavior. No public domain or deployment is configured by this change.
 
+## Visual design
+
+The interface has selectable black/white light and dark themes, saved locally. The initial editable Figma foundations are at https://www.figma.com/design/PF68fLNhOHfq5irftxtslq. The website subsequently adopts Meetup-inspired compact filters, search, and dated task cards, with an optional table view. Search is local to the poster's loaded tasks and ignores Romanian diacritics; it makes no new API calls.
+
+Reference: the official Meetup screenshots at https://apps.apple.com/us/app/meetup-social-events-groups/id375990038. The supplied Mobbin collection required authentication and its individual screens were unavailable during this implementation.
+
+The locally served `public/images/community.webp` is an illustrative photograph by Mineragua Sparkling Water: https://unsplash.com/photos/a-group-of-people-sitting-outside-of-a-building-WVtFP7i8Pb0, licensed under https://unsplash.com/license. It depicts no claimed Nova users or partnership. No task images or extra JSON fields are fabricated.
+
 ## Attribution
 
 This website's React components, CSS layout, prerender script, and contract tests were generated with assistance from OpenAI Codex. Shared client/types and product requirements came from the team's repository. The team must review the generated work and disclose AI assistance in the competition submission. No user research, testimonials, or partnerships are claimed.
