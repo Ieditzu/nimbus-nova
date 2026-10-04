@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { palette } from "../components/ui";
+
 export default function RootLayout() {
   return (
     <>
@@ -10,7 +11,12 @@ export default function RootLayout() {
           headerShown: false,
           contentStyle: { backgroundColor: palette.cream },
         }}
-      />
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="task/[id]" />
+        <Stack.Screen name="profile" />
+        <Stack.Screen name="applications" />
+      </Stack>
     </>
   );
 }

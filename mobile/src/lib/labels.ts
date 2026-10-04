@@ -1,4 +1,4 @@
-import type { ApplicationStatus, Category, TaskStatus } from "./types";
+import type { ApplicationStatus, Category, TaskStatus } from "../api/types";
 export const categories: Category[] = [
   "event_setup",
   "light_moving",
@@ -22,6 +22,5 @@ export const applicationStatusLabel: Record<ApplicationStatus, string> = {
   accepted: "Acceptată",
   rejected: "Respinsă",
 };
-export const amount = (bani: number) => `${(bani / 100).toFixed(2)} RON`;
 export const interval = (start: string, end: string) =>
   `${new Date(start).toLocaleString("ro-RO", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Bucharest" })} – ${new Date(end).toLocaleTimeString("ro-RO", { timeStyle: "short", timeZone: "Europe/Bucharest" })}`;
