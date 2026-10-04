@@ -14,6 +14,7 @@ export const actionLabel: Record<string, string> = {
   user_suspend: 'Cont suspendat', user_activate: 'Cont reactivat', user_revoke_sessions: 'Sesiuni revocate', task_hide: 'Sarcină ascunsă',
   task_unhide: 'Sarcină republicată', dispute_resolve: 'Dispută rezolvată', partner_activate: 'Partener activat', partner_pause: 'Partener în pauză',
   user_edit: 'Date cont modificate', user_password_reset: 'Parolă resetată', partner_create: 'Partener adăugat', review_remove: 'Recenzie ștearsă', note_create: 'Notă internă', event_delete: 'Eveniment șters',
+  user_create: 'Cont creat', task_create: 'Sarcină creată', task_edit: 'Sarcină modificată', task_assign: 'Sarcină atribuită', application_accept: 'Candidatură acceptată',
 };
 
 /** Tone drives the pill colour; unknown values fall back to neutral. */

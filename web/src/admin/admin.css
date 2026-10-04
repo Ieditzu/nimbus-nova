@@ -122,19 +122,22 @@
 .dk button.dk-btn,
 .dk-login button.dk-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 18px;
-  border: 1px solid var(--dk-ink); border-radius: 99px; background: var(--dk-ink); color: var(--dk-surface);
+  border: 1px solid #0d0d10; border-radius: 99px; background: #ffd731; color: #0d0d10;
+  -webkit-text-fill-color: #0d0d10;
   font-weight: 800; letter-spacing: .01em; white-space: nowrap; transition: transform 120ms ease, background 120ms ease;
 }
 .dk button.dk-btn:hover:not(:disabled) { transform: translateY(-1px); }
 .dk button.dk-btn:active:not(:disabled) { transform: translateY(0) scale(.98); }
 .dk button.dk-btn.is-small { min-height: 32px; padding: 0 12px; font-size: 13px; }
 .dk button.dk-btn.is-ghost,
-.dk-login button.dk-btn.is-ghost { background: var(--dk-surface); color: var(--dk-ink); }
+.dk-login button.dk-btn.is-ghost { background: var(--dk-surface); color: var(--dk-ink); -webkit-text-fill-color: var(--dk-ink); }
 .dk button.dk-btn.is-ghost:hover:not(:disabled) { background: var(--dk-soft); }
-.dk button.dk-btn.is-danger { background: var(--dk-orange); color: #fff; }
-.dk button.dk-btn.is-danger-ghost { background: var(--dk-surface); color: var(--dk-danger); border-color: var(--dk-danger); }
+.dk button.dk-btn.is-danger { background: var(--dk-orange); color: #fff; -webkit-text-fill-color: #fff; }
+.dk button.dk-btn.is-danger-ghost { background: var(--dk-surface); color: var(--dk-danger); -webkit-text-fill-color: var(--dk-danger); border-color: var(--dk-danger); }
 .dk button.dk-btn.is-danger-ghost:hover:not(:disabled) { background: var(--dk-danger-bg); }
 .dk button.dk-btn.is-block { width: 100%; }
+.dk-toggle { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.dk-toggle input { width: 18px; height: 18px; accent-color: #0d0d10; }
 .dk-link { padding: 0; border: 0; background: transparent; color: inherit; font-weight: 700; text-decoration: underline; text-decoration-color: var(--dk-line); text-underline-offset: 3px; text-align: left; }
 .dk-link:hover { text-decoration-color: currentColor; }
 .dk-icon-btn { display: inline-grid; place-items: center; flex: none; width: 36px; height: 36px; border: 1px solid transparent; border-radius: 50%; background: transparent; color: var(--dk-muted); }

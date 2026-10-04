@@ -7,6 +7,7 @@ import type { TaskPublic } from '../api/types';
 import { formatInterval } from '../lib/format';
 import { categories } from '../lib/labels';
 import { adminApi, type AdminApplication, type AdminDispute, type AdminEvent, type AdminLog, type AdminReview, type AdminUser, type IdentitySession, type LedgerEntry, type Partner } from './client';
+import { CreateTaskDialog, CreateUserDialog } from './create';
 import { sectionMeta, type Desk } from './desk';
 import { actionLabel, ago, bytes, day, downloadCsv, duration, fold, leiToBani, money, number, roleLabel, statusLabel, when } from './format';
 import { Avatar, BarChart, Chips, DataTable, Dialog, Donut, Field, Meters, Pill, Search, Section, Spark, type Column } from './ui';
@@ -132,6 +133,7 @@ export function Users({ desk }: P) {
   const [q, setQ] = useState('');
   const [role, setRole] = useState('all');
   const [status, setStatus] = useState('all');
+  const [adding, setAdding] = useState(false);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const needle = fold(q.trim());
   const roles = useMemo(() => [...new Set(data.users.map(user => user.role))], [data.users]);
@@ -163,9 +165,11 @@ export function Users({ desk }: P) {
       <Chips label="Rol" value={role} onChange={setRole} options={[{ id: 'all', label: 'Toți', count: data.users.length }, ...roles.map(item => ({ id: item, label: label(roleLabel, item), count: data.users.filter(user => user.role === item).length }))]} />
       <Chips label="Stare" value={status} onChange={setStatus} options={[{ id: 'all', label: 'Orice stare' }, { id: 'active', label: 'Active' }, { id: 'suspended', label: 'Suspendate' }]} />
       <button type="button" className="dk-btn is-ghost is-small" onClick={() => downloadCsv('oameni', ['ID', 'Nume', 'Email', 'Rol', 'Stare'], rows.map(user => [user.id, user.display_name, user.email, user.role, user.status]))}><DownloadSimpleIcon size={15} aria-hidden="true" />CSV</button>
+      <button type="button" className="dk-btn is-small" onClick={() => setAdding(true)}><PlusIcon size={14} aria-hidden="true" />Cont nou</button>
     </Bar>
     {ids.length > 0 && <div className="dk-bulk" role="region" aria-label="Acțiuni în masă"><b>{ids.length} selectate</b><button type="button" className="dk-btn is-small is-danger" onClick={() => bulk('suspended')}>Suspendă</button><button type="button" className="dk-btn is-small is-ghost" onClick={() => bulk('active')}>Reactivează</button><button type="button" className="dk-link" onClick={() => setSel(new Set())}>Golește</button></div>}
     <DataTable label="Oameni" rows={rows} columns={columns} rowKey={user => user.id} onOpen={user => desk.openUser(user.id)} selected={sel} onSelect={setSel} />
+    <CreateUserDialog desk={desk} open={adding} onClose={() => setAdding(false)} />
   </div>;
 }
 
@@ -176,6 +180,7 @@ export function Tasks({ desk }: P) {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('all');
   const [category, setCategory] = useState('all');
+  const [adding, setAdding] = useState(false);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const needle = fold(q.trim());
   const rows = useMemo(() => data.tasks.filter(task => (status === 'all' || task.status === status) && (category === 'all' || task.category === category)
@@ -209,9 +214,11 @@ export function Tasks({ desk }: P) {
       <Chips label="Stare" value={status} onChange={setStatus} options={[{ id: 'all', label: 'Toate', count: data.tasks.length }, { id: 'open', label: 'Deschise', count: count('open') }, { id: 'assigned', label: 'Atribuite', count: count('assigned') }, { id: 'completed', label: 'Finalizate', count: count('completed') }, { id: 'hidden', label: 'Ascunse', count: count('hidden') }]} />
       <label className="dk-select"><span className="sr-only">Categorie</span><select value={category} onChange={event => setCategory(event.target.value)}><option value="all">Orice categorie</option>{Object.entries(categories).map(([key, name]) => <option key={key} value={key}>{name}</option>)}</select></label>
       <button type="button" className="dk-btn is-ghost is-small" onClick={() => downloadCsv('sarcini', ['ID', 'Titlu', 'Categorie', 'Poster', 'Oraș', 'Început', 'Sumă (RON)', 'Stare'], rows.map(task => [task.id, task.title, task.category, task.poster_name, task.city, task.starts_at, task.amount_bani / 100, task.status]))}><DownloadSimpleIcon size={15} aria-hidden="true" />CSV</button>
+      <button type="button" className="dk-btn is-small" onClick={() => setAdding(true)}><PlusIcon size={14} aria-hidden="true" />Sarcină nouă</button>
     </Bar>
     {ids.length > 0 && <div className="dk-bulk" role="region" aria-label="Acțiuni în masă"><b>{ids.length} selectate</b><button type="button" className="dk-btn is-small is-danger" onClick={() => bulk(true)}>Ascunde</button><button type="button" className="dk-btn is-small is-ghost" onClick={() => bulk(false)}>Republică</button><button type="button" className="dk-link" onClick={() => setSel(new Set())}>Golește</button></div>}
     <DataTable label="Sarcini" rows={rows} columns={columns} rowKey={task => task.id} onOpen={task => desk.openTask(task.id)} selected={sel} onSelect={setSel} />
+    <CreateTaskDialog desk={desk} open={adding} onClose={() => setAdding(false)} />
   </div>;
 }
 
@@ -229,6 +236,7 @@ export function Applications({ desk }: P) {
     { key: 'msg', header: 'Mesaj', hideSm: true, cell: item => <span className="dk-clip" title={item.message}>{item.message}</span> },
     { key: 'status', header: 'Stare', sort: item => item.status, cell: item => <Pill value={item.status} /> },
     { key: 'when', header: 'Când', sort: item => item.created_at, numeric: true, cell: item => <span title={when(item.created_at)}>{ago(item.created_at)}</span> },
+    { key: 'act', header: '', cell: item => item.status === 'pending' ? <button type="button" className="dk-btn is-small" onClick={() => void desk.run(() => adminApi.acceptApplication(desk.token, item.id), 'Candidatura a fost acceptată.')}>Acceptă</button> : null },
   ];
   return <div className="dk-stack">
     <Bar>

@@ -1438,3 +1438,105 @@ func TestAdminDeskRoutes(t *testing.T) {
 		h.errorCode(status, body, 403, "forbidden", "Interzis.")
 	}
 }
+
+func TestAdminCreatesUsersAndTasks(t *testing.T) {
+	h := start(t)
+	status, _, body := h.do(http.MethodPost, "/v1/admin/users", "poster-1", map[string]any{
+		"role": "worker", "email": "desk@example.com", "password": "corect-cal", "display_name": "Desk Test", "birth_date": "2004-01-01",
+	}, true)
+	h.errorCode(status, body, 403, "forbidden", "Interzis.")
+
+	status, _, body = h.do(http.MethodPost, "/v1/admin/users", "admin-1", map[string]any{
+		"role": "poster", "email": "minor@example.com", "password": "corect-cal", "display_name": "Minor Poster", "birth_date": "2014-01-01",
+	}, true)
+	h.errorCode(status, body, 400, "invalid_input", "Sub 16 ani contul este doar pentru voluntariat.")
+
+	created := asMap(t, decode(t, func() []byte {
+		t.Helper()
+		status, _, raw := h.do(http.MethodPost, "/v1/admin/users", "admin-1", map[string]any{
+			"role": "worker", "email": "desk.worker@example.com", "password": "corect-cal", "display_name": "Lucrător Birou",
+			"phone_number": "0722000111", "birth_date": "2004-04-04", "identity_verified": true,
+		}, true)
+		if status != 201 {
+			t.Fatalf("create user %d %s", status, raw)
+		}
+		return raw
+	}()))
+	user := asMap(t, created["user"])
+	workerID := user["id"].(string)
+	if user["role"] != "worker" || user["identity_verified"] != true || user["phone_number"] != "+40722000111" {
+		t.Fatalf("created user %#v", user)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/auth/login", "", map[string]any{"email": "desk.worker@example.com", "password": "corect-cal"}, false)
+	if status != 200 || asMap(t, decode(t, body))["token"] == nil {
+		t.Fatalf("login %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/admin/users", "admin-1", map[string]any{
+		"role": "worker", "email": "desk.worker@example.com", "password": "corect-cal", "display_name": "Duplicat", "birth_date": "2004-04-04",
+	}, true)
+	h.errorCode(status, body, 409, "duplicate_email", "Există deja un cont cu acest email.")
+
+	taskBody := cloneMap(t, "create-task-request.json")
+	taskBody["poster_id"] = "poster-1"
+	taskBody["title"] = "Sarcină din birou"
+	status, _, body = h.do(http.MethodPost, "/v1/admin/tasks", "admin-1", taskBody, true)
+	if status != 201 {
+		t.Fatalf("create task %d %s", status, body)
+	}
+	task := asMap(t, asMap(t, decode(t, body))["task"])
+	taskID := task["id"].(string)
+	if task["poster_id"] != "poster-1" || task["title"] != "Sarcină din birou" || task["status"] != "open" {
+		t.Fatalf("created task %#v", task)
+	}
+
+	taskBody["title"] = "Sarcină corectată"
+	status, _, body = h.do(http.MethodPut, "/v1/admin/tasks/"+taskID, "admin-1", taskBody, true)
+	if status != 200 || asMap(t, asMap(t, decode(t, body))["task"])["title"] != "Sarcină corectată" {
+		t.Fatalf("edit task %d %s", status, body)
+	}
+
+	status, _, body = h.do(http.MethodPost, "/v1/admin/tasks/"+taskID+"/assign", "admin-1", map[string]any{"worker_id": "worker-1"}, true)
+	assigned := asMap(t, asMap(t, decode(t, body))["task"])
+	if status != 200 || assigned["status"] != "assigned" || assigned["assignee_id"] != "worker-1" {
+		t.Fatalf("assign %d %#v %s", status, assigned, body)
+	}
+	status, _, body = h.do(http.MethodPut, "/v1/admin/tasks/"+taskID, "admin-1", taskBody, true)
+	h.errorCode(status, body, 409, "task_locked", "Poți modifica doar un anunț deschis, fără persoană acceptată sau plată blocată.")
+
+	minorRaw := func() []byte {
+		t.Helper()
+		status, _, raw := h.do(http.MethodPost, "/v1/admin/users", "admin-1", map[string]any{
+			"role": "worker", "email": "minor.worker@example.com", "password": "corect-cal", "display_name": "Minor Lucrător",
+			"birth_date": "2014-01-01", "guardian_email": "tutore@example.com",
+		}, true)
+		if status != 201 {
+			t.Fatalf("minor %d %s", status, raw)
+		}
+		return raw
+	}()
+	minorID := asMap(t, asMap(t, decode(t, minorRaw))["user"])["id"].(string)
+	second := cloneMap(t, "create-task-request.json")
+	second["poster_id"] = "poster-1"
+	second["title"] = "A doua sarcină"
+	status, _, body = h.do(http.MethodPost, "/v1/admin/tasks", "admin-1", second, true)
+	if status != 201 {
+		t.Fatalf("second task %d %s", status, body)
+	}
+	secondID := asMap(t, asMap(t, decode(t, body))["task"])["id"].(string)
+	status, _, body = h.do(http.MethodPost, "/v1/admin/tasks/"+secondID+"/assign", "admin-1", map[string]any{"worker_id": minorID}, true)
+	h.errorCode(status, body, 403, "volunteer_only", "Sub 16 ani poți participa doar la voluntariat, fără plată.")
+
+	status, applied := h.apply(secondID, "Pot ajunge din aplicație.")
+	if status != 201 {
+		t.Fatalf("apply %d %s", status, applied)
+	}
+	appID := asMap(t, asMap(t, decode(t, applied))["application"])["id"].(string)
+	status, _, body = h.do(http.MethodPost, "/v1/admin/applications/"+appID+"/accept", "admin-1", map[string]any{}, true)
+	accepted := asMap(t, asMap(t, decode(t, body))["task"])
+	if status != 200 || accepted["status"] != "assigned" || accepted["assignee_id"] != "worker-1" {
+		t.Fatalf("accept %d %#v %s", status, accepted, body)
+	}
+	if workerID == "" {
+		t.Fatal("missing created worker")
+	}
+}

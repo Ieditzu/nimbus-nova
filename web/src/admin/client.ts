@@ -1,6 +1,6 @@
 import { NovaError } from '../api/client';
 import { apiBaseUrl } from '../api/instance';
-import type { ApplicationView, Profile, Review, TaskPublic } from '../api/types';
+import type { ApplicationView, CreateTaskRequest, Profile, Review, TaskPublic } from '../api/types';
 
 export type AdminUser = {
   id: string;
@@ -220,6 +220,15 @@ export const adminApi = {
   updateProfile: (token: string, userId: string, profile: { skills: string[]; city: string; availability: string; bio: string }) =>
     call<AdminUserDetail>(token, `/v1/admin/users/${id(userId)}/profile`, { method: 'PUT', body: JSON.stringify(profile) }),
   setUserPassword: (token: string, userId: string, password: string) => post(token, `/v1/admin/users/${id(userId)}/password`, { password }),
+  createUser: (token: string, body: { role: string; email: string; password: string; display_name: string; phone_number: string; birth_date: string; guardian_email: string; identity_verified: boolean }) =>
+    call<{ user: AdminUser & { phone_number: string; birth_date: string; identity_verified: boolean } }>(token, '/v1/admin/users', { method: 'POST', body: JSON.stringify(body) }),
+  createTask: (token: string, body: CreateTaskRequest & { poster_id: string }) =>
+    call<{ task: TaskPublic }>(token, '/v1/admin/tasks', { method: 'POST', body: JSON.stringify(body) }),
+  updateTask: (token: string, taskId: string, body: CreateTaskRequest) =>
+    call<{ task: TaskPublic }>(token, `/v1/admin/tasks/${id(taskId)}`, { method: 'PUT', body: JSON.stringify(body) }),
+  assignTask: (token: string, taskId: string, workerId: string) =>
+    call<{ task: TaskPublic }>(token, `/v1/admin/tasks/${id(taskId)}/assign`, { method: 'POST', body: JSON.stringify({ worker_id: workerId }) }),
+  acceptApplication: (token: string, applicationId: string) => post<{ task: TaskPublic }>(token, `/v1/admin/applications/${id(applicationId)}/accept`),
   tasks: (token: string) => call<{ tasks: TaskPublic[] }>(token, '/v1/admin/tasks'),
   task: (token: string, taskId: string) => call<AdminTaskDetail>(token, `/v1/admin/tasks/${id(taskId)}`),
   hideTask: (token: string, taskId: string) => post(token, `/v1/admin/tasks/${id(taskId)}/hide`),

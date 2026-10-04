@@ -1,11 +1,12 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { EyeIcon, EyeSlashIcon, PencilSimpleIcon, PlayIcon, ProhibitIcon, SignOutIcon, TrashIcon } from '@phosphor-icons/react';
-import type { TaskPublic } from '../api/types';
+import { EyeIcon, EyeSlashIcon, PencilSimpleIcon, PlayIcon, ProhibitIcon, SignOutIcon, TrashIcon, UserPlusIcon } from '@phosphor-icons/react';
+import { toRfc3339 } from '../api/client';
+import type { Category, JobType, TaskPublic } from '../api/types';
 import { errorMessage, formatInterval } from '../lib/format';
 import { categories } from '../lib/labels';
 import { adminApi, type AdminLog, type AdminNote } from './client';
 import type { Desk } from './desk';
-import { actionLabel, ago, money, roleLabel, statusLabel, when } from './format';
+import { actionLabel, ago, leiToBani, money, roleLabel, statusLabel, when } from './format';
 import { Avatar, Dialog, Field, Pill } from './ui';
 import type { AdminUserDetail } from './client';
 
@@ -246,10 +247,66 @@ export function UserDrawer({ desk, id, onClose }: { desk: Desk; id: string; onCl
   </Dialog>;
 }
 
-/* -------------------------------------------------------------------- task */
+function AssignTask({ desk, taskId, amount, onDone }: { desk: Desk; taskId: string; amount: number; onDone: () => void }) {
+  const workers = desk.data.users.filter(user => user.role === 'worker' && user.status === 'active' && (amount === 0 || !user.volunteer_only));
+  const [workerId, setWorkerId] = useState(workers[0]?.id ?? '');
+  return <form className="dk-form dk-block" onSubmit={event => {
+    event.preventDefault();
+    if (!workerId) return;
+    void desk.run(async () => { await adminApi.assignTask(desk.token, taskId, workerId); onDone(); }, 'Sarcina a fost atribuită.');
+  }}>
+    <h3>Atribuie un lucrător</h3>
+    <Field label="Lucrător" hint={workers.length === 0 ? 'Niciun lucrător activ potrivit.' : 'Candidatura se acceptă și contractul se semnează din birou.'}>
+      <select value={workerId} onChange={event => setWorkerId(event.target.value)}>
+        {workers.length === 0 && <option value="">Niciun lucrător</option>}
+        {workers.map(user => <option key={user.id} value={user.id}>{user.display_name}</option>)}
+      </select>
+    </Field>
+    <button type="submit" className="dk-btn is-small" disabled={!workerId}><UserPlusIcon size={14} aria-hidden="true" />Atribuie</button>
+  </form>;
+}
+
+function EditTask({ desk, task, onDone }: { desk: Desk; task: TaskPublic; onDone: () => void }) {
+  const [form, setForm] = useState({
+    title: task.title, category: task.category, city: task.city, job_type: task.job_type || 'short_term',
+    amount: String(task.amount_bani / 100), description: task.description, safety_note: task.safety_note,
+    starts_at: task.starts_at.slice(0, 16), ends_at: task.ends_at.slice(0, 16),
+  });
+  const set = (key: keyof typeof form) => (event: { target: { value: string } }) => setForm(current => ({ ...current, [key]: event.target.value }));
+  const volunteer = form.job_type === 'volunteer';
+  return <form className="dk-form dk-block" onSubmit={event => {
+    event.preventDefault();
+    const amount = volunteer ? 0 : leiToBani(form.amount);
+    if (!volunteer && (!Number.isFinite(amount) || amount <= 0)) return;
+    void desk.run(() => adminApi.updateTask(desk.token, task.id, {
+      title: form.title.trim(), category: form.category as Category, city: form.city.trim(), job_type: form.job_type as JobType,
+      starts_at: toRfc3339(form.starts_at), ends_at: toRfc3339(form.ends_at), amount_bani: amount,
+      description: form.description.trim(), safety_note: form.safety_note.trim(),
+    }), 'Sarcina a fost actualizată.').then(ok => { if (ok) onDone(); });
+  }}>
+    <h3>Modifică sarcina</h3>
+    <Field label="Titlu"><input value={form.title} onChange={set('title')} maxLength={80} required /></Field>
+    <div className="dk-form-row">
+      <Field label="Categorie"><select value={form.category} onChange={set('category')}>{Object.entries(categories).map(([key, name]) => <option key={key} value={key}>{name}</option>)}</select></Field>
+      <Field label="Tip"><select value={form.job_type} onChange={set('job_type')}><option value="short_term">Termen scurt</option><option value="long_term">Termen lung</option><option value="volunteer">Voluntariat</option></select></Field>
+    </div>
+    <div className="dk-form-row">
+      <Field label="Oraș"><input value={form.city} onChange={set('city')} maxLength={80} required /></Field>
+      <Field label="Sumă (RON)"><input inputMode="decimal" value={volunteer ? '0' : form.amount} onChange={set('amount')} disabled={volunteer} /></Field>
+    </div>
+    <div className="dk-form-row">
+      <Field label="Începe"><input type="datetime-local" value={form.starts_at} onChange={set('starts_at')} required /></Field>
+      <Field label="Se termină"><input type="datetime-local" value={form.ends_at} onChange={set('ends_at')} required /></Field>
+    </div>
+    <Field label="Descriere"><textarea rows={3} maxLength={500} value={form.description} onChange={set('description')} required /></Field>
+    <Field label="Notă de siguranță"><input value={form.safety_note} onChange={set('safety_note')} maxLength={200} /></Field>
+    <button type="submit" className="dk-btn is-small">Salvează</button>
+  </form>;
+}
 
 export function TaskDrawer({ desk, id, onClose }: { desk: Desk; id: string; onClose: () => void }) {
   const [tick, setTick] = useState(0);
+  const [editing, setEditing] = useState(false);
   const { data: detail, error } = useDetail(() => adminApi.task(desk.token, id), [id, desk.data, tick]);
   const task = detail?.task;
 
@@ -272,8 +329,11 @@ export function TaskDrawer({ desk, id, onClose }: { desk: Desk; id: string; onCl
         <strong className="dk-hero-amount">{money(task.amount_bani)}</strong>
       </header>
       <div className="dk-actions">
+        {task.status === 'open' && <button type="button" className="dk-btn is-small" onClick={() => setEditing(value => !value)}><PencilSimpleIcon size={14} aria-hidden="true" />{editing ? 'Închide editarea' : 'Modifică'}</button>}
         <button type="button" className={`dk-btn is-small ${task.status === 'hidden' ? '' : 'is-danger-ghost'}`} onClick={toggle}>{task.status === 'hidden' ? <><EyeIcon size={14} aria-hidden="true" />Arată în feed</> : <><EyeSlashIcon size={14} aria-hidden="true" />Ascunde din feed</>}</button>
       </div>
+      {task.status === 'open' && editing && <EditTask key={tick} desk={desk} task={task} onDone={() => { setEditing(false); setTick(value => value + 1); }} />}
+      {task.status === 'open' && !task.assignee_id && <AssignTask desk={desk} taskId={id} amount={task.amount_bani} onDone={() => setTick(value => value + 1)} />}
       <Facts rows={[
         ['Poster', <button key="p" type="button" className="dk-link" onClick={() => desk.openUser(task.poster_id)}>{task.poster_name}</button>],
         ['Atribuită', task.assignee_id ? <button key="a" type="button" className="dk-link" onClick={() => desk.openUser(task.assignee_id as string)}>{task.assignee_name}</button> : '—'],

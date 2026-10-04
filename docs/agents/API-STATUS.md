@@ -59,6 +59,11 @@
 | `GET /v1/admin/users` | live | admin |
 | `POST /v1/admin/users/{id}/suspend` | live | admin |
 | `POST /v1/admin/users/{id}/activate` | live | admin |
+| `POST /v1/admin/users` | live | admin |
+| `POST /v1/admin/tasks` | live | admin |
+| `PUT /v1/admin/tasks/{id}` | live | admin |
+| `POST /v1/admin/tasks/{id}/assign` | live | admin |
+| `POST /v1/admin/applications/{id}/accept` | live | admin |
 | `GET /v1/admin/logs` | live | admin |
 | `GET /v1/admin/disputes` | live | admin |
 | `POST /v1/admin/tasks/{id}/unhide` | live | admin |
