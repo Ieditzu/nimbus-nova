@@ -126,8 +126,22 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListTasks(w http.ResponseWriter, r *http.Request) {
+	jobType := strings.TrimSpace(r.URL.Query().Get("job_type"))
+	if jobType != "" && jobType != "short_term" && jobType != "long_term" && jobType != "volunteer" {
+		writeAppError(w, invalidInput("Alege un tip de job valid."))
+		return
+	}
 	category := strings.TrimSpace(r.URL.Query().Get("category"))
 	city := strings.TrimSpace(r.URL.Query().Get("city"))
+	county := strings.TrimSpace(r.URL.Query().Get("county"))
+	localityID := strings.TrimSpace(r.URL.Query().Get("locality_id"))
+	if localityID != "" {
+		place, ok := romanianLocalities[localityID]
+		if !ok || (county != "" && place.County != county) || (city != "" && place.City != city) {
+			writeAppError(w, invalidInput("Alege județul și localitatea corectă din listă."))
+			return
+		}
+	}
 	sector := strings.TrimSpace(r.URL.Query().Get("sector"))
 	if category != "" && !knownCategory(category) {
 		writeAppError(w, invalidInput(msgCategory))
@@ -146,6 +160,22 @@ func (s *Server) handleListTasks(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.writeErr(w, err)
 		return
+	}
+	if county != "" || localityID != "" || jobType != "" {
+		filtered := []TaskPublic{}
+		for _, task := range tasks {
+			effectiveType := task.JobType
+			if effectiveType == "" {
+				effectiveType = "short_term"
+				if task.AmountBani == 0 {
+					effectiveType = "volunteer"
+				}
+			}
+			if (jobType == "" || effectiveType == jobType) && (county == "" || task.County == county) && (localityID == "" || task.LocalityID == localityID) {
+				filtered = append(filtered, task)
+			}
+		}
+		tasks = filtered
 	}
 	writeJSON(w, http.StatusOK, struct {
 		Tasks []TaskPublic `json:"tasks"`

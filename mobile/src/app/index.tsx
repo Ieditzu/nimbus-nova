@@ -5,13 +5,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { api } from "../api";
 import { formatBani } from "../api/client";
-import type { Category, TaskPublic } from "../api/types";
-import { categories, categoryLabel, jobTypeLabel, schedule } from "../lib/labels";
+import type { JobType, TaskPublic } from "../api/types";
+import { jobCategories, categoryLabel, jobTypeLabel, schedule } from "../lib/labels";
 import {
   Button,
   Header,
@@ -21,23 +20,25 @@ import {
   Sticker,
   useData,
 } from "../components/ui";
+import { LocationField } from "../components/location-field";
 import { fonts, useTheme, type Colors } from "../components/theme";
 
-const filterLabels: Record<Category, string> = {
-  event_setup: "Evenimente",
-  light_moving: "Mutări ușoare",
-  shop_cover: "Magazine",
-  other: "Altele",
+const filterLabels: Record<JobType, string> = {
+  short_term: "Termen scurt",
+  long_term: "Termen lung",
+  volunteer: "Voluntariat",
 };
 export default function TaskListScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const s = styles(colors);
-  const [category, setCategory] = useState<Category | undefined>();
-  const [city, setCity] = useState("București");
-  const [appliedCity, setAppliedCity] = useState("București");
+  const [category, setCategory] = useState<JobType | undefined>();
+  const [county, setCounty] = useState("");
+  const [city, setCity] = useState("");
+  const [localityId, setLocalityId] = useState("");
+  const [applied, setApplied] = useState({ county: "", city: "", locality_id: "" });
   const load = useCallback(
-    () => api.listOpenTasks({ category, city: appliedCity }),
-    [category, appliedCity],
+    () => api.listOpenTasks({ job_type: category, ...applied }),
+    [category, applied],
   );
   const { data, loading, error, reload } = useData(load);
   const [refreshing, setRefreshing] = useState(false);
@@ -47,9 +48,8 @@ export default function TaskListScreen() {
     setRefreshing(false);
   }
   function search() {
-    const next = city.trim();
-    if (next === appliedCity) void reload();
-    else setAppliedCity(next);
+    if (county === applied.county && city === applied.city && localityId === applied.locality_id) void reload();
+    else setApplied({ county, city, locality_id: localityId });
   }
   return (
     <Page onRefresh={() => void refresh()} refreshing={refreshing}>
@@ -59,36 +59,14 @@ export default function TaskListScreen() {
         subtitle="Alege ce poți face. Câștigă în timpul tău."
       />
       <View style={s.searchSection}>
-        <Text style={s.label}>Oraș</Text>
+        <LocationField county={county} city={city} disabled={false} onChange={(nextCounty, nextCity, nextId) => {
+          setCounty(nextCounty); setCity(nextCity); setLocalityId(nextId);
+        }} />
         <View style={s.searchRow}>
-          <View style={s.searchBox}>
-            <Icon name="location-outline" />
-            <TextInput
-              accessibilityLabel="Oraș"
-              placeholder="Toate orașele"
-              placeholderTextColor={colors.muted}
-              keyboardAppearance={isDark ? "dark" : "light"}
-              value={city}
-              onChangeText={setCity}
-              onSubmitEditing={search}
-              returnKeyType="search"
-              style={s.searchInput}
-            />
-            {city ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Șterge orașul"
-                onPress={() => {
-                  setCity("");
-                  setAppliedCity("");
-                }}
-                style={s.clear}
-              >
-                <Icon name="close-circle-outline" size={20} />
-              </Pressable>
-            ) : null}
-          </View>
-          <Button onPress={search}>Caută</Button>
+          <View style={{ flex: 1 }}><Button onPress={search}>Caută sarcini</Button></View>
+          {county || applied.county ? <Button variant="outline" onPress={() => {
+            setCounty(""); setCity(""); setLocalityId(""); setApplied({ county: "", city: "", locality_id: "" });
+          }}>Toată țara</Button> : null}
         </View>
       </View>
       <ScrollView
@@ -96,7 +74,7 @@ export default function TaskListScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={s.filters}
       >
-        {[undefined, ...categories].map((value) => (
+        {[undefined, ...jobCategories].map((value) => (
           <Pressable
             key={value ?? "all"}
             accessibilityRole="button"
@@ -150,7 +128,8 @@ export default function TaskListScreen() {
             onPress={() => {
               setCategory(undefined);
               setCity("");
-              setAppliedCity("");
+              setCounty(""); setLocalityId("");
+              setApplied({ county: "", city: "", locality_id: "" });
             }}
           >
             Șterge filtrele
@@ -221,35 +200,9 @@ function TaskCard({ task }: { task: TaskPublic }) {
 }
 const styles = (c: Colors) =>
   StyleSheet.create({
-    searchSection: { gap: 8 },
+    searchSection: { gap: 16, backgroundColor: c.surface, borderRadius: 24, padding: 20 },
     label: { fontFamily: fonts.bold, color: c.text, fontSize: 14 },
     searchRow: { flexDirection: "row", gap: 8 },
-    searchBox: {
-      flex: 1,
-      minHeight: 50,
-      flexDirection: "row",
-      alignItems: "center",
-      paddingLeft: 12,
-      borderWidth: 1,
-      borderColor: c.border,
-      borderRadius: 999,
-      backgroundColor: c.surface,
-      gap: 6,
-    },
-    searchInput: {
-      fontFamily: fonts.body,
-      flex: 1,
-      minWidth: 0,
-      color: c.text,
-      fontSize: 16,
-      paddingVertical: 12,
-    },
-    clear: {
-      minWidth: 44,
-      minHeight: 44,
-      alignItems: "center",
-      justifyContent: "center",
-    },
     filters: { gap: 8 },
     filter: {
       minHeight: 44,

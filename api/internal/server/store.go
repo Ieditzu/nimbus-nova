@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"math"
 	"net/url"
+	"os"
 	"strings"
 
 	_ "modernc.org/sqlite"
@@ -332,6 +333,9 @@ func insertSeed(ctx context.Context, ex execer) error {
 		return err
 	}
 	for _, t := range seedTasks() {
+		if os.Getenv("NOVA_DEMO") != "1" {
+			break
+		}
 		if _, err := ex.ExecContext(ctx, `INSERT INTO tasks (
 			id, poster_id, title, category, city, starts_at, ends_at, amount_bani, description, safety_note, status, assignee_id, created_at
 		) VALUES (?, 'poster-1', ?, ?, ?, ?, ?, ?, ?, ?, 'open', NULL, ?)`,

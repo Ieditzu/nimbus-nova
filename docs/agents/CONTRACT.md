@@ -168,3 +168,7 @@ Account age policy: `volunteer_only` means under 16, computed from the verified 
 Job types: optional `job_type` (`short_term`, `long_term`, `volunteer`) is accepted by `CreateTaskRequest` and returned in `TaskPublic` when set. The existing `category` field and its four values remain compatible. Volunteer requests require `amount_bani: 0`; new paid categories require a positive amount. Long-term jobs accept start/end periods up to 365 days; other categories retain the 12-hour limit. No request fields are renamed.
 
 Location selection adds optional `county` (canonical county name) and `locality_id` (SIRUTA code as a string) to `CreateTaskRequest` and `TaskPublic`. When provided, the API checks the county/city/code against the bundled INS SIRUTA S1 2026 list. Both fields remain absent on legacy public tasks with empty values. Source: https://data.gov.ro/dataset/siruta_s1-2026 (CC BY 4.0).
+
+`GET /v1/tasks` also accepts optional `county` and `locality_id` filters. They match canonical stored county names and SIRUTA IDs; existing city/category filters remain compatible. A locality code must exist and agree with a supplied county/city. Omitting location filters lists all open tasks.
+
+`GET /v1/tasks?job_type=short_term|long_term|volunteer` filters by job type. Legacy rows without `job_type` are treated as volunteer when free, otherwise short-term. Omit `job_type` for all types; the old `category` filter remains available.

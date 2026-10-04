@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 )
@@ -35,6 +36,14 @@ func New(dbPath string) (*Server, error) {
 	if err := st.SeedIfEmpty(); err != nil {
 		_ = st.Close()
 		return nil, err
+	}
+	// Retire only the two built-in demo listings on existing production databases.
+	// Keep dependent applications and conversations intact.
+	if os.Getenv("NOVA_DEMO") != "1" {
+		if _, err := st.db.Exec(`UPDATE tasks SET status='hidden' WHERE poster_id='poster-1' AND id IN ('task_seed_event_setup', 'task_seed_shop_cover') AND status!='hidden'`); err != nil {
+			_ = st.Close()
+			return nil, err
+		}
 	}
 	email, password := adminEmailFromEnv()
 	if err := st.EnsureAdmin(email, password); err != nil {
