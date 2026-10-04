@@ -1,4 +1,6 @@
 @import '@fontsource/anton/latin-400.css';
+@import '@fontsource/anton/latin-ext-400.css';
+@import '@fontsource/anton/vietnamese-400.css';
 
 /* Nova desk. Same sticker-on-paper language as the phone app and download page:
    flat pastels, 1px ink outlines, Anton display type, no shadows, no gradients in chrome. */
