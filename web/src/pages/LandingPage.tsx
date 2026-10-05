@@ -153,7 +153,7 @@ const faq = [
   { q: 'Cât costă?', a: `Publici gratuit. Când sarcina e plătită, Nova își ia ${FEE_PERCENT}% din suma propusă, iar restul ajunge la lucrător. Poți vedea calculul mai sus.` },
   { q: 'Ce fel de sarcini sunt permise?', a: 'Sarcini scurte, de cel mult 12 ore, în spații publice: amenajări de evenimente, mutat obiecte ușoare, acoperire într-un stand sau magazin. Fără numerar, fără acces la domiciliu și fără condus.' },
   { q: 'Ce fac dacă ceva nu merge bine?', a: 'Deschide o dispută din sarcina respectivă. Un moderator Nova citește ambele părți și propune o soluție.' },
-  { q: 'Pot participa și cei sub 16 ani?', a: 'Da, la voluntariat, fără plată și cu emailul unui tutore. De la 16 ani poți face și sarcini plătite.' },
+  { q: 'Pot participa și cei sub 16 ani?', a: 'Politica Nova limitează conturile sub 16 ani la activități de voluntariat, fără plată și cu implicarea tutorelui. Înscrierea actuală cere însă verificarea unui CI/CEI românesc; conturile pentru copiii care nu au un astfel de act nu sunt încă disponibile.' },
 ];
 
 /* -------------------------------------------------------------------- page */

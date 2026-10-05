@@ -163,6 +163,17 @@ CI CNP reading normalizes whitespace, separators and MRZ padding without guessin
 
 Authenticated conversation responses include `other_user.phone_number` for the other participant. It is not exposed on public task lists, details, or account directories. Existing conversation membership checks apply.
 
+### Messaging and push notifications
+
+Creating a new `POST /v1/tasks/{id}/conversations` thread writes a `job_interest` notification for the other participant and sends an Expo push to their registered devices. Sending each message writes a `new_message` notification for the other participant and sends a generic push; message text and phone numbers are never included in the push payload. Reopening an existing thread does not send another interest notification.
+
+- `POST /v1/me/push-token` requires a signed-in account with a completed phone and `{ "expo_push_token": "ExponentPushToken[...]" }` or `ExpoPushToken[...]`. It registers or reassigns that device token to the current account.
+- `DELETE /v1/me/push-token` accepts the same body and removes that device for the current account.
+- `GET /v1/me/notification-preferences` returns `{ "daily_nearby_enabled": boolean, "city": string }`.
+- `PUT /v1/me/notification-preferences` accepts `{ "daily_nearby_enabled": boolean }`. Enabling requires a city in the user's saved profile. It opts into at most one nearby digest per local day, at 09:00 Europe/Bucharest, for open jobs created in the preceding 24 hours whose city matches the saved profile city. It is city matching, not a GPS radius. The user can disable it at any time.
+
+Native delivery uses Expo Push Service. A production EAS project, APNs/FCM credentials, and a rebuilt Nova binary are required. Expo Go is unsupported. Browser push is not implemented; web notification permission alone does not register a remote subscription.
+
 Account age policy: `volunteer_only` means under 16, computed from the verified birth date on registration, login and session reads. Ages 16–17 may publish and apply to paid jobs. Under 16 requires a guardian email and is restricted to unpaid volunteering; paid application and acceptance are rejected server-side. Zero-amount jobs are stored as volunteer jobs.
 
 Job types: optional `job_type` (`short_term`, `long_term`, `volunteer`) is accepted by `CreateTaskRequest` and returned in `TaskPublic` when set. The existing `category` field and its four values remain compatible. Volunteer requests require `amount_bani: 0`; new paid categories require a positive amount. Long-term jobs accept start/end periods up to 365 days; other categories retain the 12-hour limit. No request fields are renamed.

@@ -96,6 +96,10 @@ func TestConversationMembershipMessagesAndHistory(t *testing.T) {
 		t.Fatalf("start %d %s", status, raw)
 	}
 	chat := asMap(t, asMap(t, decode(t, raw))["conversation"])["id"].(string)
+	var interestNotifs int
+	if err := h.DB.QueryRow(`SELECT COUNT(*) FROM notifications WHERE user_id=? AND kind='job_interest' AND task_id=?`, owner, task).Scan(&interestNotifs); err != nil || interestNotifs != 1 {
+		t.Fatalf("interest notification count=%d err=%v", interestNotifs, err)
+	}
 	// Repeated/concurrent opens are the same thread.
 	var wg sync.WaitGroup
 	for i := 0; i < 5; i++ {
@@ -133,6 +137,10 @@ func TestConversationMembershipMessagesAndHistory(t *testing.T) {
 			t.Fatalf("send %d %s", status, raw)
 		}
 	}
+	var messageNotifs int
+	if err := h.DB.QueryRow(`SELECT COUNT(*) FROM notifications WHERE kind='new_message' AND user_id IN (?,?)`, owner, peer).Scan(&messageNotifs); err != nil || messageNotifs != 105 {
+		t.Fatalf("message notification count=%d err=%v", messageNotifs, err)
+	}
 	status, raw = h.doBearer(http.MethodGet, "/v1/conversations/"+chat+"/messages", peerToken, nil)
 	page := asMap(t, decode(t, raw))
 	messages := page["messages"].([]any)
@@ -169,6 +177,34 @@ func TestConversationMembershipMessagesAndHistory(t *testing.T) {
 	status, _, _ = h.do(http.MethodGet, "/v1/me/conversations", "worker-1", nil, true)
 	if status != 401 {
 		t.Fatalf("demo impersonation %d", status)
+	}
+}
+
+func TestPushTokenAndNearbyPreference(t *testing.T) {
+	h := start(t)
+	id, token := account(t, h, "push@example.test", "+40712345678")
+	status, raw := h.doBearer(http.MethodPost, "/v1/me/push-token", token, map[string]any{"expo_push_token": "invalid-token"})
+	if status != 400 {
+		t.Fatalf("invalid push token %d %s", status, raw)
+	}
+	status, raw = h.doBearer(http.MethodPost, "/v1/me/push-token", token, map[string]any{"expo_push_token": "ExponentPushToken[test-token]"})
+	if status != 200 {
+		t.Fatalf("push token %d %s", status, raw)
+	}
+	status, raw = h.doBearer(http.MethodPut, "/v1/me/notification-preferences", token, map[string]any{"daily_nearby_enabled": true})
+	if status != 400 {
+		t.Fatalf("missing city %d %s", status, raw)
+	}
+	if _, err := h.DB.Exec(`INSERT INTO profiles(user_id,skills_json,city,availability,bio) VALUES(?,'[]','Cluj-Napoca','','') ON CONFLICT(user_id) DO UPDATE SET city=excluded.city`, id); err != nil {
+		t.Fatal(err)
+	}
+	status, raw = h.doBearer(http.MethodPut, "/v1/me/notification-preferences", token, map[string]any{"daily_nearby_enabled": true})
+	if status != 200 || !strings.Contains(string(raw), `"daily_nearby_enabled":true`) {
+		t.Fatalf("enable nearby %d %s", status, raw)
+	}
+	status, raw = h.doBearer(http.MethodGet, "/v1/me/notification-preferences", token, nil)
+	if status != 200 || !strings.Contains(string(raw), "Cluj-Napoca") || !strings.Contains(string(raw), `"daily_nearby_enabled":true`) {
+		t.Fatalf("get nearby %d %s", status, raw)
 	}
 }
 

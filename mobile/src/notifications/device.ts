@@ -18,4 +18,12 @@ export async function initializeNotifications(): Promise<Permission> {
   const result = await notifications.requestPermissionsAsync({ ios: { allowAlert: true, allowBadge: true, allowSound: true } });
   return result.granted || result.ios?.status === notifications.IosAuthorizationStatus.PROVISIONAL ? "granted" : result.canAskAgain ? "default" : "denied";
 }
+export async function expoPushToken(): Promise<string> {
+  if (Constants.executionEnvironment === "storeClient" || Platform.OS === "web") throw new Error(unsupportedHint);
+  const notifications = await import("expo-notifications");
+  const projectId = Constants.easConfig?.projectId ?? Constants.expoConfig?.extra?.eas?.projectId;
+  if (!projectId) throw new Error("Push-ul Nova nu este configurat pentru acest build.");
+  const result = await notifications.getExpoPushTokenAsync({ projectId });
+  return result.data;
+}
 export const unsupportedHint = "Notificările se configurează în aplicația instalată, într-un build propriu Nova. Expo Go nu acceptă push.";

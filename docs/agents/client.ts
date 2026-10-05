@@ -37,6 +37,10 @@ export interface PublicAccount {
 
 export interface NovaClient {
   updatePhone(phone_number: string): Promise<{ user: PublicAccount }>;
+  registerPushToken(expo_push_token: string): Promise<{ ok: true }>;
+  deletePushToken(expo_push_token: string): Promise<{ ok: true }>;
+  getNotificationPreferences(): Promise<{ daily_nearby_enabled: boolean; city: string }>;
+  putNotificationPreferences(daily_nearby_enabled: boolean): Promise<{ daily_nearby_enabled: boolean; city: string }>;
   listConversations(): Promise<{ conversations: Conversation[] }>;
   startTaskConversation(taskId: string, participant_id?: string): Promise<{ conversation: Conversation }>;
   listMessages(id: string, after?: number, before?: number): Promise<MessagePage>;
@@ -106,6 +110,10 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
 
   return {
     updatePhone: (phone_number) => request("/v1/me/phone", { method: "PUT", body: JSON.stringify({ phone_number }) }),
+    registerPushToken: (expo_push_token) => request("/v1/me/push-token", { method: "POST", body: JSON.stringify({ expo_push_token }) }),
+    deletePushToken: (expo_push_token) => request("/v1/me/push-token", { method: "DELETE", body: JSON.stringify({ expo_push_token }) }),
+    getNotificationPreferences: () => request("/v1/me/notification-preferences"),
+    putNotificationPreferences: (daily_nearby_enabled) => request("/v1/me/notification-preferences", { method: "PUT", body: JSON.stringify({ daily_nearby_enabled }) }),
     listConversations: () => request("/v1/me/conversations"),
     startTaskConversation: (taskId, participant_id) => request(`/v1/tasks/${encodeURIComponent(taskId)}/conversations`, { method: "POST", body: JSON.stringify(participant_id ? { participant_id } : {}) }),
     listMessages: (id, after, before) => request(`/v1/conversations/${encodeURIComponent(id)}/messages${after !== undefined ? `?after=${after}` : before !== undefined ? `?before=${before}` : ""}`),

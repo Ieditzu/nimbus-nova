@@ -29,6 +29,10 @@ func New(dbPath string) (*Server, error) {
 		_ = st.Close()
 		return nil, err
 	}
+	if err := st.ensureNotificationTables(); err != nil {
+		_ = st.Close()
+		return nil, err
+	}
 	if err := st.ensureAdminExtras(); err != nil {
 		_ = st.Close()
 		return nil, err
@@ -72,6 +76,22 @@ func New(dbPath string) (*Server, error) {
 				return
 			case <-ticker.C:
 				st.pruneIdentityFiles()
+			}
+		}
+	}()
+	s.cleanup.Add(1)
+	go func() {
+		defer s.cleanup.Done()
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case now := <-ticker.C:
+				if now.In(zoneEEST).Hour() == 9 && now.In(zoneEEST).Minute() == 0 {
+					s.sendNearbyDigests(ctx, now)
+				}
 			}
 		}
 	}()

@@ -46,6 +46,10 @@
 | `GET /v1/admin/ledger` | live | admin |
 | `GET /v1/me/contracts` | live | phone |
 | `GET /v1/me/notifications` | live | both |
+| `POST /v1/me/push-token` | live | phone |
+| `DELETE /v1/me/push-token` | live | phone |
+| `GET /v1/me/notification-preferences` | live | phone |
+| `PUT /v1/me/notification-preferences` | live | phone |
 | `POST /v1/profiles/me/documents` | live | phone |
 | `GET /v1/partner/shifts` | live | later |
 | `POST /v1/partner/shifts` | live | later |

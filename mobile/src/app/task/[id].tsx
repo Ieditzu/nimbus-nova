@@ -136,7 +136,7 @@ export default function TaskDetailScreen() {
               disabled={busy}
               onPress={() => void openChat()}
             >
-              Trimite un mesaj
+              Sunt interesat(ă)
             </Button>
           ) : null}
           {actionError ? (

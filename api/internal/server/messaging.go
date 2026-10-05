@@ -107,6 +107,8 @@ func (s *Server) handleStartConversation(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	var id string
+	created := false
+	ownerForNotification := ""
 	err := s.store.withImmediate(func(ctx context.Context, conn *sql.Conn) error {
 		var owner, status string
 		if err := conn.QueryRowContext(ctx, `SELECT poster_id,status FROM tasks WHERE id=?`, r.PathValue("id")).Scan(&owner, &status); err != nil {
@@ -119,11 +121,13 @@ func (s *Server) handleStartConversation(w http.ResponseWriter, r *http.Request)
 			return errNotFound
 		}
 		peer := u.ID
+		ownerForNotification = owner
 		if u.ID == owner {
 			peer = strings.TrimSpace(body.ParticipantID)
 			if peer == "" || peer == owner {
 				return invalidInput("Alege persoana cu care vrei să discuți.")
 			}
+			ownerForNotification = peer
 		} else if strings.TrimSpace(body.ParticipantID) != "" {
 			return errForbidden
 		}
@@ -160,11 +164,22 @@ func (s *Server) handleStartConversation(w http.ResponseWriter, r *http.Request)
 		}
 		id = newID
 		_, err = conn.ExecContext(ctx, `INSERT INTO conversations(id,task_id,owner_id,peer_id,updated_at) VALUES(?,?,?,?,?)`, id, r.PathValue("id"), owner, peer, time.Now().UTC().Format(time.RFC3339Nano))
+		if err == nil {
+			created = true
+			notificationID, idErr := NewID("ntf_")
+			if idErr != nil {
+				return errInternal
+			}
+			_, err = conn.ExecContext(ctx, `INSERT INTO notifications(id,user_id,kind,task_id,read_at,created_at) VALUES(?,?,?, ?,NULL,?)`, notificationID, ownerForNotification, "job_interest", r.PathValue("id"), NowRFC3339())
+		}
 		return err
 	})
 	if err != nil {
 		s.writeErr(w, err)
 		return
+	}
+	if created && ownerForNotification != u.ID {
+		go s.pushUser(ownerForNotification, "Conversație nouă despre un job", "Deschide conversația ca să discutați detaliile.", map[string]string{"conversation_id": id, "task_id": r.PathValue("id"), "screen": "messages"})
 	}
 	c, err := s.store.conversationFor(id, u.ID)
 	if err != nil {
@@ -322,6 +337,7 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	message := ChatMessage{ID: id, ConversationID: r.PathValue("id"), SenderID: u.ID, Text: text, CreatedAt: time.Now().UTC().Format(time.RFC3339Nano)}
+	recipientID := ""
 	err = s.store.withImmediate(func(ctx context.Context, conn *sql.Conn) error {
 		var owner, peer, status string
 		err := conn.QueryRowContext(ctx, `SELECT c.owner_id,c.peer_id,t.status FROM conversations c JOIN tasks t ON t.id=c.task_id WHERE c.id=? AND (c.owner_id=? OR c.peer_id=?)`, message.ConversationID, u.ID, u.ID).Scan(&owner, &peer, &status)
@@ -341,6 +357,10 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 		if active != 2 {
 			return errForbidden
 		}
+		recipientID = peer
+		if recipientID == u.ID {
+			recipientID = owner
+		}
 		result, err := conn.ExecContext(ctx, `INSERT INTO chat_messages(id,conversation_id,sender_id,text,created_at) VALUES(?,?,?,?,?)`, message.ID, message.ConversationID, message.SenderID, message.Text, message.CreatedAt)
 		if err != nil {
 			return errInternal
@@ -350,11 +370,22 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 			return errInternal
 		}
 		_, err = conn.ExecContext(ctx, `UPDATE conversations SET updated_at=? WHERE id=?`, message.CreatedAt, message.ConversationID)
+		if err != nil {
+			return errInternal
+		}
+		notificationID, idErr := NewID("ntf_")
+		if idErr != nil {
+			return errInternal
+		}
+		_, err = conn.ExecContext(ctx, `INSERT INTO notifications(id,user_id,kind,task_id,read_at,created_at) VALUES(?,?,?,(SELECT task_id FROM conversations WHERE id=?),NULL,?)`, notificationID, recipientID, "new_message", message.ConversationID, message.CreatedAt)
 		return err
 	})
 	if err != nil {
 		s.writeErr(w, err)
 		return
+	}
+	if recipientID != "" {
+		go s.pushUser(recipientID, "Mesaj nou pe Nova", "Ai primit un mesaj nou despre un job.", map[string]string{"conversation_id": message.ConversationID, "screen": "messages"})
 	}
 	warning := s.flagOutgoing(u.ID, text)
 	writeJSON(w, http.StatusCreated, struct {

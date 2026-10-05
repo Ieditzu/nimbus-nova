@@ -11,7 +11,7 @@ import { useAuth } from "../auth/session";
 import { api } from "../api";
 import { formatBani } from "../api/client";
 import type { JobType, TaskPublic } from "../api/types";
-import { jobCategories, jobTypeLabel, schedule } from "../lib/labels";
+import { categoryLabel, jobCategories, jobTypeLabel, schedule } from "../lib/labels";
 import { errorMessage } from "../lib/errors";
 import {
   Button,
