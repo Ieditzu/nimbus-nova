@@ -15,7 +15,7 @@ export function notificationContent(kind: string): { title: string; body: string
     case "application_rejected": return { title: "Job atribuit", body: "Autorul a ales o altă persoană pentru acest job." };
     case "job_interest": return { title: "Cineva este interesat", body: "Ai o conversație nouă despre anunțul tău." };
     case "new_message": return { title: "Mesaj nou", body: "Ai primit un mesaj despre un job." };
-    case "task_completed": return { title: "Job finalizat", body: "Autorul a marcat jobul ca finalizat." };
+    case "task_completed": return { title: "Job finalizat", body: "Jobul s-a încheiat. Deschide-l și evaluează colaborarea." };
     case "task_cancelled": return { title: "Job anulat", body: "Jobul la care participai a fost anulat." };
     case "job_deleted": return { title: "Anunț șters", body: "Anunțul pentru care ai aplicat a fost șters." };
     case "dispute_opened": return { title: "Dispută deschisă", body: "A fost deschisă o dispută pentru acest job." };

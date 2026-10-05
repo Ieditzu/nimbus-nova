@@ -10,6 +10,7 @@ import { NovaError } from "../api/client";
 import type { Profile } from "../api/types";
 import { errorMessage } from "../lib/errors";
 import { Button, Header, Icon, Page, State, useData } from "../components/ui";
+import { LevelBadge } from "../components/review-card";
 import {
   fonts,
   useTheme,
@@ -132,6 +133,7 @@ function WorkerProfile() {
       <NotificationSettings />
       <Button variant="outline" icon="notifications-outline" onPress={() => router.push("/notifications")}>{unreadNotifications ? `Notificări (${unreadNotifications})` : "Vezi notificările"}</Button>
       <Text style={s.help}>Telefon: {session?.user.phone_number}</Text>
+      {session ? <LevelBadge userId={session.user.id} /> : null}
       <Button
         variant="outline"
         icon="call-outline"

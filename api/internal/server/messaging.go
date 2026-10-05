@@ -46,6 +46,14 @@ func (s *Store) ensureChatTables() error {
  text TEXT NOT NULL, created_at TEXT NOT NULL
  );
  CREATE INDEX IF NOT EXISTS chat_messages_thread ON chat_messages(conversation_id,sequence);`)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(`CREATE TABLE IF NOT EXISTS conversation_hidden (
+ conversation_id TEXT NOT NULL REFERENCES conversations(id),
+ user_id TEXT NOT NULL REFERENCES users(id),
+ PRIMARY KEY(conversation_id,user_id)
+ );`)
 	return err
 }
 func (s *Server) chatUser(r *http.Request) (User, *AppError) {
@@ -134,7 +142,8 @@ func (s *Server) handleStartConversation(w http.ResponseWriter, r *http.Request)
 		// A repeated tap opens the same thread, including after the job closes.
 		err := conn.QueryRowContext(ctx, `SELECT id FROM conversations WHERE task_id=? AND peer_id=?`, r.PathValue("id"), peer).Scan(&id)
 		if err == nil {
-			return nil
+			_, err = conn.ExecContext(ctx, `DELETE FROM conversation_hidden WHERE conversation_id=? AND user_id=?`, id, u.ID)
+			return err
 		}
 		if err != sql.ErrNoRows {
 			return errInternal
@@ -196,7 +205,7 @@ func (s *Server) handleConversations(w http.ResponseWriter, r *http.Request) {
 		writeAppError(w, ae)
 		return
 	}
-	rows, err := s.store.db.Query(`SELECT id FROM conversations WHERE owner_id=? OR peer_id=? ORDER BY updated_at DESC,id DESC LIMIT 100`, u.ID, u.ID)
+	rows, err := s.store.db.Query(`SELECT c.id FROM conversations c WHERE (c.owner_id=? OR c.peer_id=?) AND NOT EXISTS(SELECT 1 FROM conversation_hidden h WHERE h.conversation_id=c.id AND h.user_id=?) ORDER BY c.updated_at DESC,c.id DESC LIMIT 100`, u.ID, u.ID, u.ID)
 	if err != nil {
 		s.writeErr(w, err)
 		return
@@ -229,6 +238,23 @@ func (s *Server) handleConversations(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, struct {
 		Conversations []Conversation `json:"conversations"`
 	}{list})
+}
+func (s *Server) handleHideConversation(w http.ResponseWriter, r *http.Request) {
+	u, ae := s.chatUser(r)
+	if ae != nil {
+		writeAppError(w, ae)
+		return
+	}
+	id := r.PathValue("id")
+	if _, err := s.store.conversationFor(id, u.ID); err != nil {
+		s.writeErr(w, err)
+		return
+	}
+	if _, err := s.store.db.Exec(`INSERT OR IGNORE INTO conversation_hidden(conversation_id,user_id) VALUES(?,?)`, id, u.ID); err != nil {
+		s.writeErr(w, errInternal)
+		return
+	}
+	writeJSON(w, http.StatusOK, okBody{OK: true})
 }
 func (s *Server) handleMessages(w http.ResponseWriter, r *http.Request) {
 	u, ae := s.chatUser(r)
@@ -371,6 +397,9 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 		}
 		_, err = conn.ExecContext(ctx, `UPDATE conversations SET updated_at=? WHERE id=?`, message.CreatedAt, message.ConversationID)
 		if err != nil {
+			return errInternal
+		}
+		if _, err = conn.ExecContext(ctx, `DELETE FROM conversation_hidden WHERE conversation_id=?`, message.ConversationID); err != nil {
 			return errInternal
 		}
 		notificationID, idErr := NewID("ntf_")

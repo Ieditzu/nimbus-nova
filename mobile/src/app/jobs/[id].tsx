@@ -10,6 +10,7 @@ import {
 } from "../../lib/labels";
 import { errorMessage } from "../../lib/errors";
 import { hasLocation, taskMapsUrl } from "../../lib/geo";
+import { LevelBadge, ReviewCard } from "../../components/review-card";
 import {
   Badge,
   Button,
@@ -30,7 +31,8 @@ export default function ManageJobScreen() {
     if (task.poster_id !== session?.user.id)
       throw new Error("Acest anunț nu aparține contului tău.");
     const { applications } = await client.listTaskApplications(id);
-    return { task, applications };
+    const reviews = task.status === "completed" ? (await client.listReviews(id)).reviews : [];
+    return { task, applications, reviews };
   }, [id, client, session?.user.id]);
   const { data, loading, error, reload } = useData(load, 5000);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -97,6 +99,7 @@ export default function ManageJobScreen() {
             <Text style={s.price}>{data.task.amount_bani === 0 ? "Voluntariat" : formatBani(data.task.amount_bani)}</Text>
             <Text style={s.body}>{data.task.description}</Text>
           </View>
+          {data.task.status === "completed" && data.task.assignee_id ? <ReviewCard taskId={id} reviews={data.reviews} onSubmitted={reload} /> : null}
           <View style={s.card}>
             <Text style={s.title}>Locație</Text>
             <Text style={s.body}>{[data.task.sector, data.task.city, data.task.county ? `jud. ${data.task.county}` : ""].filter(Boolean).join(", ")}</Text>
@@ -138,6 +141,7 @@ export default function ManageJobScreen() {
                 <Text style={s.label}>{app.worker_name}</Text>
                 <Badge>{applicationStatusLabel[app.status]}</Badge>
               </View>
+              <LevelBadge userId={app.worker_id} />
               <Text style={s.body}>{app.skills.join(" · ")}</Text>
               <Text style={s.body}>{app.message}</Text>
               <Button

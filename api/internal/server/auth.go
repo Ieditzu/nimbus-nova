@@ -70,6 +70,10 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeAppError(w, ae)
 		return
 	}
+	if err := s.store.TouchGameDay(user.ID); err != nil {
+		s.writeErr(w, err)
+		return
+	}
 	writeJSON(w, http.StatusOK, struct {
 		Token string     `json:"token"`
 		User  publicUser `json:"user"`
@@ -97,6 +101,10 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := s.store.UserByToken(token)
 	if err != nil {
+		s.writeErr(w, err)
+		return
+	}
+	if err := s.store.TouchGameDay(user.ID); err != nil {
 		s.writeErr(w, err)
 		return
 	}

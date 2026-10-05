@@ -8,6 +8,7 @@ import { errorMessage } from "../../lib/errors";
 import { categoryLabel, jobTypeLabel, schedule, taskStatusLabel } from "../../lib/labels";
 import { Badge, Button, Icon, Page, State, useData } from "../../components/ui";
 import { TaskRoute } from "../../components/task-route";
+import { LevelBadge, ReviewCard } from "../../components/review-card";
 import { hasLocation, taskMapsUrl } from "../../lib/geo";
 import { fonts, useTheme, type Colors } from "../../components/theme";
 
@@ -18,10 +19,11 @@ export default function TaskDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   // The signed-in client sends the token, so the accepted worker gets exact coordinates.
   const token = session?.token;
-  const load = useCallback(
-    () => (token ? client.getTask(id) : api.getTask(id)),
-    [id, token, client],
-  );
+  const load = useCallback(async () => {
+    const { task } = await (token ? client.getTask(id) : api.getTask(id));
+    const reviews = task.status === "completed" ? (await api.listReviews(id)).reviews : [];
+    return { task, reviews };
+  }, [id, token, client]);
   const { data, loading, error, reload } = useData(load, 5000);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -92,6 +94,7 @@ export default function TaskDetailScreen() {
               {task.title}
             </Text>
             <Text style={s.poster}>Publicată de {task.poster_name}</Text>
+            <LevelBadge userId={task.poster_id} />
           </View>
           <View style={s.facts}>
             <View style={s.pay}>
@@ -142,6 +145,8 @@ export default function TaskDetailScreen() {
               <Text style={s.body}>{task.safety_note}</Text>
             </View>
           ) : null}
+          {session && task.status === "completed" && (task.poster_id === session.user.id || task.assignee_id === session.user.id) ?
+            <ReviewCard taskId={id} reviews={data.reviews} onSubmitted={reload} /> : null}
           {session && task.poster_id === session.user.id ? (
             <Button
               icon="briefcase-outline"

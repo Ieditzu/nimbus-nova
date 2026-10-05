@@ -62,6 +62,9 @@
 | `POST /v1/events/{id}/check-in` | live | admin |
 | `POST /v1/events/{id}/complete` | live | admin |
 | `GET /v1/users/{id}/reputation` | live | both |
+| `GET /v1/me/games` | live | phone |
+| `POST /v1/me/games/spin` | live | phone |
+| `DELETE /v1/conversations/{id}` | live | phone |
 | `POST /v1/admin/disputes/{id}/resolve` | live | admin |
 | `GET /v1/admin/users` | live | admin |
 | `POST /v1/admin/users/{id}/suspend` | live | admin |

@@ -118,6 +118,12 @@ Do not route these in Wave A. Haivas adds them without renaming the live fields.
 
 Fee rule for new payments: task `amount_bani` is the worker payout. Poster is charged task `amount_bani` plus a 5 percent Nova commission, rounded half away from zero. Payment response `amount_bani` is the total charged; `platform_fee_bani` and `worker_payout_bani` show its split. Clients preview the fee before publishing and display server numbers after payment. Existing held payments keep their original 15%-deducted payout.
 
+## Games and ratings
+
+After a task is completed, the poster and accepted worker may each submit one 1–5 star review of the other. The app prompts both sides, without blocking the rest of the app. A received 5-star review awards 250 XP; a received 4-star review awards 100 XP; 1–3 stars award no XP. `GET /v1/users/{id}/reputation` remains public and adds `xp` and `level` to `count` and `average`; level is `1 + floor(xp / 1000)`.
+
+`GET /v1/me/games` returns `{ "games": { "streak", "spins_available", "xp", "level", "last_day" } }`. Signing in or restoring the session records at most one visit per Europe/Bucharest calendar day. Every fifth consecutive day grants one saved spin. `POST /v1/me/games/spin` with `{}` consumes one spin atomically and returns `{ "xp_won", "games" }`; prizes are 50, 100, 150, 200, or 250 XP. No spin returns `409 no_spins`. `DELETE /v1/conversations/{id}` hides a conversation for the authenticated participant only; a new message makes it reappear for both sides.
+
 ## Identity proof
 
 Worker and poster `POST /v1/auth/register` require `identity_proof`. A client `birth_date` cannot establish identity. A minor worker also supplies `guardian_email`; minors cannot register as posters. The server derives birth date and volunteer eligibility from the verified document.

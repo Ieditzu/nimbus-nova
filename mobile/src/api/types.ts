@@ -118,6 +118,16 @@ export interface IdentityProof {
 export interface Reputation {
   count: number;
   average: number;
+  xp: number;
+  level: number;
+}
+
+export interface GameState {
+  streak: number;
+  spins_available: number;
+  xp: number;
+  level: number;
+  last_day: string;
 }
 
 export interface ChatMessage {

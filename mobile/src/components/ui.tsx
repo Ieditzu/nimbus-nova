@@ -279,6 +279,7 @@ const dockTabs = [
     icon: "chatbubbles-outline" as const,
     label: "Mesaje",
   },
+  { href: "/games" as const, icon: "game-controller-outline" as const, label: "Jocuri" },
   {
     href: "/profile" as const,
     icon: "person-outline" as const,
@@ -293,7 +294,9 @@ export function BottomNav({ notificationCount = 0 }: { notificationCount?: numbe
     path.startsWith("/profile") ||
     path.startsWith("/phone") ||
     path.startsWith("/applications")
-      ? 3
+      ? 4
+      : path.startsWith("/games")
+        ? 3
       : path.startsWith("/messages")
         ? 2
         : path.startsWith("/jobs")

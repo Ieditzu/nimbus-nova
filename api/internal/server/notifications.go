@@ -34,7 +34,7 @@ func (s *Server) notifyUser(userID, kind, taskID string) error {
 		"application_received": "Ai primit o candidatură nouă. Deschide anunțul ca să o vezi.",
 		"application_accepted": "Ai fost ales pentru acest job. Deschide anunțul pentru detalii.",
 		"application_rejected": "Autorul a ales o altă persoană pentru acest job.",
-		"task_completed":       "Autorul a marcat jobul ca finalizat.",
+		"task_completed":       "Jobul s-a încheiat. Deschide-l și evaluează colaborarea.",
 		"task_cancelled":       "Autorul a anulat jobul la care participai.",
 		"job_deleted":          "Anunțul pentru care ai aplicat a fost șters.",
 		"dispute_opened":       "A fost deschisă o dispută legată de acest job.",

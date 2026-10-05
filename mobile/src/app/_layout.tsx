@@ -75,6 +75,7 @@ function Navigation() {
           <Stack.Screen name="messages/index" />
           <Stack.Screen name="messages/[id]" />
           <Stack.Screen name="notifications" />
+          <Stack.Screen name="games" />
         </Stack.Protected>
       </Stack>
       {ready ? (

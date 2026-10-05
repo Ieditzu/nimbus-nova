@@ -14,6 +14,8 @@ import type {
   Profile,
   ProfileWrite,
   Review,
+  GameState,
+  Reputation,
   TaskPublic,
 } from "./types";
 
@@ -65,6 +67,7 @@ export interface NovaClient {
   getNotificationPreferences(): Promise<{ daily_nearby_enabled: boolean; city: string }>;
   putNotificationPreferences(daily_nearby_enabled: boolean): Promise<{ daily_nearby_enabled: boolean; city: string }>;
   listConversations(): Promise<{ conversations: Conversation[] }>;
+  hideConversation(id: string): Promise<{ ok: true }>;
   startTaskConversation(taskId: string, participant_id?: string): Promise<{ conversation: Conversation }>;
   listMessages(id: string, after?: number, before?: number): Promise<MessagePage>;
   sendMessage(id: string, text: string): Promise<{ message: ChatMessage; warning?: string }>;
@@ -110,7 +113,9 @@ export interface NovaClient {
   listAdminTasks(): Promise<{ tasks: TaskPublic[] }>;
   hideTask(taskId: string): Promise<{ task: TaskPublic }>;
   resetDemo(): Promise<{ ok: true }>;
-  getReputation(userId: string): Promise<{ count: number; average: number }>;
+  getReputation(userId: string): Promise<Reputation>;
+  getGames(): Promise<{ games: GameState }>;
+  spinGame(): Promise<{ xp_won: number; games: GameState }>;
   listEvents(): Promise<{ events: Array<{ id: string; title: string; city: string; starts_at: string; ends_at: string; slots: number; min_age: number; description: string }> }>;
 }
 
@@ -149,6 +154,7 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
     getNotificationPreferences: () => request("/v1/me/notification-preferences"),
     putNotificationPreferences: (daily_nearby_enabled) => request("/v1/me/notification-preferences", { method: "PUT", body: JSON.stringify({ daily_nearby_enabled }) }),
     listConversations: () => request("/v1/me/conversations"),
+    hideConversation: (id) => request(`/v1/conversations/${encodeURIComponent(id)}`, { method: "DELETE" }),
     startTaskConversation: (taskId, participant_id) => request(`/v1/tasks/${encodeURIComponent(taskId)}/conversations`, { method: "POST", body: JSON.stringify(participant_id ? { participant_id } : {}) }),
     listMessages: (id, after, before) => request(`/v1/conversations/${encodeURIComponent(id)}/messages${after !== undefined ? `?after=${after}` : before !== undefined ? `?before=${before}` : ""}`),
     sendMessage: (id, text) => request(`/v1/conversations/${encodeURIComponent(id)}/messages`, { method: "POST", body: JSON.stringify({ text }) }),
@@ -209,6 +215,8 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
     hideTask: (taskId) => request(`/v1/admin/tasks/${taskId}/hide`, { method: "POST", body: "{}" }),
     resetDemo: () => request("/v1/demo/reset", { method: "POST", body: "{}" }),
     getReputation: (userId) => request(`/v1/users/${userId}/reputation`, {}, false),
+    getGames: () => request("/v1/me/games"),
+    spinGame: () => request("/v1/me/games/spin", { method: "POST", body: "{}" }),
     listEvents: () => request("/v1/events", {}, false),
     draftTask: (body) => request("/v1/assist/task-draft", { method: "POST", body: JSON.stringify(body) }),
     checkSafety: (body) => request("/v1/assist/safety-check", { method: "POST", body: JSON.stringify(body) }),

@@ -100,6 +100,18 @@ CREATE TABLE IF NOT EXISTS reviews (
   created_at TEXT NOT NULL,
   UNIQUE (task_id, author_id)
 );
+CREATE TABLE IF NOT EXISTS game_streaks (
+  user_id TEXT PRIMARY KEY REFERENCES users(id),
+  last_day TEXT NOT NULL,
+  streak INTEGER NOT NULL,
+  spins_available INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS game_spins (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  xp INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS sessions (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id),
@@ -413,6 +425,7 @@ func (s *Store) Reset() error {
 	return s.withImmediate(func(ctx context.Context, conn *sql.Conn) error {
 		for _, q := range []string{
 			`DELETE FROM chat_messages`,
+			`DELETE FROM conversation_hidden`,
 			`DELETE FROM conversations`,
 			`DELETE FROM identity_files`,
 			`DELETE FROM identity_sessions`,
@@ -428,6 +441,8 @@ func (s *Store) Reset() error {
 			`DELETE FROM sessions`,
 			`DELETE FROM events`,
 			`DELETE FROM reviews`,
+			`DELETE FROM game_spins`,
+			`DELETE FROM game_streaks`,
 			`DELETE FROM applications`,
 			`DELETE FROM tasks`,
 			`DELETE FROM profiles`,

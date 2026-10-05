@@ -293,7 +293,12 @@ func (s *Server) handleReputation(w http.ResponseWriter, r *http.Request) {
 		s.writeErr(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"count": count, "average": average})
+	xp, err := s.store.TotalXP(r.PathValue("id"))
+	if err != nil {
+		s.writeErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"count": count, "average": average, "xp": xp, "level": 1 + xp/1000})
 }
 
 func (s *Server) handleResolveDispute(w http.ResponseWriter, r *http.Request) {

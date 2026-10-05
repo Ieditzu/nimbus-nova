@@ -1419,6 +1419,73 @@ func TestTaskLocationUnlocksOnlyForAcceptedWorker(t *testing.T) {
 	check("", false)
 }
 
+func TestConversationRemovalIsPrivateAndReopensOnNewMessage(t *testing.T) {
+	h := start(t)
+	for _, userID := range []string{"poster-1", "worker-1"} {
+		hash := sha256.Sum256([]byte(userID + "-chat-token"))
+		if _, err := h.DB.Exec(`UPDATE users SET phone_number='0712345678' WHERE id=?`, userID); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := h.DB.Exec(`INSERT INTO sessions(id,user_id,token_hash,expires_at) VALUES(?,?,?,?)`, "chat-session-"+userID, userID, hex.EncodeToString(hash[:]), time.Now().Add(time.Hour).Format(time.RFC3339)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	call := func(method, path, userID string, payload any) (int, []byte) {
+		t.Helper()
+		var reader io.Reader
+		if payload != nil {
+			raw, err := json.Marshal(payload)
+			if err != nil {
+				t.Fatal(err)
+			}
+			reader = bytes.NewReader(raw)
+		}
+		req, err := http.NewRequest(method, h.URL+path, reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Authorization", "Bearer "+userID+"-chat-token")
+		if payload != nil {
+			req.Header.Set("Content-Type", "application/json")
+		}
+		response, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return response.StatusCode, body
+	}
+	status, body := call(http.MethodPost, "/v1/tasks/task_seed_event_setup/conversations", "worker-1", map[string]any{})
+	if status != 200 {
+		t.Fatalf("start %d %s", status, body)
+	}
+	id := asMap(t, asMap(t, decode(t, body))["conversation"])["id"].(string)
+	status, body = call(http.MethodDelete, "/v1/conversations/"+id, "worker-1", nil)
+	if status != 200 {
+		t.Fatalf("remove %d %s", status, body)
+	}
+	status, body = call(http.MethodGet, "/v1/me/conversations", "worker-1", nil)
+	if status != 200 || len(asMap(t, decode(t, body))["conversations"].([]any)) != 0 {
+		t.Fatalf("worker list %d %s", status, body)
+	}
+	status, body = call(http.MethodGet, "/v1/me/conversations", "poster-1", nil)
+	if status != 200 || len(asMap(t, decode(t, body))["conversations"].([]any)) != 1 {
+		t.Fatalf("poster list %d %s", status, body)
+	}
+	status, body = call(http.MethodPost, "/v1/conversations/"+id+"/messages", "poster-1", map[string]any{"text": "Bună!"})
+	if status != 201 {
+		t.Fatalf("send %d %s", status, body)
+	}
+	status, body = call(http.MethodGet, "/v1/me/conversations", "worker-1", nil)
+	if status != 200 || len(asMap(t, decode(t, body))["conversations"].([]any)) != 1 {
+		t.Fatalf("reopened %d %s", status, body)
+	}
+}
+
 func TestProductionAdmin(t *testing.T) {
 	t.Setenv("NOVA_DEMO", "0")
 	t.Setenv("ADMIN_EMAIL", "admin@nimbusnova.cc")

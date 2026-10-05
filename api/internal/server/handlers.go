@@ -49,6 +49,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /v1/tasks/{id}/conversations", s.handleStartConversation)
 	mux.HandleFunc("GET /v1/me/conversations", s.handleConversations)
 	mux.HandleFunc("GET /v1/conversations/{id}/messages", s.handleMessages)
+	mux.HandleFunc("DELETE /v1/conversations/{id}", s.handleHideConversation)
 	mux.HandleFunc("POST /v1/conversations/{id}/messages", s.handleSendMessage)
 	mux.HandleFunc("POST /v1/tasks/{id}/pay", s.handlePay)
 	mux.HandleFunc("GET /v1/admin/stripe", s.handleAdminStripe)
@@ -83,6 +84,8 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /v1/events/{id}/check-in", s.handleEventCheckIn)
 	mux.HandleFunc("POST /v1/events/{id}/complete", s.handleEventComplete)
 	mux.HandleFunc("GET /v1/users/{id}/reputation", s.handleReputation)
+	mux.HandleFunc("GET /v1/me/games", s.handleGames)
+	mux.HandleFunc("POST /v1/me/games/spin", s.handleGameSpin)
 	mux.HandleFunc("POST /v1/admin/disputes/{id}/resolve", s.handleResolveDispute)
 	s.adminExtraRoutes(mux)
 	return mux
