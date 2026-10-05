@@ -4,6 +4,7 @@ import {
   formatDistance,
   formatDuration,
   googleMapsUrl,
+  taskMapsUrl,
   hasLocation,
   projectPoints,
 } from "../src/lib/geo.ts";
@@ -33,6 +34,17 @@ test("google maps link targets the task location", () => {
     googleMapsUrl({ lat: 44.4, lng: 26.1 }, { lat: 44.5, lng: 26.2 }),
   );
   assert.equal(withOrigin.searchParams.get("origin"), "44.5,26.2");
+});
+
+test("public task links show the locality, while participants get the exact point", () => {
+  const task = { lat: 45.755326, lng: 21.227171, city: "Timișoara", county: "Timiș", sector: "" };
+  const publicUrl = new URL(taskMapsUrl(task, false));
+  assert.equal(publicUrl.pathname, "/maps/search/");
+  assert.equal(publicUrl.searchParams.get("query"), "Timișoara, Timiș, România");
+  assert.ok(!publicUrl.href.includes("45.755326"));
+  const privateUrl = new URL(taskMapsUrl(task, true));
+  assert.equal(privateUrl.pathname, "/maps/dir/");
+  assert.equal(privateUrl.searchParams.get("destination"), "45.755326,21.227171");
 });
 
 test("projected points stay inside the box with padding", () => {

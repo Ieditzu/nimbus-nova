@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { Text, View } from "react-native";
+import { Linking, Text, View } from "react-native";
 import { useAuth } from "../../auth/session";
 import { formatBani } from "../../api/client";
 import {
@@ -9,6 +9,7 @@ import {
   taskStatusLabel,
 } from "../../lib/labels";
 import { errorMessage } from "../../lib/errors";
+import { hasLocation, taskMapsUrl } from "../../lib/geo";
 import {
   Badge,
   Button,
@@ -35,6 +36,7 @@ export default function ManageJobScreen() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [mapError, setMapError] = useState("");
   async function action(call: () => Promise<unknown>) {
     if (busy) return;
     setBusy(true);
@@ -94,6 +96,13 @@ export default function ManageJobScreen() {
             <Text style={s.body}>{when.time}</Text>
             <Text style={s.price}>{data.task.amount_bani === 0 ? "Voluntariat" : formatBani(data.task.amount_bani)}</Text>
             <Text style={s.body}>{data.task.description}</Text>
+          </View>
+          <View style={s.card}>
+            <Text style={s.title}>Locație</Text>
+            <Text style={s.body}>{[data.task.sector, data.task.city, data.task.county ? `jud. ${data.task.county}` : ""].filter(Boolean).join(", ")}</Text>
+            {hasLocation(data.task) ? <Text selectable style={s.body}>Punct GPS: {data.task.lat.toFixed(5)}, {data.task.lng.toFixed(5)}</Text> : null}
+            <Button variant="outline" icon="map-outline" onPress={() => { setMapError(""); void Linking.openURL(taskMapsUrl(data.task, true)).catch(() => setMapError("Nu am putut deschide Google Maps.")); }}>Deschide în Google Maps</Button>
+            {mapError ? <Text accessibilityRole="alert" style={s.error}>{mapError}</Text> : null}
           </View>
           {actionError ? (
             <Text accessibilityRole="alert" style={s.error}>

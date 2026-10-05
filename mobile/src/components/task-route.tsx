@@ -23,7 +23,7 @@ type Phase =
  * Shown to the accepted worker: ETA, distance and the route line inside the app,
  * then a hand-off to Google Maps for turn-by-turn navigation.
  */
-export function TaskRoute({ dest }: { dest: LatLng }) {
+export function TaskRoute({ dest, showMapsButton = true }: { dest: LatLng; showMapsButton?: boolean }) {
   const { colors } = useTheme();
   const s = styles(colors);
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
@@ -124,9 +124,9 @@ export function TaskRoute({ dest }: { dest: LatLng }) {
           Reîncearcă
         </Button>
       ) : null}
-      <Button icon="map-outline" onPress={() => void openMaps()}>
+      {showMapsButton ? <Button icon="map-outline" onPress={() => void openMaps()}>
         Deschide în Google Maps
-      </Button>
+      </Button> : null}
       {openError ? (
         <Text accessibilityRole="alert" style={s.error}>
           {openError}

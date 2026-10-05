@@ -45,6 +45,16 @@ export function googleMapsUrl(dest: LatLng, origin?: LatLng): string {
   return `https://www.google.com/maps/dir/?${params}`;
 }
 
+export function googleMapsSearchUrl(place: string): string {
+  const params = new URLSearchParams({ api: "1", query: place.trim() });
+  return `https://www.google.com/maps/search/?${params}`;
+}
+
+export function taskMapsUrl(task: { lat: number; lng: number; sector?: string; city: string; county?: string }, exact: boolean): string {
+  if (exact && hasLocation(task)) return googleMapsUrl({ lat: task.lat, lng: task.lng });
+  return googleMapsSearchUrl([task.sector, task.city, task.county, "România"].filter(Boolean).join(", "));
+}
+
 async function getJson(url: string, signal?: AbortSignal): Promise<unknown> {
   const response = await fetch(url, {
     signal,

@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Linking, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useAuth } from "../../auth/session";
 import { api } from "../../api";
 import { formatBani, NovaError } from "../../api/client";
@@ -8,7 +8,7 @@ import { errorMessage } from "../../lib/errors";
 import { categoryLabel, jobTypeLabel, schedule, taskStatusLabel } from "../../lib/labels";
 import { Badge, Button, Icon, Page, State, useData } from "../../components/ui";
 import { TaskRoute } from "../../components/task-route";
-import { hasLocation } from "../../lib/geo";
+import { hasLocation, taskMapsUrl } from "../../lib/geo";
 import { fonts, useTheme, type Colors } from "../../components/theme";
 
 export default function TaskDetailScreen() {
@@ -26,6 +26,7 @@ export default function TaskDetailScreen() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [mapError, setMapError] = useState("");
   async function openChat() {
     if (busy) return;
     setBusy(true);
@@ -60,6 +61,16 @@ export default function TaskDetailScreen() {
   }
   const task = data?.task;
   const when = task ? schedule(task.starts_at, task.ends_at) : undefined;
+  const exactLocation = !!task && !!session && hasLocation(task) &&
+    (task.poster_id === session.user.id || task.assignee_id === session.user.id);
+  const locationLabel = task ? [task.sector, task.city, task.county ? `jud. ${task.county}` : ""].filter(Boolean).join(", ") : "";
+  async function openMaps() {
+    if (!task) return;
+    setMapError("");
+    const url = taskMapsUrl(task, exactLocation);
+    try { await Linking.openURL(url); }
+    catch { setMapError("Nu am putut deschide Google Maps. Încearcă din nou."); }
+  }
   return (
     <Page>
       <Pressable
@@ -102,6 +113,17 @@ export default function TaskDetailScreen() {
             <Text style={s.note}>{task.amount_bani === 0 ? "Participare voluntară, fără plată." : "Sumă propusă de organizator."}</Text>
           </View>
           <View style={s.section}>
+            <View style={s.fact}>
+              <Icon name="location-outline" color={colors.accent} />
+              <Text style={s.sectionTitle}>Locație</Text>
+            </View>
+            <Text style={s.body}>{locationLabel}</Text>
+            {exactLocation ? <Text selectable style={s.meta}>Punct GPS: {task.lat.toFixed(5)}, {task.lng.toFixed(5)}</Text> : null}
+            <Text style={s.meta}>{exactLocation ? "Locația precisă este disponibilă pentru tine." : hasLocation(task) ? "Punctul precis devine disponibil după ce ești ales. Harta arată momentan zona." : "Harta arată localitatea anunțului."}</Text>
+            <Button variant="outline" icon="map-outline" onPress={() => void openMaps()}>{exactLocation ? "Deschide locația în Google Maps" : "Vezi zona în Google Maps"}</Button>
+            {mapError ? <Text accessibilityRole="alert" style={s.error}>{mapError}</Text> : null}
+          </View>
+          <View style={s.section}>
             <Text style={s.sectionTitle}>Ce ai de făcut</Text>
             <Text style={s.body}>{task.description}</Text>
           </View>
@@ -109,7 +131,7 @@ export default function TaskDetailScreen() {
           task.status === "assigned" &&
           task.assignee_id === session.user.id &&
           hasLocation(task) ? (
-            <TaskRoute dest={{ lat: task.lat, lng: task.lng }} />
+            <TaskRoute dest={{ lat: task.lat, lng: task.lng }} showMapsButton={false} />
           ) : null}
           {task.safety_note ? (
             <View style={s.safety}>
