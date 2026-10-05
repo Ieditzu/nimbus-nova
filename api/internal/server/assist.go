@@ -531,7 +531,7 @@ func (s *Server) flagOutgoing(userID, text string) string {
 func SetAssistForTest(fn func(ctx context.Context, system, user string, think bool) (string, error)) func() {
 	previous := assistComplete
 	if fn == nil {
-		assistComplete = deepseekComplete
+		assistComplete = groqComplete
 	} else {
 		assistComplete = fn
 	}

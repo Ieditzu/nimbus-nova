@@ -11,47 +11,60 @@ import (
 	"time"
 )
 
-const deepseekURL = "https://api.deepseek.com/chat/completions"
+const groqURL = "https://api.groq.com/openai/v1/chat/completions"
 
-// Hard cap stays under the reverse-proxy read timeout, so a hung model
-// becomes a JSON error instead of an HTML 502.
-var assistHTTP = &http.Client{Timeout: 20 * time.Second}
+// qwen returns clean JSON. gpt-oss is the fallback when that model is busy.
+const (
+	groqModel    = "qwen/qwen3.8-27b"
+	groqFallback = "openai/gpt-oss-20b"
+)
+
+// Groq's edge returns Cloudflare 1010 unless the client sends a user agent.
+var assistHTTP = &http.Client{Timeout: 25 * time.Second}
 
 type assistFn func(ctx context.Context, system, user string, think bool) (string, error)
 
-// Tests replace this. Production calls DeepSeek when DEEPSEEK_API_KEY is set.
-var assistComplete assistFn = deepseekComplete
+// Tests replace this. Production calls Groq when GROQ_API_KEY is set.
+var assistComplete assistFn = groqComplete
 
-func deepseekComplete(ctx context.Context, system, user string, think bool) (string, error) {
-	key := strings.TrimSpace(os.Getenv("DEEPSEEK_API_KEY"))
+func groqComplete(ctx context.Context, system, user string, _ bool) (string, error) {
+	key := strings.TrimSpace(os.Getenv("GROQ_API_KEY"))
 	if key == "" {
 		return "", errAssistUnavailable
 	}
-	mode := "disabled"
-	if think {
-		mode = "enabled"
+	raw, err := groqCall(ctx, key, groqModel, true, system, user)
+	if err == nil && strings.TrimSpace(raw) != "" {
+		return raw, nil
 	}
-	payload, err := json.Marshal(map[string]any{
-		"model": "deepseek-flash",
+	return groqCall(ctx, key, groqFallback, false, system, user)
+}
+
+func groqCall(ctx context.Context, key, model string, jsonMode bool, system, user string) (string, error) {
+	body := map[string]any{
+		"model": model,
 		"messages": []map[string]string{
 			{"role": "system", "content": system},
 			{"role": "user", "content": user},
 		},
-		"response_format": map[string]string{"type": "json_object"},
-		"thinking":        map[string]string{"type": mode},
-		"max_tokens":      900,
-	})
+		"temperature": 0.2,
+		"max_tokens":  900,
+	}
+	if jsonMode {
+		body["response_format"] = map[string]string{"type": "json_object"}
+	}
+	payload, err := json.Marshal(body)
 	if err != nil {
 		return "", errInternal
 	}
-	callCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	callCtx, cancel := context.WithTimeout(ctx, 25*time.Second)
 	defer cancel()
-	req, err := http.NewRequestWithContext(callCtx, http.MethodPost, deepseekURL, bytes.NewReader(payload))
+	req, err := http.NewRequestWithContext(callCtx, http.MethodPost, groqURL, bytes.NewReader(payload))
 	if err != nil {
 		return "", errInternal
 	}
 	req.Header.Set("Authorization", "Bearer "+key)
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "nimbus-nova")
 	resp, err := assistHTTP.Do(req)
 	if err != nil {
 		return "", errAssistUnavailable
@@ -71,5 +84,5 @@ func deepseekComplete(ctx context.Context, system, user string, think bool) (str
 	if err := json.Unmarshal(raw, &parsed); err != nil || len(parsed.Choices) == 0 {
 		return "", errAssistUnavailable
 	}
-	return parsed.Choices[0].Message.Content, nil
+	return strings.TrimSpace(parsed.Choices[0].Message.Content), nil
 }
