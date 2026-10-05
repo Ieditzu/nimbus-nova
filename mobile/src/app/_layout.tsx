@@ -82,7 +82,7 @@ function Navigation() {
             flexShrink: 0,
             paddingLeft: insets.left,
             paddingRight: insets.right,
-            paddingBottom: Math.max(12, insets.bottom - 10),
+            paddingBottom: Math.max(6, insets.bottom - 28),
           }}
         >
           <BottomNav />
