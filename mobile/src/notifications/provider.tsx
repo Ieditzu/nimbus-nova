@@ -10,7 +10,7 @@ import { createWebPushSubscription, existingWebPushSubscription, expoPushToken, 
 import { notificationContent, openNotification } from "./content";
 
 const seenKey = "nova.notifications.intro.v1";
-const context = createContext<{ status: Permission; busy: boolean; message: string; webPushReady: boolean; webPushConfigLoading: boolean; daily: boolean; city: string; unreadCount: number; enable: () => Promise<void>; testPush: () => Promise<void>; setDaily: (enabled: boolean) => Promise<void> } | null>(null);
+const context = createContext<{ status: Permission; busy: boolean; message: string; webPushReady: boolean; webPushConfigLoading: boolean; daily: boolean; city: string; unreadCount: number; enable: () => Promise<void>; setDaily: (enabled: boolean) => Promise<void> } | null>(null);
 let seenThisSession = false;
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const { session, restoring, client } = useAuth();
@@ -187,21 +187,6 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     } catch (e) { setMessage(e instanceof Error ? e.message : "Nu am putut inițializa notificările. Reîncearcă din Profil."); }
     finally { setBusy(false); }
   }
-  async function testPush() {
-    if (busy) return;
-    setBusy(true); setMessage("");
-    try {
-      await syncWebPush(true);
-      const subscription = await existingWebPushSubscription();
-      if (!subscription) throw new Error("Browserul nu a creat un abonament push.");
-      const result = await client.testWebPush(subscription.endpoint);
-      if (result.accepted) setMessage("Serverul push a acceptat notificarea de test. Ar trebui să apară acum pe acest dispozitiv. Dacă nu apare, verifică notificările pentru Nova în setările telefonului.");
-      else if (result.reason === "subscription_missing") setMessage("Abonamentul nu a ajuns la server. Reîncarcă aplicația și activează push-ul din nou.");
-      else if (result.reason === "connection_failed") setMessage("Serverul Nova nu poate contacta serviciul push al telefonului. Încearcă din nou mai târziu.");
-      else setMessage(`Serviciul push a respins notificarea (HTTP ${result.provider_status ?? "?"}). Reînregistrează push-ul și testează din nou.`);
-    } catch (e) { setMessage(e instanceof Error ? e.message : "Testul push a eșuat."); }
-    finally { setBusy(false); }
-  }
   async function setDaily(enabled: boolean) {
     if (busy) return;
     setBusy(true); setMessage("");
@@ -216,7 +201,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     } catch (e) { setMessage(e instanceof Error ? e.message : "Nu am putut salva preferința."); }
     finally { setBusy(false); }
   }
-  return <context.Provider value={{ status, busy, message, webPushReady, webPushConfigLoading, daily, city, unreadCount: unread && unread.accountId === session?.user.id ? unread.count : 0, enable, testPush, setDaily }}>
+  return <context.Provider value={{ status, busy, message, webPushReady, webPushConfigLoading, daily, city, unreadCount: unread && unread.accountId === session?.user.id ? unread.count : 0, enable, setDaily }}>
     {children}
     {incoming && incoming.accountId === session?.user.id ? <SafeAreaView pointerEvents="box-none" edges={["top"]} style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 100, paddingHorizontal: 16 }}>
       <Pressable accessibilityRole="button" accessibilityLabel={`Mesaj nou de la ${incoming.name}. Deschide conversația.`} onPress={() => { const id = incoming.id; setIncoming(null); router.push({ pathname: "/messages/[id]", params: { id } }); }} style={{ backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 18, padding: 16, gap: 4, elevation: 8, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 12 }}>
@@ -255,9 +240,8 @@ export function NotificationSettings() {
     <Text style={{ fontFamily: fonts.body, color: colors.muted, lineHeight: 21 }}>{labels[value.status]}</Text>
     {value.status === "default" ? <Button variant="outline" icon="notifications-outline" disabled={value.busy} onPress={() => void value.enable()}>{value.busy ? "Se inițializează..." : "Permite notificările"}</Button> : null}
     {Platform.OS === "web" && value.status === "granted" ? <View style={{ gap: 6 }}>
-      <Button variant={value.webPushReady ? "outline" : "primary"} icon="notifications-outline" disabled={value.busy || value.webPushConfigLoading} onPress={() => void value.enable()}>{value.busy ? "Se activează..." : value.webPushConfigLoading ? "Se pregătește..." : value.webPushReady ? "Reînregistrează push-ul" : "Activează notificările push"}</Button>
+      {!value.webPushReady ? <Button icon="notifications-outline" disabled={value.busy || value.webPushConfigLoading} onPress={() => void value.enable()}>{value.busy ? "Se activează..." : value.webPushConfigLoading ? "Se pregătește..." : "Activează notificările push"}</Button> : null}
       <Text style={{ fontFamily: fonts.body, color: colors.muted, lineHeight: 20 }}>{value.webPushReady ? "Push-ul este activ pentru acest browser și cont." : "Permisiunea browserului e acordată; apasă ca să legăm acest dispozitiv de contul Nova."}</Text>
-      {value.webPushReady ? <Button variant="outline" icon="send-outline" disabled={value.busy} onPress={() => void value.testPush()}>Trimite notificare de test</Button> : null}
     </View> : null}
     {value.status === "granted" ? <View style={{ gap: 6 }}>
       <Button variant={value.daily ? "outline" : "primary"} icon="location-outline" disabled={value.busy} onPress={() => void value.setDaily(!value.daily)}>{value.daily ? "Oprește joburile zilnice" : "Primește zilnic joburi din orașul tău"}</Button>
