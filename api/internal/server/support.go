@@ -378,7 +378,7 @@ func (s *Store) ticketDetail(id, userID, key string, admin bool) (map[string]any
 	if !ticketAllowed(owner, guestKey, userID, key, admin) {
 		return nil, errForbidden
 	}
-	rows, err := s.db.Query(`SELECT id, author, text, created_at FROM support_messages WHERE ticket_id = ? ORDER BY created_at ASC, id ASC`, id)
+	rows, err := s.db.Query(`SELECT id, author, text, created_at FROM support_messages WHERE ticket_id = ? ORDER BY rowid ASC`, id)
 	if err != nil {
 		return nil, errInternal
 	}
@@ -417,7 +417,7 @@ func (s *Store) ticketWaiting(id, userID, key string) (bool, error) {
 }
 
 func (s *Store) ticketHistory(id string) (string, error) {
-	rows, err := s.db.Query(`SELECT author, text FROM support_messages WHERE ticket_id = ? ORDER BY created_at ASC, id ASC`, id)
+	rows, err := s.db.Query(`SELECT author, text FROM support_messages WHERE ticket_id = ? ORDER BY rowid ASC`, id)
 	if err != nil {
 		return "", errInternal
 	}

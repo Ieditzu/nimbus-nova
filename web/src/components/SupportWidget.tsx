@@ -69,31 +69,38 @@ export function SupportChat({ page = false }: { page?: boolean }) {
   }
 
   return <section className={page ? 'support-panel is-page' : 'support-panel'} aria-label="Suport Nova">
-    {!page && <header>
-      <strong>Suport</strong>
-      <span>Fără cont</span>
-    </header>}
+    <header>
+      <span className="support-mark" aria-hidden="true"><SparkleIcon size={16} weight="fill" /></span>
+      <div>
+        <strong>Suport</strong>
+        <small>Fără cont</small>
+      </div>
+    </header>
     <div className="support-log" aria-live="polite">
-      {messages.length === 0 && <p>Spune ce nu găsești. Îți arăt butonul. Dacă nu pot rezolva, tichetul ajunge la echipă.</p>}
-      {messages.map(item => <p key={item.id} className={item.author === 'user' ? 'is-user' : 'is-bot'}><b>{item.author === 'user' ? 'Tu' : item.author === 'admin' ? 'Echipa' : 'Nova'}</b>{item.text}</p>)}
+      {messages.length === 0 && <p className="support-empty">Spune ce nu găsești. Dacă nu pot rezolva, tichetul ajunge la echipă.</p>}
+      {messages.map(item => {
+        const who = item.author === 'user' ? 'Tu' : item.author === 'admin' ? 'Echipă' : 'Nova';
+        return <p key={item.id} className={`support-bubble is-${item.author === 'user' ? 'user' : item.author === 'admin' ? 'team' : 'bot'}`}><b>{who}</b>{item.text}</p>;
+      })}
     </div>
     {human && <p className="support-human">Echipa a fost anunțată. Răspunsul apare aici.</p>}
     {error && <p className="support-error" role="alert">{error}</p>}
     <form onSubmit={event => { event.preventDefault(); void send(); }}>
-      <label className="sr-only" htmlFor="support-text">Mesaj</label>
-      <textarea id="support-text" value={text} maxLength={2000} placeholder="Unde este butonul?" onChange={event => setText(event.target.value)} />
-      <button type="submit" className="lp-btn is-small" disabled={busy || text.trim().length < 2}>{busy ? 'Se trimite' : 'Trimite'}</button>
+      <label className="sr-only" htmlFor={page ? 'support-page-text' : 'support-text'}>Mesaj</label>
+      <textarea id={page ? 'support-page-text' : 'support-text'} value={text} maxLength={2000} placeholder="Unde este butonul?" onChange={event => setText(event.target.value)} />
+      <button type="submit" className="support-send" disabled={busy || text.trim().length < 2}>{busy ? 'Se trimite' : 'Trimite'}</button>
     </form>
   </section>;
 }
 
 export function SupportPage() {
   return <main id="main-content" className="support-page">
-    <p className="lp-eyebrow">Suport</p>
-    <h1>Întreabă Nova</h1>
-    <p>Nu îți trebuie cont. Scrii aici, iar dacă Nova nu poate rezolva, tichetul ajunge în birou.</p>
+    <div className="support-hero">
+      <p>Suport</p>
+      <h1>Întreabă Nova</h1>
+      <span>Nu îți trebuie cont. Scrii aici, iar dacă Nova nu poate rezolva, tichetul ajunge în birou.</span>
+    </div>
     <SupportChat page />
-    <p><Link to="/">Înapoi acasă</Link></p>
   </main>;
 }
 
