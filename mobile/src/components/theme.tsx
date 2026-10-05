@@ -108,6 +108,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }
   const isDark =
     preference === "system" ? system === "dark" : preference === "dark";
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const background = isDark ? dark.background : light.background;
+    document.documentElement.style.setProperty("--nova-background", background);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", background);
+  }, [isDark]);
   return (
     <ThemeContext.Provider
       value={{

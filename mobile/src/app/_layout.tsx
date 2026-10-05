@@ -68,7 +68,7 @@ function Navigation() {
         </Stack.Protected>
       </Stack>
       {ready ? (
-        <SafeAreaView edges={["bottom", "left", "right"]}>
+        <SafeAreaView edges={["bottom", "left", "right"]} style={{ backgroundColor: colors.background, flexShrink: 0 }}>
           <BottomNav />
         </SafeAreaView>
       ) : null}
