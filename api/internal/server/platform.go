@@ -24,6 +24,9 @@ func (s *Server) handleCancelTask(w http.ResponseWriter, r *http.Request) {
 		s.writeErr(w, err)
 		return
 	}
+	if task.AssigneeID != nil {
+		_ = s.notifyUser(*task.AssigneeID, "task_cancelled", task.ID)
+	}
 	writeJSON(w, http.StatusOK, struct {
 		Task TaskPublic `json:"task"`
 	}{Task: task})
@@ -67,7 +70,11 @@ func (s *Server) handleDispute(w http.ResponseWriter, r *http.Request) {
 		s.writeErr(w, err)
 		return
 	}
-	_ = s.store.Notify(user.ID, "dispute_opened", r.PathValue("id"))
+	var recipientID sql.NullString
+	_ = s.store.db.QueryRow(`SELECT CASE WHEN poster_id=? THEN assignee_id ELSE poster_id END FROM tasks WHERE id=?`, user.ID, r.PathValue("id")).Scan(&recipientID)
+	if recipientID.Valid {
+		_ = s.notifyUser(recipientID.String, "dispute_opened", r.PathValue("id"))
+	}
 	writeJSON(w, http.StatusCreated, map[string]any{"dispute": map[string]string{"id": id, "status": "open"}})
 }
 

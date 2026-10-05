@@ -165,7 +165,7 @@ Authenticated conversation responses include `other_user.phone_number` for the o
 
 ### Messaging and push notifications
 
-Creating a new `POST /v1/tasks/{id}/conversations` thread writes a `job_interest` notification for the other participant and sends an Expo push to their registered devices. Sending each message writes a `new_message` notification for the other participant and sends a generic push; message text and phone numbers are never included in the push payload. Reopening an existing thread does not send another interest notification.
+Creating a new `POST /v1/tasks/{id}/conversations` thread writes a `job_interest` notification for the other participant and sends an Expo push to their registered devices. Sending each message writes a `new_message` notification for the other participant and sends a generic push; message text and phone numbers are never included in the push payload. Reopening an existing thread does not send another interest notification. New applications notify the task owner; accepting an application notifies the selected worker and all applicants whose applications were rejected. Task cancellation notifies the assigned worker, task deletion notifies pending applicants, completion notifies the assigned worker, and opening a dispute notifies the other task participant. These pushes use generic Romanian text and contain only the task ID and destination screen.
 
 - `POST /v1/me/push-token` requires a signed-in account with a completed phone and `{ "expo_push_token": "ExponentPushToken[...]" }` or `ExpoPushToken[...]`. It registers or reassigns that device token to the current account.
 - `DELETE /v1/me/push-token` accepts the same body and removes that device for the current account.

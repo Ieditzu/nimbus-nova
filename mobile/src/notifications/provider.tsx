@@ -29,8 +29,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       if (!active) return;
       notifications.setNotificationHandler({ handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: true }) });
       subscription = notifications.addNotificationResponseReceivedListener((response) => {
-        const data = response.notification.request.content.data as { conversation_id?: string; task_id?: string };
+        const data = response.notification.request.content.data as { conversation_id?: string; task_id?: string; screen?: string };
         if (data.conversation_id) router.push({ pathname: "/messages/[id]", params: { id: data.conversation_id } });
+        else if (data.task_id && data.screen === "job_applications") router.push({ pathname: "/jobs/[id]", params: { id: data.task_id } });
         else if (data.task_id) router.push({ pathname: "/task/[id]", params: { id: data.task_id } });
       });
     }).catch(() => {});

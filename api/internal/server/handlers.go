@@ -354,7 +354,7 @@ func (s *Server) handleApply(w http.ResponseWriter, r *http.Request) {
 	}
 	var posterID string
 	_ = s.store.db.QueryRow(`SELECT poster_id FROM tasks WHERE id = ?`, r.PathValue("id")).Scan(&posterID)
-	_ = s.store.Notify(posterID, "application_received", r.PathValue("id"))
+	_ = s.notifyUser(posterID, "application_received", r.PathValue("id"))
 	writeJSON(w, http.StatusCreated, struct {
 		Application ApplicationView `json:"application"`
 	}{Application: app})
@@ -427,7 +427,17 @@ func (s *Server) handleAccept(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if task.AssigneeID != nil {
-		_ = s.store.Notify(*task.AssigneeID, "application_accepted", task.ID)
+		_ = s.notifyUser(*task.AssigneeID, "application_accepted", task.ID)
+		rows, queryErr := s.store.db.Query(`SELECT worker_id FROM applications WHERE task_id=? AND status='rejected'`, task.ID)
+		if queryErr == nil {
+			for rows.Next() {
+				var workerID string
+				if rows.Scan(&workerID) == nil {
+					_ = s.notifyUser(workerID, "application_rejected", task.ID)
+				}
+			}
+			rows.Close()
+		}
 	}
 	writeJSON(w, http.StatusOK, struct {
 		Task TaskPublic `json:"task"`
@@ -453,7 +463,7 @@ func (s *Server) handleComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if task.AssigneeID != nil {
-		_ = s.store.Notify(*task.AssigneeID, "task_completed", task.ID)
+		_ = s.notifyUser(*task.AssigneeID, "task_completed", task.ID)
 	}
 	writeJSON(w, http.StatusOK, struct {
 		Task TaskPublic `json:"task"`

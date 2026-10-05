@@ -51,9 +51,33 @@ func (s *Server) handleDeleteTask(w http.ResponseWriter, r *http.Request) {
 		writeAppError(w, ae)
 		return
 	}
+	rows, err := s.store.db.Query(`SELECT worker_id FROM applications WHERE task_id=? AND status='pending'`, r.PathValue("id"))
+	if err != nil {
+		s.writeErr(w, errInternal)
+		return
+	}
+	var applicants []string
+	for rows.Next() {
+		var workerID string
+		if err := rows.Scan(&workerID); err != nil {
+			rows.Close()
+			s.writeErr(w, errInternal)
+			return
+		}
+		applicants = append(applicants, workerID)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		s.writeErr(w, errInternal)
+		return
+	}
+	rows.Close()
 	if err := s.store.mutateOwnedOpenTask(r.PathValue("id"), user.ID, nil); err != nil {
 		s.writeErr(w, err)
 		return
+	}
+	for _, workerID := range applicants {
+		_ = s.notifyUser(workerID, "job_deleted", r.PathValue("id"))
 	}
 	writeJSON(w, 200, okBody{OK: true})
 }

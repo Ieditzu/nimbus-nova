@@ -85,6 +85,54 @@ func TestWorkerCanPublishButCannotApplyOwnJob(t *testing.T) {
 		t.Fatalf("minor publish %d", status)
 	}
 }
+
+func TestApplicationNotificationsForOwnerAndWorkers(t *testing.T) {
+	h := start(t)
+	owner, ownerToken := account(t, h, "application-owner@example.test", "+40712345001")
+	firstWorker, firstToken := account(t, h, "application-first@example.test", "+40712345002")
+	secondWorker, secondToken := account(t, h, "application-second@example.test", "+40712345003")
+	for _, id := range []string{firstWorker, secondWorker} {
+		if _, err := h.DB.Exec(`UPDATE users SET role='worker' WHERE id=?`, id); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := h.DB.Exec(`INSERT INTO profiles(user_id,skills_json,city,availability,bio) VALUES(?,'[]','București','','') ON CONFLICT(user_id) DO UPDATE SET city=excluded.city`, id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	jobBody := cloneMap(t, "create-task-request.json")
+	jobBody["job_type"] = "volunteer"
+	jobBody["amount_bani"] = 0
+	status, raw := h.doBearer(http.MethodPost, "/v1/tasks", ownerToken, jobBody)
+	if status != http.StatusCreated {
+		t.Fatalf("create volunteer job %d %s", status, raw)
+	}
+	job := asMap(t, asMap(t, decode(t, raw))["task"])["id"].(string)
+	tokens := []string{firstToken, secondToken}
+	workers := []string{firstWorker, secondWorker}
+	applications := make([]string, 0, 2)
+	for _, token := range tokens {
+		status, raw = h.doBearer(http.MethodPost, "/v1/tasks/"+job+"/applications", token, map[string]any{"message": "Sunt interesat"})
+		if status != http.StatusCreated {
+			t.Fatalf("apply %d %s", status, raw)
+		}
+		applications = append(applications, asMap(t, asMap(t, decode(t, raw))["application"])["id"].(string))
+	}
+	var received int
+	if err := h.DB.QueryRow(`SELECT COUNT(*) FROM notifications WHERE user_id=? AND task_id=? AND kind='application_received'`, owner, job).Scan(&received); err != nil || received != 2 {
+		t.Fatalf("application received notifications=%d err=%v", received, err)
+	}
+	status, raw = h.doBearer(http.MethodPost, "/v1/applications/"+applications[0]+"/accept", ownerToken, map[string]any{})
+	if status != http.StatusOK {
+		t.Fatalf("accept application %d %s", status, raw)
+	}
+	for i, kind := range []string{"application_accepted", "application_rejected"} {
+		var count int
+		if err := h.DB.QueryRow(`SELECT COUNT(*) FROM notifications WHERE user_id=? AND task_id=? AND kind=?`, workers[i], job, kind).Scan(&count); err != nil || count != 1 {
+			t.Fatalf("%s notifications for %s=%d err=%v", kind, workers[i], count, err)
+		}
+	}
+}
+
 func TestConversationMembershipMessagesAndHistory(t *testing.T) {
 	h := start(t)
 	owner, ownerToken := account(t, h, "owner-chat@example.test", "+40712345678")

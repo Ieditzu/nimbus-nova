@@ -89,6 +89,10 @@ func TestAccountJobCRUDAndPrivateContact(t *testing.T) {
 	if err := h.DB.QueryRow(`SELECT status FROM applications WHERE id='crud-pending'`).Scan(&applicationStatus); err != nil || applicationStatus != "rejected" {
 		t.Fatalf("pending application was not closed: %v %s", err, applicationStatus)
 	}
+	var deletionNotifications int
+	if err := h.DB.QueryRow(`SELECT COUNT(*) FROM notifications WHERE user_id=? AND task_id=? AND kind='job_deleted'`, peer, job).Scan(&deletionNotifications); err != nil || deletionNotifications != 1 {
+		t.Fatalf("job deleted notifications=%d err=%v", deletionNotifications, err)
+	}
 	status, _, raw = h.do(http.MethodGet, path, "", nil, false)
 	if status != 404 {
 		t.Fatalf("deleted task public %d %s", status, raw)

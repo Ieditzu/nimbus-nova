@@ -12,6 +12,40 @@ import (
 
 const expoPushURL = "https://exp.host/--/api/v2/push/send"
 
+func (s *Server) notifyUser(userID, kind, taskID string) error {
+	if err := s.store.Notify(userID, kind, taskID); err != nil {
+		return err
+	}
+	titles := map[string]string{
+		"application_received": "Candidatură nouă",
+		"application_accepted": "Candidatura ta a fost acceptată",
+		"application_rejected": "Jobul a fost atribuit",
+		"task_completed":       "Job finalizat",
+		"task_cancelled":       "Job anulat",
+		"job_deleted":          "Anunț șters",
+		"dispute_opened":       "Dispută deschisă",
+	}
+	bodies := map[string]string{
+		"application_received": "Ai primit o candidatură nouă. Deschide anunțul ca să o vezi.",
+		"application_accepted": "Ai fost ales pentru acest job. Deschide anunțul pentru detalii.",
+		"application_rejected": "Autorul a ales o altă persoană pentru acest job.",
+		"task_completed":       "Autorul a marcat jobul ca finalizat.",
+		"task_cancelled":       "Autorul a anulat jobul la care participai.",
+		"job_deleted":          "Anunțul pentru care ai aplicat a fost șters.",
+		"dispute_opened":       "A fost deschisă o dispută legată de acest job.",
+	}
+	title, ok := titles[kind]
+	if !ok {
+		return nil
+	}
+	screen := "task"
+	if kind == "application_received" {
+		screen = "job_applications"
+	}
+	go s.pushUser(userID, title, bodies[kind], map[string]string{"task_id": taskID, "screen": screen})
+	return nil
+}
+
 func (s *Store) ensureNotificationTables() error {
 	_, err := s.db.Exec(`CREATE TABLE IF NOT EXISTS push_devices (
  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
