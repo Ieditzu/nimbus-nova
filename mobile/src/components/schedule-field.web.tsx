@@ -5,7 +5,7 @@ import type { ScheduleFieldProps } from "./schedule-field-types";
 export function ScheduleField({ label, mode, value, minDate, disabled, onChange }: ScheduleFieldProps) {
  const { colors, isDark } = useTheme();
  return <View style={{ gap: 8 }}>
-  <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.muted }}>{label}</Text>
+  <Text style={{ fontFamily: fonts.bold, fontSize: 13, color: colors.text }}>{label}</Text>
   {createElement("input", {
    type: mode, lang: "ro", value, min: mode === "date" ? minDate : undefined, disabled,
    "aria-label": label,

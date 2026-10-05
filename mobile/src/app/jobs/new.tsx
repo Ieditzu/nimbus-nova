@@ -109,9 +109,11 @@ export default function NewJobScreen() {
         title={id ? "Editează anunțul" : "Publică un job"}
         subtitle="Spune ce ai nevoie, unde și când."
       />
+      <Text style={[s.label, { fontSize: 14, marginTop: 4, marginBottom: -8 }]}>Numele jobului</Text>
       <TextInput accessibilityLabel="Titlu" value={title} onChangeText={setTitle} editable={!busy} maxLength={80}
         placeholder="Cum se numește jobul?" placeholderTextColor={colors.muted} keyboardAppearance={isDark ? "dark" : "light"}
         style={{ fontFamily: fonts.bold, fontSize: 25, lineHeight: 32, color: colors.text, paddingVertical: 16, minHeight: 68 }} />
+      <Text style={[s.label, { fontSize: 14, marginBottom: -8 }]}>Tipul anunțului</Text>
       <View style={{ flexDirection: "row", gap: 8 }}>
         {jobCategories.map((value) => <Pressable key={value} disabled={busy} accessibilityRole="radio"
           accessibilityLabel={jobTypeLabel[value]} accessibilityState={{ checked: jobType === value }}
@@ -140,17 +142,19 @@ export default function NewJobScreen() {
       </View>
       <View style={[s.card, { borderWidth: 0, gap: 16 }]}>
         <Text style={s.label}>{jobType === "volunteer" ? "Despre activitate" : "Despre job"}</Text>
-        {jobType === "volunteer" ? <Text style={s.body}>Voluntariat · fără plată</Text> : <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        {jobType === "volunteer" ? <Text style={s.body}>Voluntariat · fără plată</Text> : <><Text style={[s.label, { fontSize: 14, marginBottom: -12 }]}>Plata propusă (lei)</Text><View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <TextInput accessibilityLabel="Sumă propusă (lei)" value={amount} onChangeText={setAmount} editable={!busy}
             keyboardType="decimal-pad" placeholder="150" maxLength={7} placeholderTextColor={colors.muted}
             style={{ flex: 1, minWidth: 0, fontFamily: fonts.bold, fontSize: 28, color: colors.text, paddingVertical: 10 }} />
           <Text style={s.body}>lei</Text>
-        </View>}
+        </View></>}
+        <Text style={[s.label, { fontSize: 14, marginBottom: -8 }]}>Descrierea jobului</Text>
         <TextInput accessibilityLabel="Descriere" value={description} onChangeText={setDescription} editable={!busy} multiline maxLength={500}
           keyboardAppearance={isDark ? "dark" : "light"} placeholder="Ce trebuie făcut? Adaugă detaliile importante."
           placeholderTextColor={colors.muted} style={[s.input, { borderWidth: 0, backgroundColor: colors.raised, borderRadius: 12 }]} />
+        <Text style={[s.label, { fontSize: 14, marginBottom: -12 }]}>Detaliu de siguranță · opțional</Text>
         <TextInput accessibilityLabel="Detalii de siguranță (opțional)" value={safety} onChangeText={setSafety} editable={!busy} maxLength={200}
-          placeholder="Un detaliu de siguranță? (opțional)" placeholderTextColor={colors.muted} keyboardAppearance={isDark ? "dark" : "light"}
+          placeholder="Ex.: lucrăm într-un spațiu public" placeholderTextColor={colors.muted} keyboardAppearance={isDark ? "dark" : "light"}
           style={{ fontFamily: fonts.body, fontSize: 13, lineHeight: 20, minHeight: 48, color: colors.text, paddingVertical: 10 }} />
       </View>
       <View style={[s.card, { borderWidth: 0, gap: 16 }]}>

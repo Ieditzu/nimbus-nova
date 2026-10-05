@@ -28,7 +28,7 @@ export function ScheduleField({ label, mode, value, date, minDate, disabled, onC
    else if (selected) setPending(selected);
   }} />;
  return <View style={{ gap: 8 }}>
-  <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.muted }}>{label}</Text>
+  <Text style={{ fontFamily: fonts.bold, fontSize: 13, color: colors.text }}>{label}</Text>
   <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled}
    onPress={() => { setPending(initial()); setOpen(true); }}
    style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 52, padding: 12, backgroundColor: colors.raised, borderRadius: 12 }}>
