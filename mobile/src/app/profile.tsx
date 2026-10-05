@@ -171,9 +171,20 @@ function ProfileForm({ profile }: { profile: Profile }) {
   const [city, setCity] = useState(profile.city);
   const [availability, setAvailability] = useState(profile.availability);
   const [bio, setBio] = useState(profile.bio);
+  const [brief, setBrief] = useState("");
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saved, setSaved] = useState(false);
+  async function sketch() {
+    if (brief.trim().length < 8) return;
+    setBusy(true); setSaveError("");
+    try {
+      const result = await client.draftProfile({ brief });
+      if (result.skills.length) setSkills(result.skills.join(", "));
+      if (result.bio) setBio(result.bio);
+      if (result.availability) setAvailability(result.availability);
+    } catch (e) { setSaveError(errorMessage(e)); } finally { setBusy(false); }
+  }
   const inputProps = {
     placeholderTextColor: colors.muted,
     keyboardAppearance: isDark ? ("dark" as const) : ("light" as const),
@@ -224,6 +235,11 @@ function ProfileForm({ profile }: { profile: Profile }) {
               : "Contul tău Nova"}
           </Text>
         </View>
+      </View>
+      <View style={s.field}>
+        <Text style={s.label}>Spune pe scurt</Text>
+        <TextInput {...inputProps} accessibilityLabel="Descriere scurtă pentru profil" value={brief} onChangeText={setBrief} multiline maxLength={800} placeholder="Am mai mutat mobilă și sunt liberă după-amiaza." style={[s.input, s.textarea]} />
+        <Button variant="outline" disabled={busy || brief.trim().length < 8} onPress={() => void sketch()}>Completează profilul</Button>
       </View>
       <View style={s.field}>
         <Text style={s.label}>Competențe</Text>

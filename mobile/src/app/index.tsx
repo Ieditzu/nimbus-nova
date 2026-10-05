@@ -4,13 +4,15 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useAuth } from "../auth/session";
 import { api } from "../api";
 import { formatBani } from "../api/client";
 import type { JobType, TaskPublic } from "../api/types";
-import { jobCategories, categoryLabel, jobTypeLabel, schedule } from "../lib/labels";
+import { jobCategories, jobTypeLabel, schedule } from "../lib/labels";
+import { errorMessage } from "../lib/errors";
 import {
   Button,
   Header,
@@ -29,10 +31,12 @@ const filterLabels: Record<JobType, string> = {
   volunteer: "Voluntariat",
 };
 export default function TaskListScreen() {
-  const { session } = useAuth();
+  const { client, session } = useAuth();
   const { colors } = useTheme();
   const s = styles(colors);
   const [category, setCategory] = useState<JobType | undefined>();
+  const [phrase, setPhrase] = useState("");
+  const [assistNote, setAssistNote] = useState("");
   const [applied, setApplied] = useState({ county: "", city: "", locality_id: "" });
   const load = useCallback(
     () => api.listOpenTasks({ job_type: category, ...applied }),
@@ -45,6 +49,15 @@ export default function TaskListScreen() {
     await reload();
     setRefreshing(false);
   }
+  async function understand() {
+    if (!session) { setAssistNote("Intră în cont ca să cauți în cuvinte."); return; }
+    try {
+      const result = await client.assistSearch(phrase);
+      if (result.job_type === "short_term" || result.job_type === "long_term" || result.job_type === "volunteer") setCategory(result.job_type);
+      if (result.city) setApplied(current => ({ ...current, city: result.city }));
+      setAssistNote([result.city, result.job_type && filterLabels[result.job_type as JobType]].filter(Boolean).join(" · ") || "Nu am găsit un filtru clar.");
+    } catch (e) { setAssistNote(errorMessage(e)); }
+  }
   return (
     <Page onRefresh={() => void refresh()} refreshing={refreshing}>
       <Header
@@ -53,6 +66,9 @@ export default function TaskListScreen() {
       />
       {!session?.user.volunteer_only ? <Button variant="outline" icon="add-outline" onPress={() => router.push("/jobs/new")}>Publică un job</Button> : null}
       <View style={s.searchSection}>
+        <TextInput accessibilityLabel="Caută în cuvinte" value={phrase} onChangeText={setPhrase} maxLength={800} placeholder="De exemplu: mutat o masă sâmbătă în București" placeholderTextColor={colors.muted} style={{ fontFamily: fonts.body, fontSize: 16, color: colors.text, minHeight: 48 }} />
+        <Button variant="outline" disabled={phrase.trim().length < 8} onPress={() => void understand()}>Înțelege căutarea</Button>
+        {assistNote ? <Text style={{ color: colors.muted }}>{assistNote}</Text> : null}
         <Text style={s.label}>Unde cauți?</Text>
         <LocationField county={applied.county} city={applied.city} disabled={false} onChange={(county, city, locality_id) => {
           setApplied({ county, city, locality_id });

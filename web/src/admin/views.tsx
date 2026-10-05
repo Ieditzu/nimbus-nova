@@ -285,6 +285,7 @@ export function Disputes({ desk }: P) {
   const [workerRon, setWorkerRon] = useState('');
   const [posterRon, setPosterRon] = useState('');
   const [splitError, setSplitError] = useState('');
+  const [briefs, setBriefs] = useState<Record<string, string>>({});
   const tasks = useMemo(() => new Map(data.tasks.map(task => [task.id, task])), [data.tasks]);
   const rows = data.disputes.filter(item => filter === 'all' || item.status === filter);
 
@@ -320,12 +321,18 @@ export function Disputes({ desk }: P) {
         return <li key={item.id} className="dk-case">
           <header><Pill value={item.status} /><span className="dk-muted" title={when(item.created_at)}>{ago(item.created_at)}</span></header>
           <blockquote>{item.reason}</blockquote>
+          {briefs[item.id] && <p>{briefs[item.id]}</p>}
           <dl className="dk-facts is-inline">
             <div><dt>Deschisă de</dt><dd><button type="button" className="dk-link" onClick={() => desk.openUser(item.opener_id)}>{desk.userName(item.opener_id)}</button></dd></div>
             <div><dt>Sarcină</dt><dd><button type="button" className="dk-link" onClick={() => desk.openTask(item.task_id)}>{task?.title ?? item.task_id}</button></dd></div>
             {task && <div><dt>Sumă</dt><dd>{money(task.amount_bani)}</dd></div>}
           </dl>
           {item.status === 'open' && <footer>
+            <button type="button" className="dk-btn is-small is-ghost" onClick={() => void desk.run(async () => {
+              const brief = await adminApi.disputeBrief(token, item.id);
+              if (brief.summary) setBriefs(current => ({ ...current, [item.id]: brief.summary }));
+              if (brief.worker_bani + brief.poster_bani > 0) { setSplitFor(item); setWorkerRon(String(brief.worker_bani / 100)); setPosterRon(String(brief.poster_bani / 100)); }
+            }, 'Rezumatul este gata. Împărțirea sugerată nu se salvează singură.')}>Rezumat</button>
             <button type="button" className="dk-btn is-small" onClick={() => settle(item, 'release')}>Eliberează lucrătorului</button>
             <button type="button" className="dk-btn is-small is-ghost" onClick={() => openSplit(item)}>Împarte</button>
             <button type="button" className="dk-btn is-small is-danger-ghost" onClick={() => settle(item, 'refund')}>Returnează posterului</button>

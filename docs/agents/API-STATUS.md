@@ -64,6 +64,13 @@
 | `PUT /v1/admin/tasks/{id}` | live | admin |
 | `POST /v1/admin/tasks/{id}/assign` | live | admin |
 | `POST /v1/admin/applications/{id}/accept` | live | admin |
+| `POST /v1/assist/task-draft` | live | website, phone |
+| `POST /v1/assist/safety-check` | live | website, phone |
+| `POST /v1/assist/application-draft` | live | phone |
+| `POST /v1/assist/profile-draft` | live | phone |
+| `POST /v1/assist/message-check` | live | phone |
+| `POST /v1/assist/search` | live | phone, website |
+| `POST /v1/assist/dispute-brief` | live | admin |
 | `GET /v1/admin/logs` | live | admin |
 | `GET /v1/admin/disputes` | live | admin |
 | `POST /v1/admin/tasks/{id}/unhide` | live | admin |

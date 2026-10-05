@@ -2,6 +2,7 @@ package main_test
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -1539,4 +1540,65 @@ func TestAdminCreatesUsersAndTasks(t *testing.T) {
 	if workerID == "" {
 		t.Fatal("missing created worker")
 	}
+}
+
+func TestAssistRoutes(t *testing.T) {
+	restore := server.SetAssistForTest(func(_ context.Context, system, _ string, _ bool) (string, error) {
+		switch {
+		case strings.Contains(system, "editorul"):
+			return `{"title":"Mutat o masă","category":"light_moving","job_type":"short_term","city":"București","amount_bani":15000,"description":"Ajut la mutat o masă ușoară în spațiu public, două ore.","safety_note":"Spațiu public. Fără numerar."}`, nil
+		case strings.Contains(system, "candidatură"):
+			return `{"message":"Pot ajunge la ora stabilită și ajut la amenajare."}`, nil
+		case strings.Contains(system, "profil"):
+			return `{"skills":["mutat"],"bio":"Am mai mutat mobilă.","availability":"După-amiaza"}`, nil
+		case strings.Contains(system, "filtre"):
+			return `{"job_type":"short_term","category":"light_moving","city":"București","county":""}`, nil
+		case strings.Contains(system, "dispută"):
+			return `{"summary":"Masa nu a fost mutată complet.","worker_bani":5000,"poster_bani":5000}`, nil
+		default:
+			return `{"note":"Spațiu public. Fără numerar.","flags":[],"warning":""}`, nil
+		}
+	})
+	t.Cleanup(restore)
+	h := start(t)
+	status, _, body := h.do(http.MethodPost, "/v1/assist/task-draft", "worker-1", map[string]any{"brief": "Vreau să mut o masă sâmbătă."}, true)
+	h.errorCode(status, body, 403, "forbidden", "Interzis.")
+	status, _, body = h.do(http.MethodPost, "/v1/assist/task-draft", "poster-1", map[string]any{"brief": "Am nevoie de doi oameni să mute o masă în București, 150 lei."}, true)
+	if status != 200 || asMap(t, decode(t, body))["draft"].(map[string]any)["category"] != "light_moving" {
+		t.Fatalf("draft %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/assist/safety-check", "poster-1", map[string]any{"title": "Mutat", "description": "Plată cash la mine acasă.", "safety_note": ""}, true)
+	if status != 200 || !strings.Contains(string(body), "home") {
+		t.Fatalf("safety %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/assist/application-draft", "worker-1", map[string]any{"task_id": "task_seed_event_setup"}, true)
+	if status != 200 || asMap(t, decode(t, body))["message"] == "" {
+		t.Fatalf("application %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/assist/profile-draft", "worker-1", map[string]any{"brief": "Am mai mutat mobilă și sunt liberă după-amiaza."}, true)
+	if status != 200 || len(asMap(t, decode(t, body))["skills"].([]any)) != 1 {
+		t.Fatalf("profile %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/assist/search", "worker-1", map[string]any{"query": "mutat o masă sâmbătă în București"}, true)
+	if status != 200 || asMap(t, decode(t, body))["city"] != "București" {
+		t.Fatalf("search %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/assist/message-check", "worker-1", map[string]any{"text": "Scrie-mi pe WhatsApp la 0722000111"}, true)
+	if status != 200 || asMap(t, decode(t, body))["ok"] != false {
+		t.Fatalf("message check %d %s", status, body)
+	}
+	if _, err := h.DB.Exec(`INSERT INTO disputes (id, task_id, opener_id, reason, status, created_at) VALUES ('dsp_assist', 'task_seed_event_setup', 'poster-1', 'Nu s-a prezentat.', 'open', '2026-10-05T12:00:00+03:00')`); err != nil {
+		t.Fatal(err)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/assist/dispute-brief", "poster-1", map[string]any{"dispute_id": "dsp_assist"}, true)
+	h.errorCode(status, body, 403, "forbidden", "Interzis.")
+	status, _, body = h.do(http.MethodPost, "/v1/assist/dispute-brief", "admin-1", map[string]any{"dispute_id": "dsp_assist"}, true)
+	if status != 200 || asMap(t, decode(t, body))["summary"] == "" {
+		t.Fatalf("brief %d %s", status, body)
+	}
+	server.SetAssistForTest(func(context.Context, string, string, bool) (string, error) {
+		return "", server.AssistUnavailable()
+	})
+	status, _, body = h.do(http.MethodPost, "/v1/assist/task-draft", "poster-1", map[string]any{"brief": "Am nevoie de ajutor la o masă ușoară."}, true)
+	h.errorCode(status, body, 503, "assist_unavailable", "Asistentul nu este disponibil momentan. Poți continua fără el.")
 }

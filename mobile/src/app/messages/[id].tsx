@@ -120,10 +120,12 @@ export default function ConversationScreen() {
     const run = generation.current;
     const text = draft.trim();
     try {
-      const { message } = await client.sendMessage(id, text);
+      const checked = await client.checkMessage(text).catch(() => ({ ok: true, warning: "" }));
+      const { message, warning } = await client.sendMessage(id, text);
       if (run !== generation.current) return;
       setMessages((current) => mergeMessages(current, [message]));
       setDraft("");
+      setSendError(checked.warning || warning || "");
       list.current?.scrollToOffset({ offset: 0, animated: false });
     } catch (e) {
       if (run === generation.current) setSendError(errorMessage(e));

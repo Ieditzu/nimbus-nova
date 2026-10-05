@@ -356,7 +356,9 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 		s.writeErr(w, err)
 		return
 	}
+	warning := s.flagOutgoing(u.ID, text)
 	writeJSON(w, http.StatusCreated, struct {
 		Message ChatMessage `json:"message"`
-	}{message})
+		Warning string      `json:"warning,omitempty"`
+	}{message, warning})
 }

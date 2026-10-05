@@ -40,7 +40,13 @@ export interface NovaClient {
   listConversations(): Promise<{ conversations: Conversation[] }>;
   startTaskConversation(taskId: string, participant_id?: string): Promise<{ conversation: Conversation }>;
   listMessages(id: string, after?: number, before?: number): Promise<MessagePage>;
-  sendMessage(id: string, text: string): Promise<{ message: ChatMessage }>;
+  sendMessage(id: string, text: string): Promise<{ message: ChatMessage; warning?: string }>;
+  draftTask(body: { brief: string }): Promise<{ draft: { title: string; category: Category; job_type: JobType; city: string; amount_bani: number; description: string; safety_note: string }; flags: string[]; warning: string }>;
+  checkSafety(body: { title: string; description: string; safety_note: string; job_type?: string }): Promise<{ flags: string[]; warning: string; safety_note: string }>;
+  draftApplication(taskId: string): Promise<{ message: string }>;
+  draftProfile(body: { brief: string }): Promise<{ skills: string[]; bio: string; availability: string }>;
+  checkMessage(text: string): Promise<{ ok: boolean; warning: string }>;
+  assistSearch(query: string): Promise<{ job_type: string; category: string; city: string; county: string }>;
   getHealth(): Promise<{ ok: true }>;
   listOpenTasks(query?: { job_type?: JobType; category?: Category; county?: string; locality_id?: string; city?: string; sector?: string; lat?: number; lng?: number; radius_km?: number }): Promise<{ tasks: TaskPublic[] }>;
   searchTasks(query?: { kind?: string; from?: string; to?: string; city?: string }): Promise<{ tasks: TaskPublic[] }>;
@@ -162,6 +168,12 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
     resetDemo: () => request("/v1/demo/reset", { method: "POST", body: "{}" }),
     getReputation: (userId) => request(`/v1/users/${userId}/reputation`, {}, false),
     listEvents: () => request("/v1/events", {}, false),
+    draftTask: (body) => request("/v1/assist/task-draft", { method: "POST", body: JSON.stringify(body) }),
+    checkSafety: (body) => request("/v1/assist/safety-check", { method: "POST", body: JSON.stringify(body) }),
+    draftApplication: (taskId) => request("/v1/assist/application-draft", { method: "POST", body: JSON.stringify({ task_id: taskId }) }),
+    draftProfile: (body) => request("/v1/assist/profile-draft", { method: "POST", body: JSON.stringify(body) }),
+    checkMessage: (text) => request("/v1/assist/message-check", { method: "POST", body: JSON.stringify({ text }) }),
+    assistSearch: (query) => request("/v1/assist/search", { method: "POST", body: JSON.stringify({ query }) }),
   };
 }
 

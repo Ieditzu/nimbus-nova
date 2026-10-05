@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { useAuth } from "../../auth/session";
-import type { JobType, TaskPublic } from "../../api/types";
-import { jobCategories, jobTypeLabel } from "../../lib/labels";
+import type { Category, JobType, TaskPublic } from "../../api/types";
+import { jobCategories, jobTypeLabel, categoryLabel } from "../../lib/labels";
 import { amountToBani, romanianDateTime } from "../../lib/job-form";
 import { errorMessage } from "../../lib/errors";
 import { LocationField } from "../../components/location-field";
@@ -21,6 +21,9 @@ export default function NewJobScreen() {
   const { colors, isDark } = useTheme();
   const s = jobStyles(colors);
   const [title, setTitle] = useState("");
+  const [category, setCategory] = useState<Category>("other");
+  const [brief, setBrief] = useState("");
+  const [warning, setWarning] = useState("");
   const [county, setCounty] = useState("");
   const [localityId, setLocalityId] = useState("");
   const [city, setCity] = useState("");
@@ -45,7 +48,7 @@ export default function NewJobScreen() {
       const [day, begins] = local(task.starts_at);
       const place = findLocation(task.city, task.locality_id, task.county);
       setCounty(place?.county ?? ""); setLocalityId(place?.id ?? "");
-      setTitle(task.title); setCity(task.city); setJobType(task.job_type ?? (task.amount_bani === 0 ? "volunteer" : "short_term"));
+      setTitle(task.title); setCity(task.city); setCategory(task.category); setJobType(task.job_type ?? (task.amount_bani === 0 ? "volunteer" : "short_term"));
       setDate(day); setEndDate(local(task.ends_at)[0]); setStart(begins); setEnd(local(task.ends_at)[1]);
       setAmount((task.amount_bani / 100).toFixed(2));
       setDescription(task.description); setSafety(task.safety_note); setExisting(task);
@@ -73,7 +76,7 @@ export default function NewJobScreen() {
       const body = {
         title: title.trim(),
         city: city.trim(), county, locality_id: localityId,
-        category: existing?.category ?? "other", job_type: jobType,
+        category, job_type: jobType,
         starts_at,
         ends_at,
         amount_bani: jobType === "volunteer" ? 0 : amountToBani(amount),
@@ -93,6 +96,29 @@ export default function NewJobScreen() {
       setBusy(false);
     }
   }
+  async function sketch() {
+    if (brief.trim().length < 8) return;
+    setBusy(true); setError(""); setWarning("");
+    try {
+      const result = await client.draftTask({ brief });
+      setTitle(result.draft.title);
+      setCategory(result.draft.category);
+      if (result.draft.job_type) setJobType(result.draft.job_type);
+      if (result.draft.city) setCity(result.draft.city);
+      setDescription(result.draft.description);
+      setSafety(result.draft.safety_note);
+      if (result.draft.job_type !== "volunteer" && result.draft.amount_bani) setAmount((result.draft.amount_bani / 100).toFixed(2));
+      setWarning(result.warning);
+    } catch (e) { setError(errorMessage(e)); } finally { setBusy(false); }
+  }
+  async function checkSafety() {
+    setBusy(true); setError("");
+    try {
+      const result = await client.checkSafety({ title, description, safety_note: safety, job_type: jobType });
+      if (result.safety_note) setSafety(result.safety_note);
+      setWarning(result.warning);
+    } catch (e) { setError(errorMessage(e)); } finally { setBusy(false); }
+  }
   if (id && existing?.id !== id) return <Page><Header title="Editează anunțul" /><State loading={!error} error={error} /><Button variant="outline" onPress={() => router.replace("/jobs")}>Toate anunțurile</Button></Page>;
   if (session?.user.volunteer_only)
     return (
@@ -109,6 +135,12 @@ export default function NewJobScreen() {
         title={id ? "Editează anunțul" : "Publică un job"}
         subtitle="Spune ce ai nevoie, unde și când."
       />
+      <TextInput accessibilityLabel="Spune cu cuvintele tale" value={brief} onChangeText={setBrief} editable={!busy} multiline maxLength={800}
+        placeholder="De exemplu: am nevoie de doi oameni sâmbătă să mute o masă, 150 lei, fără să intre în casă."
+        placeholderTextColor={colors.muted} keyboardAppearance={isDark ? "dark" : "light"}
+        style={[s.input, { borderWidth: 0, backgroundColor: colors.raised, borderRadius: 12 }]} />
+      <Button variant="outline" disabled={busy || brief.trim().length < 8} onPress={() => void sketch()}>{busy ? "Se gândește..." : "Schițează anunțul"}</Button>
+      {warning ? <Text accessibilityRole="alert" style={s.body}>{warning}</Text> : null}
       <Text style={[s.label, { fontSize: 14, marginTop: 4, marginBottom: -8 }]}>Numele jobului</Text>
       <TextInput accessibilityLabel="Titlu" value={title} onChangeText={setTitle} editable={!busy} maxLength={80}
         placeholder="Cum se numește jobul?" placeholderTextColor={colors.muted} keyboardAppearance={isDark ? "dark" : "light"}
@@ -156,6 +188,8 @@ export default function NewJobScreen() {
         <TextInput accessibilityLabel="Detalii de siguranță (opțional)" value={safety} onChangeText={setSafety} editable={!busy} maxLength={200}
           placeholder="Ex.: lucrăm într-un spațiu public" placeholderTextColor={colors.muted} keyboardAppearance={isDark ? "dark" : "light"}
           style={{ fontFamily: fonts.body, fontSize: 13, lineHeight: 20, minHeight: 48, color: colors.text, paddingVertical: 10 }} />
+        <Button variant="outline" disabled={busy || description.trim().length < 8} onPress={() => void checkSafety()}>Verifică siguranța</Button>
+        <Text style={s.body}>{categoryLabel[category]}</Text>
       </View>
       <View style={[s.card, { borderWidth: 0, gap: 16 }]}>
         <LocationPicker value={place} onChange={setPlace} disabled={busy} />

@@ -170,6 +170,7 @@ export default function TaskDetailScreen() {
               </Text>
               <View style={s.messageLabel}>
                 <Text style={s.label}>Mesaj</Text>
+                <Pressable accessibilityRole="button" disabled={busy} onPress={() => void client.draftApplication(id).then(result => setMessage(result.message)).catch(e => setActionError(errorMessage(e)))}><Text style={s.meta}>Schițează</Text></Pressable>
                 <Text style={s.meta}>{message.length}/280</Text>
               </View>
               <TextInput

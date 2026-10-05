@@ -239,6 +239,7 @@ export const adminApi = {
   disputes: (token: string) => call<{ disputes: AdminDispute[] }>(token, '/v1/admin/disputes'),
   resolveDispute: (token: string, disputeId: string, result: 'release' | 'refund' | 'split', workerBani = 0, posterBani = 0) =>
     post(token, `/v1/admin/disputes/${id(disputeId)}/resolve`, { result, worker_bani: workerBani, poster_bani: posterBani }),
+  disputeBrief: (token: string, disputeId: string) => post<{ summary: string; worker_bani: number; poster_bani: number; status: string }>(token, '/v1/assist/dispute-brief', { dispute_id: disputeId }),
   ledger: (token: string) => call<{ entries: LedgerEntry[] }>(token, '/v1/admin/ledger'),
   partners: (token: string) => call<{ partners: Partner[] }>(token, '/v1/admin/partners'),
   createPartner: (token: string, name: string) => post<{ partner: Partner }>(token, '/v1/admin/partners', { name }),
