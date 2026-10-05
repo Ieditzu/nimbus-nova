@@ -4,10 +4,15 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
+	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
+
+	webpush "github.com/SherClockHolmes/webpush-go"
 )
 
 const expoPushURL = "https://exp.host/--/api/v2/push/send"
@@ -63,8 +68,140 @@ CREATE TABLE IF NOT EXISTS daily_notification_runs (
  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
  digest_date TEXT NOT NULL,
  PRIMARY KEY(user_id,digest_date)
+);
+CREATE TABLE IF NOT EXISTS web_push_devices (
+ user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ endpoint TEXT NOT NULL UNIQUE,
+ p256dh TEXT NOT NULL,
+ auth TEXT NOT NULL,
+ created_at TEXT NOT NULL,
+ updated_at TEXT NOT NULL,
+ PRIMARY KEY(user_id,endpoint)
+);
+CREATE TABLE IF NOT EXISTS web_push_vapid_keys (
+ id INTEGER PRIMARY KEY CHECK (id=1),
+ public_key TEXT NOT NULL,
+ private_key TEXT NOT NULL
 );`)
+	if err != nil {
+		return err
+	}
+	_, _, err = s.webPushKeys()
 	return err
+}
+
+type webPushSubscription struct {
+	Endpoint string `json:"endpoint"`
+	Keys     struct {
+		P256dh string `json:"p256dh"`
+		Auth   string `json:"auth"`
+	} `json:"keys"`
+}
+
+func (s *Server) handleWebPushConfig(w http.ResponseWriter, r *http.Request) {
+	u, ae := s.currentUser(r)
+	if ae != nil {
+		writeAppError(w, ae)
+		return
+	}
+	if ae = requireMember(u); ae != nil {
+		writeAppError(w, ae)
+		return
+	}
+	publicKey, _, err := s.store.webPushKeys()
+	if err != nil {
+		s.writeErr(w, errInternal)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"enabled": true, "public_key": publicKey})
+}
+
+func (s *Server) handleRegisterWebPushSubscription(w http.ResponseWriter, r *http.Request) {
+	u, ae := s.currentUser(r)
+	if ae != nil {
+		writeAppError(w, ae)
+		return
+	}
+	if ae = requireMember(u); ae != nil {
+		writeAppError(w, ae)
+		return
+	}
+	var body webPushSubscription
+	r.Body = http.MaxBytesReader(w, r.Body, 8192)
+	if ae = readJSON(r, &body, false); ae != nil {
+		writeAppError(w, ae)
+		return
+	}
+	if len(body.Endpoint) > 4096 || !validWebPushEndpoint(body.Endpoint) || !validWebPushKey(body.Keys.P256dh, 65) || !validWebPushKey(body.Keys.Auth, 16) {
+		writeAppError(w, invalidInput("Abonamentul de notificări web nu este valid."))
+		return
+	}
+	now := NowRFC3339()
+	_, err := s.store.db.Exec(`INSERT INTO web_push_devices(user_id,endpoint,p256dh,auth,created_at,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(endpoint) DO UPDATE SET user_id=excluded.user_id,p256dh=excluded.p256dh,auth=excluded.auth,updated_at=excluded.updated_at`, u.ID, body.Endpoint, body.Keys.P256dh, body.Keys.Auth, now, now)
+	if err != nil {
+		s.writeErr(w, errInternal)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) handleDeleteWebPushSubscription(w http.ResponseWriter, r *http.Request) {
+	u, ae := s.currentUser(r)
+	if ae != nil {
+		writeAppError(w, ae)
+		return
+	}
+	var body struct {
+		Endpoint string `json:"endpoint"`
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 8192)
+	if ae = readJSON(r, &body, false); ae != nil {
+		writeAppError(w, ae)
+		return
+	}
+	_, err := s.store.db.Exec(`DELETE FROM web_push_devices WHERE user_id=? AND endpoint=?`, u.ID, body.Endpoint)
+	if err != nil {
+		s.writeErr(w, errInternal)
+		return
+	}
+	writeJSON(w, http.StatusOK, okBody{OK: true})
+}
+
+func validWebPushKey(value string, wantLength int) bool {
+	decoded, err := base64.RawURLEncoding.DecodeString(value)
+	return err == nil && len(decoded) == wantLength
+}
+
+func validWebPushEndpoint(raw string) bool {
+	endpoint, err := url.Parse(raw)
+	if err != nil || endpoint.Scheme != "https" || endpoint.User != nil || endpoint.Hostname() == "" {
+		return false
+	}
+	if port := endpoint.Port(); port != "" && port != "443" {
+		return false
+	}
+	host := strings.ToLower(endpoint.Hostname())
+	return host == "fcm.googleapis.com" || strings.HasSuffix(host, ".push.apple.com") || strings.HasSuffix(host, ".push.services.mozilla.com")
+}
+
+func (s *Store) webPushKeys() (string, string, error) {
+	var publicKey, privateKey string
+	err := s.db.QueryRow(`SELECT public_key,private_key FROM web_push_vapid_keys WHERE id=1`).Scan(&publicKey, &privateKey)
+	if err == nil {
+		return publicKey, privateKey, nil
+	}
+	if err != sql.ErrNoRows {
+		return "", "", err
+	}
+	privateKey, publicKey, err = webpush.GenerateVAPIDKeys()
+	if err != nil {
+		return "", "", err
+	}
+	if _, err = s.db.Exec(`INSERT OR IGNORE INTO web_push_vapid_keys(id,public_key,private_key) VALUES(1,?,?)`, publicKey, privateKey); err != nil {
+		return "", "", err
+	}
+	err = s.db.QueryRow(`SELECT public_key,private_key FROM web_push_vapid_keys WHERE id=1`).Scan(&publicKey, &privateKey)
+	return publicKey, privateKey, err
 }
 
 func (s *Server) handleRegisterPushToken(w http.ResponseWriter, r *http.Request) {
@@ -180,6 +317,7 @@ type expoPushMessage struct {
 }
 
 func (s *Server) pushUser(userID, title, body string, data map[string]string) {
+	go s.pushWebUser(userID, title, body, data)
 	rows, err := s.store.db.Query(`SELECT token FROM push_devices WHERE user_id=?`, userID)
 	if err != nil {
 		return
@@ -221,6 +359,62 @@ func (s *Server) pushUser(userID, title, body string, data map[string]string) {
 		}
 		cancel()
 	}
+}
+
+func (s *Server) pushWebUser(userID, title, body string, data map[string]string) {
+	publicKey, privateKey, err := s.store.webPushKeys()
+	if err != nil {
+		return
+	}
+	rows, err := s.store.db.Query(`SELECT endpoint,p256dh,auth FROM web_push_devices WHERE user_id=?`, userID)
+	if err != nil {
+		return
+	}
+	type target struct{ endpoint, p256dh, auth string }
+	devices := []target{}
+	for rows.Next() {
+		var device target
+		if rows.Scan(&device.endpoint, &device.p256dh, &device.auth) == nil {
+			devices = append(devices, device)
+		}
+	}
+	rows.Close()
+	if len(devices) == 0 {
+		return
+	}
+	payload, err := json.Marshal(map[string]any{"title": title, "body": body, "data": data})
+	if err != nil {
+		return
+	}
+	subject := "mailto:support@nimbusnova.cc"
+	for _, device := range devices {
+		subscription := &webpush.Subscription{Endpoint: device.endpoint, Keys: webpush.Keys{P256dh: device.p256dh, Auth: device.auth}}
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+		resp, sendErr := webpush.SendNotificationWithContext(ctx, payload, subscription, &webpush.Options{
+			HTTPClient: &http.Client{Timeout: 8 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }},
+			Subscriber: subject, VAPIDPublicKey: publicKey, VAPIDPrivateKey: privateKey, TTL: 60, Urgency: webpush.UrgencyNormal,
+		})
+		cancel()
+		if sendErr != nil {
+			log.Printf("web push request failed host=%q", endpointHost(device.endpoint))
+			continue
+		}
+		resp.Body.Close()
+		if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+			log.Printf("web push provider responded status=%d host=%q", resp.StatusCode, endpointHost(device.endpoint))
+		}
+		if resp.StatusCode == http.StatusGone || resp.StatusCode == http.StatusNotFound {
+			_, _ = s.store.db.Exec(`DELETE FROM web_push_devices WHERE endpoint=?`, device.endpoint)
+		}
+	}
+}
+
+func endpointHost(raw string) string {
+	endpoint, err := url.Parse(raw)
+	if err != nil {
+		return "invalid"
+	}
+	return endpoint.Hostname()
 }
 
 func (s *Server) sendNearbyDigests(ctx context.Context, now time.Time) {

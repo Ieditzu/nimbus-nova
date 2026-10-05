@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/Ieditzu/nimbus-nova/api/internal/server"
 	"net/http"
@@ -253,6 +254,43 @@ func TestPushTokenAndNearbyPreference(t *testing.T) {
 	status, raw = h.doBearer(http.MethodGet, "/v1/me/notification-preferences", token, nil)
 	if status != 200 || !strings.Contains(string(raw), "Cluj-Napoca") || !strings.Contains(string(raw), `"daily_nearby_enabled":true`) {
 		t.Fatalf("get nearby %d %s", status, raw)
+	}
+}
+
+func TestWebPushSubscriptionRegistration(t *testing.T) {
+	h := start(t)
+	_, token := account(t, h, "web-push@example.test", "+40712345004")
+	status, raw := h.doBearer(http.MethodGet, "/v1/me/web-push-config", token, nil)
+	config := asMap(t, decode(t, raw))
+	if status != http.StatusOK || config["enabled"] != true || config["public_key"] == "" {
+		t.Fatalf("web push config %d %s", status, raw)
+	}
+	firstPublicKey := config["public_key"]
+	status, raw = h.doBearer(http.MethodGet, "/v1/me/web-push-config", token, nil)
+	if status != http.StatusOK || asMap(t, decode(t, raw))["public_key"] != firstPublicKey {
+		t.Fatalf("VAPID key changed during server lifetime %d %s", status, raw)
+	}
+	key := func(n int) string { return base64.RawURLEncoding.EncodeToString(make([]byte, n)) }
+	subscription := map[string]any{
+		"endpoint": "https://fcm.googleapis.com/fcm/send/test-endpoint",
+		"keys":     map[string]any{"p256dh": key(65), "auth": key(16)},
+	}
+	status, raw = h.doBearer(http.MethodPost, "/v1/me/web-push-subscription", token, subscription)
+	if status != http.StatusOK {
+		t.Fatalf("register web push %d %s", status, raw)
+	}
+	var count int
+	if err := h.DB.QueryRow(`SELECT COUNT(*) FROM web_push_devices WHERE endpoint=?`, subscription["endpoint"]).Scan(&count); err != nil || count != 1 {
+		t.Fatalf("web push subscription count=%d err=%v", count, err)
+	}
+	subscription["endpoint"] = "https://127.0.0.1/fake"
+	status, raw = h.doBearer(http.MethodPost, "/v1/me/web-push-subscription", token, subscription)
+	if status != http.StatusBadRequest {
+		t.Fatalf("unsafe web push endpoint accepted %d %s", status, raw)
+	}
+	status, raw = h.doBearer(http.MethodDelete, "/v1/me/web-push-subscription", token, map[string]any{"endpoint": "https://fcm.googleapis.com/fcm/send/test-endpoint"})
+	if status != http.StatusOK {
+		t.Fatalf("remove web push %d %s", status, raw)
 	}
 }
 

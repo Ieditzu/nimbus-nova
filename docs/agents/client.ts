@@ -59,6 +59,9 @@ export interface NovaClient {
   updatePhone(phone_number: string): Promise<{ user: PublicAccount }>;
   registerPushToken(expo_push_token: string): Promise<{ ok: true }>;
   deletePushToken(expo_push_token: string): Promise<{ ok: true }>;
+  getWebPushConfig(): Promise<{ enabled: boolean; public_key: string }>;
+  registerWebPushSubscription(subscription: { endpoint: string; keys: { p256dh: string; auth: string } }): Promise<{ ok: true }>;
+  deleteWebPushSubscription(endpoint: string): Promise<{ ok: true }>;
   getNotificationPreferences(): Promise<{ daily_nearby_enabled: boolean; city: string }>;
   putNotificationPreferences(daily_nearby_enabled: boolean): Promise<{ daily_nearby_enabled: boolean; city: string }>;
   listConversations(): Promise<{ conversations: Conversation[] }>;
@@ -136,6 +139,9 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
     updatePhone: (phone_number) => request("/v1/me/phone", { method: "PUT", body: JSON.stringify({ phone_number }) }),
     registerPushToken: (expo_push_token) => request("/v1/me/push-token", { method: "POST", body: JSON.stringify({ expo_push_token }) }),
     deletePushToken: (expo_push_token) => request("/v1/me/push-token", { method: "DELETE", body: JSON.stringify({ expo_push_token }) }),
+    getWebPushConfig: () => request("/v1/me/web-push-config"),
+    registerWebPushSubscription: (subscription) => request("/v1/me/web-push-subscription", { method: "POST", body: JSON.stringify(subscription) }),
+    deleteWebPushSubscription: (endpoint) => request("/v1/me/web-push-subscription", { method: "DELETE", body: JSON.stringify({ endpoint }) }),
     getNotificationPreferences: () => request("/v1/me/notification-preferences"),
     putNotificationPreferences: (daily_nearby_enabled) => request("/v1/me/notification-preferences", { method: "PUT", body: JSON.stringify({ daily_nearby_enabled }) }),
     listConversations: () => request("/v1/me/conversations"),

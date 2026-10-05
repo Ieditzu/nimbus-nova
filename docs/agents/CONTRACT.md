@@ -169,10 +169,11 @@ Creating a new `POST /v1/tasks/{id}/conversations` thread writes a `job_interest
 
 - `POST /v1/me/push-token` requires a signed-in account with a completed phone and `{ "expo_push_token": "ExponentPushToken[...]" }` or `ExpoPushToken[...]`. It registers or reassigns that device token to the current account.
 - `DELETE /v1/me/push-token` accepts the same body and removes that device for the current account.
+- `GET /v1/me/web-push-config` returns `{ "enabled": boolean, "public_key": string }` for the signed-in account. `POST /v1/me/web-push-subscription` accepts a standard browser PushSubscription JSON object; `DELETE` accepts `{ "endpoint": string }`. The server persists web subscriptions to the account and sends them through VAPID Web Push.
 - `GET /v1/me/notification-preferences` returns `{ "daily_nearby_enabled": boolean, "city": string }`.
 - `PUT /v1/me/notification-preferences` accepts `{ "daily_nearby_enabled": boolean }`. Enabling requires a city in the user's saved profile. It opts into at most one nearby digest per local day, at 09:00 Europe/Bucharest, for open jobs created in the preceding 24 hours whose city matches the saved profile city. It is city matching, not a GPS radius. The user can disable it at any time.
 
-Native delivery uses Expo Push Service. A production EAS project, APNs/FCM credentials, and a rebuilt Nova binary are required. Expo Go is unsupported. Browser push is not implemented; web notification permission alone does not register a remote subscription.
+Native delivery uses Expo Push Service. A production EAS project, APNs/FCM credentials, and a rebuilt Nova binary are required. Expo Go is unsupported. Web/PWA delivery uses VAPID and the registered service worker. The API generates a VAPID key pair on first startup and stores it in the persistent application database; keep that database persistent so existing subscriptions remain valid. On iOS, install Nova on the Home Screen and enable notifications there; a granted browser permission without a server subscription is not enough.
 
 Account age policy: `volunteer_only` means under 16, computed from the verified birth date on registration, login and session reads. Ages 16–17 may publish and apply to paid jobs. Under 16 requires a guardian email and is restricted to unpaid volunteering; paid application and acceptance are rejected server-side. Zero-amount jobs are stored as volunteer jobs.
 

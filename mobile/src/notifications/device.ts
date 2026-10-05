@@ -1,6 +1,10 @@
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 export type Permission = "default" | "granted" | "denied" | "unsupported";
+export interface WebPushSubscriptionPayload {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
 export async function permissionStatus(): Promise<Permission> {
   if (Constants.executionEnvironment === "storeClient") return "unsupported";
   const notifications = await import("expo-notifications");
@@ -26,4 +30,6 @@ export async function expoPushToken(): Promise<string> {
   const result = await notifications.getExpoPushTokenAsync({ projectId });
   return result.data;
 }
+export async function existingWebPushSubscription(): Promise<WebPushSubscriptionPayload | null> { return null; }
+export async function createWebPushSubscription(_publicKey: string): Promise<WebPushSubscriptionPayload> { throw new Error(unsupportedHint); }
 export const unsupportedHint = "Notificările se configurează în aplicația instalată, într-un build propriu Nova. Expo Go nu acceptă push.";

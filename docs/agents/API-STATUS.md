@@ -48,6 +48,9 @@
 | `GET /v1/me/notifications` | live | both |
 | `POST /v1/me/push-token` | live | phone |
 | `DELETE /v1/me/push-token` | live | phone |
+| `GET /v1/me/web-push-config` | live | phone, browser |
+| `POST /v1/me/web-push-subscription` | live | phone, browser |
+| `DELETE /v1/me/web-push-subscription` | live | phone, browser |
 | `GET /v1/me/notification-preferences` | live | phone |
 | `PUT /v1/me/notification-preferences` | live | phone |
 | `POST /v1/profiles/me/documents` | live | phone |

@@ -6,10 +6,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../auth/session";
 import { fonts, useTheme } from "../components/theme";
 import { Button } from "../components/ui";
-import { expoPushToken, initializeNotifications, permissionStatus, unsupportedHint, type Permission } from "./device";
+import { createWebPushSubscription, existingWebPushSubscription, expoPushToken, initializeNotifications, permissionStatus, unsupportedHint, type Permission } from "./device";
 
 const seenKey = "nova.notifications.intro.v1";
-const context = createContext<{ status: Permission; busy: boolean; message: string; daily: boolean; city: string; enable: () => Promise<void>; setDaily: (enabled: boolean) => Promise<void> } | null>(null);
+const context = createContext<{ status: Permission; busy: boolean; message: string; webPushReady: boolean; webPushConfigLoading: boolean; daily: boolean; city: string; enable: () => Promise<void>; setDaily: (enabled: boolean) => Promise<void> } | null>(null);
 let seenThisSession = false;
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const { session, restoring, client } = useAuth();
@@ -19,6 +19,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [intro, setIntro] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [webPushReady, setWebPushReady] = useState(false);
+  const [webPushPublicKey, setWebPushPublicKey] = useState("");
+  const [webPushConfigLoading, setWebPushConfigLoading] = useState(true);
   const [daily, setDailyState] = useState(false);
   const [city, setCity] = useState("");
   useEffect(() => {
@@ -45,6 +48,29 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     const token = await expoPushToken();
     await client.registerPushToken(token);
   }, [client, session]);
+  const syncWebPush = useCallback(async (create: boolean) => {
+    if (!session || Platform.OS !== "web") return;
+    let subscription = await existingWebPushSubscription();
+    if (!subscription && create) {
+      if (!webPushPublicKey) throw new Error("Push-ul web nu este configurat încă pe server.");
+      subscription = await createWebPushSubscription(webPushPublicKey);
+    }
+    if (!subscription) { setWebPushReady(false); return; }
+    await client.registerWebPushSubscription(subscription);
+    setWebPushReady(true);
+  }, [client, session, webPushPublicKey]);
+  useEffect(() => {
+    if (!ready || Platform.OS !== "web") return;
+    let active = true;
+    void client.getWebPushConfig().then(config => {
+      if (!active) return;
+      setWebPushPublicKey(config.enabled ? config.public_key : "");
+      if (!config.enabled || !config.public_key) setMessage("Push-ul web nu este configurat încă pe server.");
+    }).catch(() => {
+      if (active) setMessage("Nu am putut pregăti push-ul web. Reîncarcă Nova și încearcă din nou.");
+    }).finally(() => { if (active) setWebPushConfigLoading(false); });
+    return () => { active = false; };
+  }, [ready, client]);
   useEffect(() => {
     if (!ready) return;
     let active = true;
@@ -52,11 +78,14 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       if (!active) return;
       setStatus(permission); setDailyState(prefs.daily_nearby_enabled); setCity(prefs.city);
       setIntro(permission === "default" && !seen && !seenThisSession);
-      if (permission === "granted") void syncToken().catch(() => {});
+      if (permission === "granted") {
+        const sync = Platform.OS === "web" ? syncWebPush(false) : syncToken();
+        void sync.catch(() => {});
+      }
     }).catch(() => { if (active) setMessage("Nu am putut verifica setările notificărilor."); });
     const listener = AppState.addEventListener("change", state => { if (state === "active") void refresh(); });
     return () => { active = false; listener.remove(); };
-  }, [ready, refresh, client, syncToken]);
+  }, [ready, refresh, client, syncToken, syncWebPush]);
   function dismiss() {
     seenThisSession = true; setIntro(false);
     if (typeof window !== "undefined" && typeof window.dispatchEvent === "function" && typeof Event !== "undefined") window.dispatchEvent(new Event("nova:notification-choice"));
@@ -68,8 +97,11 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     const request = initializeNotifications(); dismiss();
     try {
       const next = await request; setStatus(next);
-      if (next === "granted" && Platform.OS !== "web") await syncToken();
-      else if (next === "granted") setMessage("Push-ul remote pe web nu este încă configurat. Îl poți folosi în aplicația instalată pe iPhone sau Android.");
+      if (next === "granted" && Platform.OS === "web") {
+        await syncWebPush(true);
+        setMessage("Push activ pe acest dispozitiv. Mesajele și interesul pentru joburi vor apărea chiar dacă Nova este închisă.");
+      } else if (next === "granted") await syncToken();
+      else if (next === "unsupported") setMessage(unsupportedHint);
     } catch (e) { setMessage(e instanceof Error ? e.message : "Nu am putut inițializa notificările. Reîncearcă din Profil."); }
     finally { setBusy(false); }
   }
@@ -85,7 +117,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     } catch (e) { setMessage(e instanceof Error ? e.message : "Nu am putut salva preferința."); }
     finally { setBusy(false); }
   }
-  return <context.Provider value={{ status, busy, message, daily, city, enable, setDaily }}>
+  return <context.Provider value={{ status, busy, message, webPushReady, webPushConfigLoading, daily, city, enable, setDaily }}>
     {children}
     <Modal visible={ready && intro} transparent animationType="fade" onRequestClose={dismiss}>
       <SafeAreaView style={{ flex: 1, justifyContent: "center", padding: 24, backgroundColor: "rgba(0,0,0,0.5)" }}>
@@ -111,6 +143,10 @@ export function NotificationSettings() {
     <Text style={{ fontFamily: fonts.bold, color: colors.text }}>Notificări</Text>
     <Text style={{ fontFamily: fonts.body, color: colors.muted, lineHeight: 21 }}>{labels[value.status]}</Text>
     {value.status === "default" ? <Button variant="outline" icon="notifications-outline" disabled={value.busy} onPress={() => void value.enable()}>{value.busy ? "Se inițializează..." : "Permite notificările"}</Button> : null}
+    {Platform.OS === "web" && value.status === "granted" ? <View style={{ gap: 6 }}>
+      <Button variant={value.webPushReady ? "outline" : "primary"} icon="notifications-outline" disabled={value.busy || value.webPushConfigLoading} onPress={() => void value.enable()}>{value.busy ? "Se activează..." : value.webPushConfigLoading ? "Se pregătește..." : value.webPushReady ? "Reînregistrează push-ul" : "Activează notificările push"}</Button>
+      <Text style={{ fontFamily: fonts.body, color: colors.muted, lineHeight: 20 }}>{value.webPushReady ? "Push-ul este activ pentru acest browser și cont." : "Permisiunea browserului e acordată; apasă ca să legăm acest dispozitiv de contul Nova."}</Text>
+    </View> : null}
     {Platform.OS !== "web" && value.status === "granted" ? <View style={{ gap: 6 }}>
       <Button variant={value.daily ? "outline" : "primary"} icon="location-outline" disabled={value.busy} onPress={() => void value.setDaily(!value.daily)}>{value.daily ? "Oprește joburile zilnice" : "Primește zilnic joburi din orașul tău"}</Button>
       <Text style={{ fontFamily: fonts.body, color: colors.muted, lineHeight: 20 }}>{value.daily ? `Trimitem cel mult un rezumat pe zi pentru ${value.city}.` : "Folosim orașul salvat în profil; poți opri alertele oricând."}</Text>

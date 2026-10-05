@@ -8,13 +8,14 @@ import {
   type ReactNode,
 } from "react";
 import { api, baseUrl } from "../api";
+import { Platform } from "react-native";
 import {
   createNovaClient,
   NovaError,
   type NovaClient,
   type PublicAccount,
 } from "../api/client";
-import { expoPushToken } from "../notifications/device";
+import { existingWebPushSubscription, expoPushToken } from "../notifications/device";
 import { errorMessage } from "../lib/errors";
 import { readToken, removeToken, saveToken } from "./storage";
 
@@ -126,9 +127,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signOut() {
     if (!session) return;
     try {
-      const pushToken = await expoPushToken();
-      await client.deletePushToken(pushToken);
-    } catch { /* Web, Expo Go, or an unconfigured build has no remote token. */ }
+      if (Platform.OS === "web") {
+        const subscription = await existingWebPushSubscription();
+        if (subscription) await client.deleteWebPushSubscription(subscription.endpoint);
+      } else {
+        const pushToken = await expoPushToken();
+        await client.deletePushToken(pushToken);
+      }
+    } catch { /* Remove the push association when available; always allow sign-out. */ }
     try {
       await api.logout(session.token);
     } catch (e) {
