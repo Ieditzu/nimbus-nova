@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Animated, Easing, Text, View } from "react-native";
 import Svg, { Path, Text as SvgText } from "react-native-svg";
 import { useAuth } from "../auth/session";
@@ -20,7 +20,8 @@ function wheelSlice(index: number) {
 export default function GamesScreen() {
   const { client } = useAuth();
   const { colors } = useTheme();
-  const { data, loading, error, reload } = useData(() => client.getGames(), 30000);
+  const load = useCallback(() => client.getGames(), [client]);
+  const { data, loading, error, reload } = useData(load, 30000);
   const [turn] = useState(() => new Animated.Value(0));
   const [rotation, setRotation] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -35,10 +36,10 @@ export default function GamesScreen() {
       const next = rotation + 1800 + (360 - 36 - index * 72 - rotation % 360 + 360) % 360;
       turn.setValue(rotation);
       Animated.timing(turn, { toValue: next, duration: 2600, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => {
-        setRotation(next % 360); setWon(result.xp_won); setBusy(false); void reload();
+        setRotation(next % 360); setWon(result.xp_won); setBusy(false); void reload(true);
       });
     } catch (e) {
-      setSpinError(errorMessage(e)); setBusy(false); void reload();
+      setSpinError(errorMessage(e)); setBusy(false); void reload(true);
     }
   }
   const game = data?.games;
