@@ -28,9 +28,13 @@ import {
 } from "react-native";
 import { errorMessage } from "../lib/errors";
 import { fonts, useTheme } from "./theme";
-export function useData<T>(load: () => Promise<T>, refreshMs?: number) {
-  const [data, setData] = useState<T>();
-  const [loading, setLoading] = useState(true);
+export function useData<T>(
+  load: () => Promise<T>,
+  refreshMs?: number,
+  initial?: T,
+) {
+  const [data, setData] = useState<T | undefined>(initial);
+  const [loading, setLoading] = useState(initial === undefined);
   const [error, setError] = useState("");
   const seq = useRef(0);
   const invalidate = useCallback(() => {

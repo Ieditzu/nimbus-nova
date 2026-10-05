@@ -1,6 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Animated, Easing, Text, View } from "react-native";
 import Svg, { Path, Text as SvgText } from "react-native-svg";
+import type { GameState } from "../api/types";
 import { useAuth } from "../auth/session";
 import { errorMessage } from "../lib/errors";
 import { Button, Header, Page, State, useData } from "../components/ui";
@@ -8,6 +9,10 @@ import { fonts, useTheme } from "../components/theme";
 
 const prizes = [50, 100, 150, 200, 250];
 const fills = ["#5B58D6", "#E76577", "#208C81", "#C68A2B", "#315EAA"];
+
+// The stack remounts screens on every tab change, so keep the last snapshot
+// around: revisiting Jocuri shows it immediately instead of a blocking loader.
+let gamesCache: { games: GameState } | undefined;
 
 function wheelSlice(index: number) {
   const start = (-90 + index * 72) * Math.PI / 180;
@@ -20,13 +25,18 @@ function wheelSlice(index: number) {
 export default function GamesScreen() {
   const { client } = useAuth();
   const { colors } = useTheme();
-  const load = useCallback(() => client.getGames(), [client]);
-  const { data, loading, error, reload } = useData(load, 30000);
+  const load = useCallback(async () => {
+    const result = await client.getGames();
+    gamesCache = result;
+    return result;
+  }, [client]);
+  const { data, loading, error, reload } = useData(load, undefined, gamesCache);
   const [turn] = useState(() => new Animated.Value(0));
   const [rotation, setRotation] = useState(0);
   const [busy, setBusy] = useState(false);
   const [won, setWon] = useState<number | null>(null);
   const [spinError, setSpinError] = useState("");
+  useEffect(() => () => turn.stopAnimation(), [turn]);
   async function spin() {
     if (busy || !data?.games.spins_available) return;
     setBusy(true); setWon(null); setSpinError("");
@@ -46,7 +56,7 @@ export default function GamesScreen() {
   const toNext = game ? 1000 - game.xp % 1000 : 1000;
   return <Page>
     <Header title="Jocuri" subtitle="Revino zilnic și adună XP din evaluări." />
-    <State loading={loading} error={error} onRetry={() => void reload()} />
+    <State loading={loading && !game} error={game ? "" : error} onRetry={() => void reload()} />
     {game ? <>
       <View style={{ backgroundColor: colors.surface, borderRadius: 20, padding: 20, gap: 8 }}>
         <Text style={{ color: colors.text, fontFamily: fonts.bold, fontSize: 22 }}>🔥 {game.streak} {game.streak === 1 ? "zi" : "zile"} la rând</Text>
