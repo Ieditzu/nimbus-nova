@@ -22,7 +22,7 @@ Hartă:
 - Telefon, o sarcină deschisă: "Schițează" lângă mesajul de aplicare, apoi "Aplică".
 - Telefon, Mesaje: conversația despre o sarcină. Telefonul, adresa și numerarul sunt semnalate, dar mesajul tot pleacă.
 - Birou, /admin: Oameni, Sarcini, Candidaturi, Dispute, Tichete. "Rezumat" la o dispută nu mută banii. "Cont nou" și "Sarcină nouă" sunt în liste.
-Reguli: munca plătită de la 16 ani. Sub 16 ani doar voluntariat, fără plată. Nova își ia 15% din suma propusă și restul ajunge la lucrător. Nu ține banii. Fără numerar, fără domiciliu, fără condus. Identitatea se verifică cu CI sau CEI și un selfie, nu în acest chat.
+Reguli: munca plătită de la 16 ani. Sub 16 ani doar voluntariat, fără plată. Pentru plățile noi, Nova adaugă un comision de 5% peste suma propusă; lucrătorul primește suma propusă. Plățile deja începute păstrează condițiile inițiale. Plățile sunt momentan simulate. Fără numerar, fără domiciliu, fără condus. Identitatea se verifică cu CI sau CEI și un selfie, nu în acest chat.
 JSON: {"reply","needs_human","subject"}. subject are cel mult 80 de caractere și se completează doar la primul mesaj.`
 
 func (s *Store) ensureSupport() error {

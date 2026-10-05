@@ -6,7 +6,17 @@ import (
 )
 
 func platformFee(amount int64) int64 {
-	return (amount*15 + 50) / 100
+	return (amount*5 + 50) / 100
+}
+
+// Older holds charged the task amount and deducted a 15% fee. Preserve their
+// original payout when they are released after the new pricing takes effect.
+func paymentBreakdown(taskAmount, chargedAmount, feePolicy int64) (fee, payout int64) {
+	if feePolicy == 2 {
+		return platformFee(taskAmount), taskAmount
+	}
+	fee = (chargedAmount*15 + 50) / 100
+	return fee, chargedAmount - fee
 }
 
 type paymentView struct {
@@ -69,11 +79,12 @@ func (s *Store) Pay(taskID, posterID string) (paymentView, error) {
 		return paymentView{}, errInternal
 	}
 	fee := platformFee(amount)
+	charged := amount + fee
 	id, err := NewID("pay_")
 	if err != nil {
 		return paymentView{}, errInternal
 	}
-	_, err = s.db.Exec(`INSERT INTO payment_intents (id, task_id, provider, status, amount_bani) VALUES (?, ?, 'simulated', 'held', ?)`, id, taskID, amount)
+	_, err = s.db.Exec(`INSERT INTO payment_intents (id, task_id, provider, status, amount_bani, fee_policy) VALUES (?, ?, 'simulated', 'held', ?, 2)`, id, taskID, charged)
 	if err != nil {
 		return paymentView{}, errInternal
 	}
@@ -85,8 +96,8 @@ func (s *Store) Pay(taskID, posterID string) (paymentView, error) {
 		account, direction string
 		amount             int64
 	}{
-		{"poster", "debit", amount},
-		{"escrow", "credit", amount},
+		{"poster", "debit", charged},
+		{"escrow", "credit", charged},
 	} {
 		id, err := NewID("led_")
 		if err != nil {
@@ -97,23 +108,22 @@ func (s *Store) Pay(taskID, posterID string) (paymentView, error) {
 		}
 	}
 	return paymentView{
-		TaskID: taskID, PayStatus: "held", AmountBani: amount,
-		PlatformFeeBani: fee, WorkerPayoutBani: amount - fee, Provider: "simulated",
+		TaskID: taskID, PayStatus: "held", AmountBani: charged,
+		PlatformFeeBani: fee, WorkerPayoutBani: amount, Provider: "simulated",
 	}, nil
 }
 
 func (s *Store) releaseIfHeld(taskID string) error {
-	var amount int64
+	var amount, taskAmount, feePolicy int64
 	var status string
-	err := s.db.QueryRow(`SELECT amount_bani, status FROM payment_intents WHERE task_id = ?`, taskID).Scan(&amount, &status)
+	err := s.db.QueryRow(`SELECT p.amount_bani, p.status, t.amount_bani, p.fee_policy FROM payment_intents p JOIN tasks t ON t.id = p.task_id WHERE p.task_id = ?`, taskID).Scan(&amount, &status, &taskAmount, &feePolicy)
 	if err == sql.ErrNoRows || status != "held" {
 		return nil
 	}
 	if err != nil {
 		return errInternal
 	}
-	fee := platformFee(amount)
-	payout := amount - fee
+	fee, payout := paymentBreakdown(taskAmount, amount, feePolicy)
 	now := NowRFC3339()
 	rows := []struct {
 		account, direction string

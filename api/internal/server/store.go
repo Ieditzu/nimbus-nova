@@ -121,7 +121,8 @@ CREATE TABLE IF NOT EXISTS payment_intents (
   task_id TEXT NOT NULL REFERENCES tasks(id),
   provider TEXT NOT NULL,
   status TEXT NOT NULL,
-  amount_bani INTEGER NOT NULL
+  amount_bani INTEGER NOT NULL,
+  fee_policy INTEGER NOT NULL DEFAULT 1
 );
 CREATE TABLE IF NOT EXISTS ledger_entries (
   id TEXT PRIMARY KEY,
@@ -239,6 +240,7 @@ func addColumns(db *sql.DB) error {
 		{"tasks", "sector", "TEXT NOT NULL DEFAULT ''"},
 		{"tasks", "lat", "REAL NOT NULL DEFAULT 0"},
 		{"tasks", "lng", "REAL NOT NULL DEFAULT 0"},
+		{"payment_intents", "fee_policy", "INTEGER NOT NULL DEFAULT 1"},
 	}
 	for _, column := range columns {
 		exists, err := columnExists(db, column.table, column.name)

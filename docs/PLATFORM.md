@@ -53,8 +53,8 @@ The other side never receives a phone number, a home address, a national ID, a C
 Money path for a paid task:
 
 1. Poster publishes a task with a proposed amount in bani.
-2. Nova calculates `platform_fee_bani = amount_bani * 15 / 100`, rounded half away from zero to an integer. The worker payout is `amount_bani - platform_fee_bani`.
-3. On accept, the poster pays Nova `amount_bani + platform_fee_bani` is wrong. The poster pays the proposed amount. Nova's fee comes out of that amount. Poster is charged `amount_bani`. Worker is owed `worker_payout_bani`. Nova keeps `platform_fee_bani`.
+2. Nova calculates `platform_fee_bani = amount_bani * 5 / 100`, rounded half away from zero to an integer. The worker payout is the proposed task `amount_bani`.
+3. When payment is held, the poster's total charge is the proposed task amount plus Nova's 5% commission. The payment intent `amount_bani` records that total charge; `worker_payout_bani` records the proposed amount. Existing held payments retain their original 15%-deducted payout.
 4. The charge is held by Nova until the poster marks the task complete, or a dispute resolves it.
 5. On completion, the ledger releases the payout to the worker and the fee to Nova.
 6. On cancel before start, the hold returns to the poster. After start, only admin dispute resolution moves the money.

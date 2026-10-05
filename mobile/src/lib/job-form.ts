@@ -7,6 +7,9 @@ export function amountToBani(value: string): number {
   if (amount > 500000) throw new Error("Suma maximă este 5000 lei.");
   return amount;
 }
+export function platformFeeBani(amountBani: number): number {
+  return Math.floor((amountBani * 5 + 50) / 100);
+}
 // Jobs use Romanian wall-clock time, regardless of the phone's current time zone.
 export function romanianDateTime(date: string, time: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time))

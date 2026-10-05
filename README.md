@@ -63,7 +63,7 @@ Același produs, trei uși. Telefonul este pentru cine lucrează. Site-ul este p
 | 📍 Sarcini scurte | Cel mult 12 ore, în spații publice |
 | 🪪 Cont verificat | CI sau CEI și un selfie, înainte să deschizi contul |
 | 💬 Chat privat | Vorbești în aplicație, fără număr și fără adresă de la început |
-| 💳 15% | Nova își ia comisionul din suma propusă. Restul ajunge la lucrător |
+| 💳 5% | Nova adaugă comisionul peste suma propusă. Lucrătorul primește suma propusă |
 | ✨ Asistent | Schițează anunțul și caută. Publicarea rămâne a ta |
 
 <a id="categorii"></a>
@@ -91,7 +91,7 @@ Fără numerar. Fără acces la domiciliu. Fără condus.
 
 ## 💳 Banii
 
-Tu propui suma. Nova își ia **15%** din suma propusă, iar restul ajunge la lucrător. Publici gratuit. Fără taxe ascunse.
+Tu propui suma pe care o primește lucrătorul. Nova adaugă **5% comision** la totalul plătit de cel care publică jobul. Publici gratuit, iar totalul este afișat înainte de publicare. Plățile din aplicație sunt momentan simulate.
 
 | Suma propusă | Lucrătorul | Nova |
 | --- | --- | --- |

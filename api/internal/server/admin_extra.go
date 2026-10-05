@@ -368,7 +368,7 @@ func (s *Store) AdminUserDetail(id string) (map[string]any, error) {
 		},
 		"profile": profile, "tasks_posted": posted, "tasks_assigned": assigned,
 		"applications": apps, "reviews_about": about, "reviews_by": by,
-		"reputation": map[string]any{"count": count, "average": average},
+		"reputation":      map[string]any{"count": count, "average": average},
 		"active_sessions": sessions, "notes": notes, "logs": logs,
 	}, nil
 }
@@ -447,9 +447,10 @@ func (s *Store) AdminTaskDetail(id string) (map[string]any, error) {
 	rows.Close()
 	var payment any
 	var provider, pstatus string
-	var amount int64
-	if err := s.db.QueryRow(`SELECT provider, status, amount_bani FROM payment_intents WHERE task_id = ?`, id).Scan(&provider, &pstatus, &amount); err == nil {
-		payment = map[string]any{"provider": provider, "status": pstatus, "amount_bani": amount, "platform_fee_bani": platformFee(amount), "worker_payout_bani": amount - platformFee(amount)}
+	var amount, feePolicy int64
+	if err := s.db.QueryRow(`SELECT provider, status, amount_bani, fee_policy FROM payment_intents WHERE task_id = ?`, id).Scan(&provider, &pstatus, &amount, &feePolicy); err == nil {
+		fee, payout := paymentBreakdown(task.AmountBani, amount, feePolicy)
+		payment = map[string]any{"provider": provider, "status": pstatus, "amount_bani": amount, "platform_fee_bani": fee, "worker_payout_bani": payout}
 	}
 	var conversations int
 	_ = s.db.QueryRow(`SELECT COUNT(*) FROM conversations WHERE task_id = ?`, id).Scan(&conversations)

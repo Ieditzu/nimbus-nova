@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { amountToBani, romanianDateTime } from "../src/lib/job-form.ts";
+import { amountToBani, platformFeeBani, romanianDateTime } from "../src/lib/job-form.ts";
 import { mergeMessages } from "../src/chat/merge.ts";
 test("money stays integer bani and rejects ambiguous or excessive amounts", () => {
   assert.equal(amountToBani("150,25"), 15025);
@@ -8,6 +8,12 @@ test("money stays integer bani and rejects ambiguous or excessive amounts", () =
   assert.equal(amountToBani("5000"), 500000);
   for (const bad of ["5000.01", "-1", "1.001", "1e3", "", "12 3"])
     assert.throws(() => amountToBani(bad));
+});
+test("5% Nova commission rounds to whole bani like the backend", () => {
+  assert.equal(platformFeeBani(10000), 500);
+  assert.equal(platformFeeBani(101), 5);
+  assert.equal(platformFeeBani(103), 5);
+  assert.equal(platformFeeBani(110), 6);
 });
 test("Romanian times have the correct daylight saving offset", () => {
   assert.equal(

@@ -3,8 +3,9 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { useAuth } from "../../auth/session";
 import type { Category, JobType, TaskPublic } from "../../api/types";
+import { formatBani } from "../../api/client";
 import { jobCategories, jobTypeLabel, categoryLabel } from "../../lib/labels";
-import { amountToBani, romanianDateTime } from "../../lib/job-form";
+import { amountToBani, platformFeeBani, romanianDateTime } from "../../lib/job-form";
 import { errorMessage } from "../../lib/errors";
 import { LocationField } from "../../components/location-field";
 import { findLocation } from "../../lib/locations";
@@ -38,6 +39,8 @@ export default function NewJobScreen() {
   const [place, setPlace] = useState<Place | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  let proposedBani: number | null = null;
+  try { if (amount.trim()) proposedBani = amountToBani(amount); } catch { /* Wait for a valid amount before showing a total. */ }
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
@@ -179,6 +182,13 @@ export default function NewJobScreen() {
             keyboardType="decimal-pad" placeholder="150" maxLength={7} placeholderTextColor={colors.muted}
             style={{ flex: 1, minWidth: 0, fontFamily: fonts.bold, fontSize: 28, color: colors.text, paddingVertical: 10 }} />
           <Text style={s.body}>lei</Text>
+        </View>
+        <View style={{ backgroundColor: colors.raised, borderRadius: 12, padding: 14, gap: 4 }}>
+          <Text style={[s.body, { fontSize: 13 }]}>Comision Nova: 5% peste plata propusă.</Text>
+          {proposedBani !== null && proposedBani > 0 ? <>
+            <Text style={[s.body, { fontSize: 13 }]}>Persoana aleasă primește {formatBani(proposedBani)} · Comision Nova {formatBani(platformFeeBani(proposedBani))}</Text>
+            <Text style={{ fontFamily: fonts.bold, color: colors.text, fontSize: 16 }}>Total pentru tine: {formatBani(proposedBani + platformFeeBani(proposedBani))}</Text>
+          </> : null}
         </View></>}
         <Text style={[s.label, { fontSize: 14, marginBottom: -8 }]}>Descrierea jobului</Text>
         <TextInput accessibilityLabel="Descriere" value={description} onChangeText={setDescription} editable={!busy} multiline maxLength={500}

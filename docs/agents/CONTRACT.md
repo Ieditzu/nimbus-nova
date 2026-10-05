@@ -85,7 +85,7 @@ Validation limits, first failure wins: title 3–80, category one of the four va
 
 ## Later routes
 
-Check [API-STATUS.md](API-STATUS.md) before mounting a screen. A route marked `live` may be called. A route marked `planned` must not be mounted. Fee rule when pay is used: the poster is charged `amount_bani`. The worker payout is `amount_bani` minus the 15 percent platform fee, rounded half away from zero. Nova keeps the fee. Clients display the server numbers. They do not calculate a second fee.
+Check [API-STATUS.md](API-STATUS.md) before mounting a screen. A route marked `live` may be called. A route marked `planned` must not be mounted. For new payments, the task `amount_bani` is the worker payout. The poster is charged that amount plus a 5 percent Nova commission, rounded half away from zero; the payment response `amount_bani` is the total charged. Clients may preview the calculation but must display the server numbers after payment. Existing held payments keep their original fee and payout.
 | `hidden` | Ascunsă |
 | `pending` | În așteptare |
 | `accepted` | Acceptată |
@@ -116,7 +116,7 @@ Do not route these in Wave A. Haivas adds them without renaming the live fields.
 | `POST /v1/contracts/{id}/sign` | Haivas | phone |
 | `GET /v1/events` | Haivas | phone, under 18 only |
 
-Fee rule when pay exists: poster is charged `amount_bani`. Worker payout is `amount_bani - floor(amount_bani * 15 / 100)` using integer math, half away from zero. Nova keeps the fee. Clients display those numbers. They do not calculate a second fee.
+Fee rule for new payments: task `amount_bani` is the worker payout. Poster is charged task `amount_bani` plus a 5 percent Nova commission, rounded half away from zero. Payment response `amount_bani` is the total charged; `platform_fee_bani` and `worker_payout_bani` show its split. Clients preview the fee before publishing and display server numbers after payment. Existing held payments keep their original 15%-deducted payout.
 
 ## Identity proof
 

@@ -1128,7 +1128,7 @@ func TestPayLedgerWithoutFabricatedContract(t *testing.T) {
 		t.Fatalf("pay %d %s", status, body)
 	}
 	payment := asMap(t, asMap(t, decode(t, body))["payment"])
-	if payment["pay_status"] != "held" || payment["amount_bani"] != json.Number("10000") || payment["platform_fee_bani"] != json.Number("1500") || payment["worker_payout_bani"] != json.Number("8500") || payment["provider"] != "simulated" {
+	if payment["pay_status"] != "held" || payment["amount_bani"] != json.Number("10500") || payment["platform_fee_bani"] != json.Number("500") || payment["worker_payout_bani"] != json.Number("10000") || payment["provider"] != "simulated" {
 		t.Fatalf("payment %#v", payment)
 	}
 	status, _, body = h.do(http.MethodPost, "/v1/tasks/task_seed_event_setup/complete", "poster-1", map[string]any{}, true)
@@ -1136,10 +1136,10 @@ func TestPayLedgerWithoutFabricatedContract(t *testing.T) {
 		t.Fatalf("complete %s", body)
 	}
 	var debit, credit int
-	if err := h.DB.QueryRow(`SELECT COALESCE(SUM(amount_bani),0) FROM ledger_entries WHERE task_id='task_seed_event_setup' AND direction='debit'`).Scan(&debit); err != nil || debit != 20000 {
+	if err := h.DB.QueryRow(`SELECT COALESCE(SUM(amount_bani),0) FROM ledger_entries WHERE task_id='task_seed_event_setup' AND direction='debit'`).Scan(&debit); err != nil || debit != 21000 {
 		t.Fatalf("debit %d %v", debit, err)
 	}
-	if err := h.DB.QueryRow(`SELECT COALESCE(SUM(amount_bani),0) FROM ledger_entries WHERE task_id='task_seed_event_setup' AND direction='credit'`).Scan(&credit); err != nil || credit != 20000 {
+	if err := h.DB.QueryRow(`SELECT COALESCE(SUM(amount_bani),0) FROM ledger_entries WHERE task_id='task_seed_event_setup' AND direction='credit'`).Scan(&credit); err != nil || credit != 21000 {
 		t.Fatalf("credit %d %v", credit, err)
 	}
 	if _, err := h.DB.Exec(`UPDATE tasks SET kind='volunteer', status='assigned', assignee_id='worker-1', pay_status='unpaid' WHERE id='task_seed_shop_cover'`); err != nil {
