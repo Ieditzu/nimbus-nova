@@ -110,6 +110,13 @@ export default function ManageJobScreen() {
             </> : <Button variant="outline" icon="trash-outline" disabled={busy} onPress={() => setConfirmDelete(true)}>Șterge anunțul</Button>}
           </View> : null}
           <Text style={s.title}>Aplicări ({data.applications.length})</Text>
+          {data.task.amount_bani > 0 && data.task.status === "open" ? (
+            <Text style={s.body}>
+              Alegerea unei persoane confirmă potrivirea în Nova. Dacă activitatea
+              este un raport de muncă, contractul legal trebuie încheiat separat
+              înainte să înceapă lucrul.
+            </Text>
+          ) : null}
           {!data.applications.length ? (
             <Text style={s.body}>
               Persoanele interesate vor apărea aici. Poți discuta cu ele înainte

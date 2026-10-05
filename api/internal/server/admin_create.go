@@ -377,33 +377,6 @@ func assignOnConn(ctx context.Context, conn *sql.Conn, taskID, workerID string) 
 	if _, err = conn.ExecContext(ctx, `UPDATE tasks SET status = 'assigned', assignee_id = ? WHERE id = ?`, workerID, taskID); err != nil {
 		return errInternal
 	}
-	if amount == 0 {
-		return nil
-	}
-	var frameworkID string
-	err = conn.QueryRowContext(ctx, `SELECT id FROM contracts WHERE worker_id = ? AND kind = 'framework' AND status = 'signed'`, workerID).Scan(&frameworkID)
-	if err == sql.ErrNoRows {
-		frameworkID, err = NewID("con_")
-		if err != nil {
-			return errInternal
-		}
-		if _, err = conn.ExecContext(ctx, `INSERT INTO contracts (id, worker_id, kind, parent_id, task_id, version, status, signed_at) VALUES (?, ?, 'framework', NULL, NULL, 1, 'signed', ?)`, frameworkID, workerID, NowRFC3339()); err != nil {
-			return errInternal
-		}
-	} else if err != nil {
-		return errInternal
-	}
-	var existing int
-	if err = conn.QueryRowContext(ctx, `SELECT COUNT(*) FROM contracts WHERE task_id = ? AND worker_id = ? AND kind = 'work_order'`, taskID, workerID).Scan(&existing); err != nil {
-		return errInternal
-	}
-	if existing > 0 {
-		return nil
-	}
-	workID, err := NewID("con_")
-	if err != nil {
-		return errInternal
-	}
-	_, err = conn.ExecContext(ctx, `INSERT INTO contracts (id, worker_id, kind, parent_id, task_id, version, status, signed_at) VALUES (?, ?, 'work_order', ?, ?, 1, 'signed', ?)`, workID, workerID, frameworkID, taskID, NowRFC3339())
-	return err
+	// Desk assignment is a marketplace match too; it cannot sign on behalf of a worker.
+	return nil
 }

@@ -884,28 +884,8 @@ func (s *Store) Accept(applicationID, posterID string) (TaskPublic, error) {
 		if _, err := conn.ExecContext(ctx, `UPDATE tasks SET status = 'assigned', assignee_id = ? WHERE id = ?`, workerID, taskID); err != nil {
 			return errInternal
 		}
-		var kind string
-		if err := conn.QueryRowContext(ctx, `SELECT kind FROM tasks WHERE id = ?`, taskID).Scan(&kind); err != nil {
-			return errInternal
-		}
-		if kind == "volunteer" {
-			return nil
-		}
-		var frameworkID string
-		err = conn.QueryRowContext(ctx, `SELECT id FROM contracts WHERE worker_id = ? AND kind = 'framework' AND status = 'signed'`, workerID).Scan(&frameworkID)
-		if err == sql.ErrNoRows {
-			return errContractRequired
-		}
-		if err != nil {
-			return errInternal
-		}
-		workID, err := NewID("con_")
-		if err != nil {
-			return errInternal
-		}
-		if _, err := conn.ExecContext(ctx, `INSERT INTO contracts (id, worker_id, kind, parent_id, task_id, version, status, signed_at) VALUES (?, ?, 'work_order', ?, ?, 1, 'signed', ?)`, workID, workerID, frameworkID, taskID, NowRFC3339()); err != nil {
-			return errInternal
-		}
+		// Selecting a person records a marketplace match. No contract text is
+		// presented in this flow, so selection must not claim to sign one.
 		return nil
 	})
 	if err != nil {

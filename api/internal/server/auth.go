@@ -17,7 +17,6 @@ var (
 	errInvalidToken       = appErr(401, "invalid_token", "Token invalid.")
 	errInvalidCredentials = appErr(401, "invalid_credentials", "Email sau parolă incorectă.")
 	errDemoDisabled       = appErr(401, "demo_disabled", "Modul demo este oprit.")
-	errContractRequired   = appErr(409, "contract_required", "Semnează contractul-cadru cu Nova înainte.")
 	errVolunteerUnpaid    = appErr(409, "volunteer_unpaid", "Sarcina de voluntariat nu se plătește.")
 	errAlreadyPaid        = appErr(409, "already_paid", "Sarcina este deja plătită.")
 )

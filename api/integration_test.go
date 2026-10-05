@@ -1069,7 +1069,7 @@ func TestAuthAndDemoHeader(t *testing.T) {
 	h.equalFixture(status, body, 403, "error-forbidden.json")
 }
 
-func TestPayLedgerAndContract(t *testing.T) {
+func TestPayLedgerWithoutFabricatedContract(t *testing.T) {
 	h := start(t)
 	status, _, body := h.do(http.MethodPost, "/v1/contracts/framework", "worker-1", map[string]any{}, true)
 	if status != 200 || asMap(t, asMap(t, decode(t, body))["contract"])["status"] != "signed" {
@@ -1085,7 +1085,7 @@ func TestPayLedgerAndContract(t *testing.T) {
 		t.Fatalf("accept %d %s", status, body)
 	}
 	var workOrders int
-	if err := h.DB.QueryRow(`SELECT COUNT(*) FROM contracts WHERE task_id='task_seed_event_setup' AND kind='work_order' AND status='signed'`).Scan(&workOrders); err != nil || workOrders != 1 {
+	if err := h.DB.QueryRow(`SELECT COUNT(*) FROM contracts WHERE task_id='task_seed_event_setup' AND kind='work_order'`).Scan(&workOrders); err != nil || workOrders != 0 {
 		t.Fatalf("work order %d %v", workOrders, err)
 	}
 	status, _, body = h.do(http.MethodPost, "/v1/tasks/task_seed_event_setup/pay", "worker-1", map[string]any{}, true)
@@ -1114,6 +1114,30 @@ func TestPayLedgerAndContract(t *testing.T) {
 	}
 	status, _, body = h.do(http.MethodPost, "/v1/tasks/task_seed_shop_cover/pay", "poster-1", map[string]any{}, true)
 	h.errorCode(status, body, 409, "volunteer_unpaid", "Sarcina de voluntariat nu se plătește.")
+}
+
+func TestChoosingApplicantWithoutFrameworkContract(t *testing.T) {
+	h := start(t)
+	if _, err := h.DB.Exec(`DELETE FROM contracts WHERE worker_id='worker-1'`); err != nil {
+		t.Fatal(err)
+	}
+	status, body := h.apply("task_seed_event_setup", "Pot ajunge.")
+	if status != http.StatusCreated {
+		t.Fatalf("apply %d %s", status, body)
+	}
+	appID := asMap(t, asMap(t, decode(t, body))["application"])["id"].(string)
+	status, _, body = h.do(http.MethodPost, "/v1/applications/"+appID+"/accept", "poster-1", map[string]any{}, true)
+	if status != http.StatusOK {
+		t.Fatalf("accept %d %s", status, body)
+	}
+	task := asMap(t, asMap(t, decode(t, body))["task"])
+	if task["status"] != "assigned" || task["assignee_id"] != "worker-1" {
+		t.Fatalf("unexpected assignment: %v", task)
+	}
+	var signed int
+	if err := h.DB.QueryRow(`SELECT COUNT(*) FROM contracts WHERE worker_id='worker-1' AND status='signed'`).Scan(&signed); err != nil || signed != 0 {
+		t.Fatalf("fabricated signed contracts=%d err=%v", signed, err)
+	}
 }
 
 func TestEventsHaveNoMoney(t *testing.T) {
@@ -1521,6 +1545,10 @@ func TestAdminCreatesUsersAndTasks(t *testing.T) {
 	assigned := asMap(t, asMap(t, decode(t, body))["task"])
 	if status != 200 || assigned["status"] != "assigned" || assigned["assignee_id"] != "worker-1" {
 		t.Fatalf("assign %d %#v %s", status, assigned, body)
+	}
+	var deskWorkOrders int
+	if err := h.DB.QueryRow(`SELECT COUNT(*) FROM contracts WHERE task_id=? AND kind='work_order'`, taskID).Scan(&deskWorkOrders); err != nil || deskWorkOrders != 0 {
+		t.Fatalf("desk fabricated work orders=%d err=%v", deskWorkOrders, err)
 	}
 	status, _, body = h.do(http.MethodPut, "/v1/admin/tasks/"+taskID, "admin-1", taskBody, true)
 	h.errorCode(status, body, 409, "task_locked", "Poți modifica doar un anunț deschis, fără persoană acceptată sau plată blocată.")
