@@ -22,7 +22,7 @@ export default function TaskDetailScreen() {
     () => (token ? client.getTask(id) : api.getTask(id)),
     [id, token, client],
   );
-  const { data, loading, error, reload } = useData(load);
+  const { data, loading, error, reload } = useData(load, 5000);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -63,7 +63,7 @@ export default function TaskDetailScreen() {
   const when = task ? schedule(task.starts_at, task.ends_at) : undefined;
   const exactLocation = !!task && !!session && hasLocation(task) &&
     (task.poster_id === session.user.id || task.assignee_id === session.user.id);
-  const locationLabel = task ? [task.sector, task.city, task.county ? `jud. ${task.county}` : ""].filter(Boolean).join(", ") : "";
+  const locationLabel = task ? [exactLocation ? task.sector : "", task.city, task.county ? `jud. ${task.county}` : ""].filter(Boolean).join(", ") : "";
   async function openMaps() {
     if (!task) return;
     setMapError("");
@@ -100,7 +100,7 @@ export default function TaskDetailScreen() {
             </View>
             <View style={s.fact}>
               <Icon name="location-outline" />
-              <Text style={s.factText}>{task.city}</Text>
+              <Text style={s.factText}>{[task.city, task.county].filter(Boolean).join(", ")}</Text>
             </View>
             <View style={s.fact}>
               <Icon name="calendar-outline" />
@@ -119,8 +119,8 @@ export default function TaskDetailScreen() {
             </View>
             <Text style={s.body}>{locationLabel}</Text>
             {exactLocation ? <Text selectable style={s.meta}>Punct GPS: {task.lat.toFixed(5)}, {task.lng.toFixed(5)}</Text> : null}
-            <Text style={s.meta}>{exactLocation ? "Locația precisă este disponibilă pentru tine." : hasLocation(task) ? "Punctul precis devine disponibil după ce ești ales. Harta arată momentan zona." : "Harta arată localitatea anunțului."}</Text>
-            <Button variant="outline" icon="map-outline" onPress={() => void openMaps()}>{exactLocation ? "Deschide locația în Google Maps" : "Vezi zona în Google Maps"}</Button>
+            <Text style={s.meta}>{exactLocation ? "Locația precisă este disponibilă pentru tine." : "Punctul exact și harta devin disponibile doar după ce organizatorul te alege."}</Text>
+            {exactLocation ? <Button variant="outline" icon="map-outline" onPress={() => void openMaps()}>Deschide locația în Google Maps</Button> : null}
             {mapError ? <Text accessibilityRole="alert" style={s.error}>{mapError}</Text> : null}
           </View>
           <View style={s.section}>

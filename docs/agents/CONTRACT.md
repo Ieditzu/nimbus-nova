@@ -38,7 +38,7 @@ These work today. Wave A screens may call only these.
 | Call | Header | Body | Success |
 | --- | --- | --- | --- |
 | `GET /health` | none | none | `{ "ok": true }` |
-| `GET /v1/tasks?category=&city=&sector=&lat=&lng=&radius_km=` | none | none | `{ "tasks": [TaskPublic] }` open tasks only, `starts_at` ascending |
+| `GET /v1/tasks?category=&city=&county=&locality_id=` | none | none | `{ "tasks": [TaskPublic] }` open tasks only, `starts_at` ascending |
 | `GET /v1/tasks/{id}` | none | none | `{ "task": TaskPublic }` |
 | `POST /v1/tasks` | poster-1 | `CreateTaskRequest` | `201` `{ "task": TaskPublic }` |
 | `GET /v1/me/tasks` | poster-1 | none | `{ "tasks": [TaskPublic] }` this poster's tasks, `created_at` descending |
@@ -52,7 +52,7 @@ These work today. Wave A screens may call only these.
 | `POST /v1/tasks/{id}/applications` | worker-1 | `{ "message": "..." }` | `201` `{ "application": ApplicationView }` |
 | `GET /v1/me/applications` | worker-1 | none | `{ "applications": [ApplicationWithTask] }` |
 
-`category` must be empty or one of `event_setup`, `light_moving`, `shop_cover`, `other`. `city` and `sector` are matched ignoring case after trim. Blank query params are ignored. `photo_url` is an empty string or an http(s) URL. `sector` is an empty string or at most 40 characters. `lat` and `lng` are numbers; `0` and `0` means unknown. Near-me needs `lat`, `lng`, and `radius_km` together. `radius_km` is greater than 0 and at most 100. A missing piece, or a radius without both coordinates, is `400` `invalid_input` with `Pentru căutare în apropiere trimite lat, lng și radius_km.` `GET /v1/tasks/search` stays worker-only and keeps `kind`, `from`, `to`, and `city`. Call it with `searchTasks`.
+`category` must be empty or one of `event_setup`, `light_moving`, `shop_cover`, `other`. `city` is matched ignoring case after trim. Blank query params are ignored. `photo_url` is an empty string or an http(s) URL. `sector` is an empty string or at most 40 characters. Exact GPS coordinates and sector are visible only to the poster and accepted worker; every other task response has `lat: 0`, `lng: 0`, and `sector: ""`, while retaining county and locality. For privacy, nonempty `sector` and valid `lat`/`lng`/`radius_km` list filters return `400 invalid_input` with `Caută după județ și localitate. Locația exactă este disponibilă doar persoanei acceptate.` Incomplete GPS filters still return `400 invalid_input` with `Pentru căutare în apropiere trimite lat, lng și radius_km.` `GET /v1/tasks/search` stays worker-only and keeps `kind`, `from`, `to`, and `city`. Call it with `searchTasks`.
 
 Seeded tasks the phone must already see before anyone creates one:
 

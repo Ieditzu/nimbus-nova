@@ -1,23 +1,19 @@
 package server
 
 import (
-	"math"
 	"net/http"
 	"strings"
 )
 
 // Exact task coordinates can be a home address. Only the poster and the
-// accepted worker receive them; everyone else gets a ~1 km approximation.
-func roundCoord(v float64) float64 {
-	return math.Round(v*100) / 100
-}
-
+// accepted worker receive them; everyone else gets county and locality only.
 func redactTask(t TaskPublic, viewerID string) TaskPublic {
 	if viewerID != "" && (viewerID == t.PosterID || (t.AssigneeID != nil && *t.AssigneeID == viewerID)) {
 		return t
 	}
-	t.Lat = roundCoord(t.Lat)
-	t.Lng = roundCoord(t.Lng)
+	t.Lat = 0
+	t.Lng = 0
+	t.Sector = ""
 	return t
 }
 

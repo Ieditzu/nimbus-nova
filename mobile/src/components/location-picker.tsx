@@ -139,8 +139,8 @@ export function LocationPicker({
         </>
       )}
       <Text style={s.help}>
-        Adresa exactă o vede doar persoana acceptată. Ceilalți văd o zonă
-        aproximativă.
+        Punctul exact îl văd doar tu și persoana acceptată. Ceilalți văd doar
+        județul și localitatea. Nu scrie adresa exactă în descriere.
       </Text>
       {error ? (
         <Text accessibilityRole="alert" style={s.error}>

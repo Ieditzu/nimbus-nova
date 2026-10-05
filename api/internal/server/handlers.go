@@ -170,7 +170,13 @@ func (s *Server) handleListTasks(w http.ResponseWriter, r *http.Request) {
 		writeAppError(w, ae)
 		return
 	}
-	tasks, err := s.store.ListOpen(category, city, sector, near)
+	// Filtering by a hidden sector or exact GPS point would reveal it through
+	// repeated queries, even if the task payload itself has been redacted.
+	if sector != "" || near != nil {
+		writeAppError(w, invalidInput("Caută după județ și localitate. Locația exactă este disponibilă doar persoanei acceptate."))
+		return
+	}
+	tasks, err := s.store.ListOpen(category, city, "", nil)
 	if err != nil {
 		s.writeErr(w, err)
 		return

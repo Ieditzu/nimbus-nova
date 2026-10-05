@@ -1339,19 +1339,84 @@ func TestListingPlaceFields(t *testing.T) {
 	if task["photo_url"] != "https://example.com/task.jpg" || task["sector"] != "Sector 1" || task["lat"] != json.Number("44") || task["lng"] != json.Number("26") {
 		t.Fatalf("created %#v", task)
 	}
-	id := task["id"].(string)
 	status, _, raw = h.do(http.MethodGet, "/v1/tasks?sector=sector%201", "", nil, false)
-	if status != 200 || !contains(ids(t, raw), id) {
-		t.Fatalf("sector %d %s", status, raw)
-	}
+	h.errorCode(status, raw, 400, "invalid_input", "Caută după județ și localitate. Locația exactă este disponibilă doar persoanei acceptate.")
 	status, _, raw = h.do(http.MethodGet, "/v1/tasks?lat=44&lng=26&radius_km=5", "", nil, false)
-	if status != 200 || !contains(ids(t, raw), id) || contains(ids(t, raw), "task_seed_event_setup") {
-		t.Fatalf("near %d %s", status, raw)
-	}
+	h.errorCode(status, raw, 400, "invalid_input", "Caută după județ și localitate. Locația exactă este disponibilă doar persoanei acceptate.")
 	status, _, raw = h.do(http.MethodGet, "/v1/tasks?radius_km=5", "", nil, false)
 	h.errorCode(status, raw, 400, "invalid_input", "Pentru căutare în apropiere trimite lat, lng și radius_km.")
 	status, _, raw = h.do(http.MethodGet, "/v1/tasks?lat=44&lng=26", "", nil, false)
 	h.errorCode(status, raw, 400, "invalid_input", "Pentru căutare în apropiere trimite lat, lng și radius_km.")
+}
+
+func TestTaskLocationUnlocksOnlyForAcceptedWorker(t *testing.T) {
+	h := start(t)
+	for _, userID := range []string{"poster-1", "worker-1"} {
+		tokenHash := sha256.Sum256([]byte(userID + "-location-test-token"))
+		if _, err := h.DB.Exec(`INSERT INTO sessions(id,user_id,token_hash,expires_at) VALUES(?,?,?,?)`, "session-"+userID, userID, hex.EncodeToString(tokenHash[:]), time.Now().Add(time.Hour).Format(time.RFC3339)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	request := cloneMap(t, "create-task-request.json")
+	request["county"] = "București"
+	request["locality_id"] = "179132"
+	request["city"] = "București"
+	request["sector"] = "Sector 1"
+	request["lat"] = 44.426767
+	request["lng"] = 26.102538
+	status, _, body := h.do(http.MethodPost, "/v1/tasks", "poster-1", request, true)
+	if status != 201 {
+		t.Fatalf("create %d %s", status, body)
+	}
+	id := asMap(t, asMap(t, decode(t, body))["task"])["id"].(string)
+	check := func(viewer string, exact bool) {
+		t.Helper()
+		req, err := http.NewRequest(http.MethodGet, h.URL+"/v1/tasks/"+id, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if viewer != "" {
+			req.Header.Set("Authorization", "Bearer "+viewer+"-location-test-token")
+		}
+		response, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, err := io.ReadAll(response.Body)
+		response.Body.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if response.StatusCode != 200 {
+			t.Fatalf("get as %q: %d %s", viewer, response.StatusCode, body)
+		}
+		task := asMap(t, asMap(t, decode(t, body))["task"])
+		if task["city"] != "București" || task["county"] != "București" {
+			t.Fatalf("missing locality for %q: %v", viewer, task)
+		}
+		if exact {
+			if task["lat"] != json.Number("44.426767") || task["lng"] != json.Number("26.102538") || task["sector"] != "Sector 1" {
+				t.Fatalf("exact location missing for %q: %v", viewer, task)
+			}
+		} else if task["lat"] != json.Number("0") || task["lng"] != json.Number("0") || task["sector"] != "" {
+			t.Fatalf("precise location leaked to %q: %v", viewer, task)
+		}
+	}
+	check("", false)
+	check("poster-1", true)
+	check("worker-1", false)
+	status, body = h.apply(id, "Pot ajunge la timp.")
+	if status != 201 {
+		t.Fatalf("apply %d %s", status, body)
+	}
+	applicationID := asMap(t, asMap(t, decode(t, body))["application"])["id"].(string)
+	check("worker-1", false)
+	status, _, body = h.do(http.MethodPost, "/v1/applications/"+applicationID+"/accept", "poster-1", map[string]any{}, true)
+	if status != 200 {
+		t.Fatalf("accept %d %s", status, body)
+	}
+	check("worker-1", true)
+	check("", false)
 }
 
 func TestProductionAdmin(t *testing.T) {
