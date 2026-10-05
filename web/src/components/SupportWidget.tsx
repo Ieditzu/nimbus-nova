@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { SparkleIcon, XIcon } from '@phosphor-icons/react';
 import { NovaError, type SupportMessage } from '../api/client';
 import { api } from '../api/instance';

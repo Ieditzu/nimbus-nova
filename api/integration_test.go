@@ -1729,3 +1729,77 @@ func TestSupportTickets(t *testing.T) {
 		t.Fatalf("close %d %s", status, body)
 	}
 }
+
+type stripeRoundTrip func(*http.Request) (*http.Response, error)
+
+func (fn stripeRoundTrip) RoundTrip(req *http.Request) (*http.Response, error) { return fn(req) }
+
+func TestStripeStaysSimulatedUntilConfigured(t *testing.T) {
+	h := start(t)
+	status, _, body := h.do(http.MethodGet, "/v1/admin/stripe", "admin-1", nil, true)
+	if status != 200 || !strings.Contains(string(body), `"mode":"simulated"`) || strings.Contains(string(body), "sk_test_") {
+		t.Fatalf("default stripe %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPut, "/v1/admin/stripe", "poster-1", map[string]any{"secret_key": "sk_test_notforyou", "enabled": true}, true)
+	h.errorCode(status, body, 403, "forbidden", "Interzis.")
+	if _, err := h.DB.Exec(`UPDATE tasks SET status='assigned', assignee_id='worker-1', pay_status='unpaid' WHERE id='task_seed_event_setup'`); err != nil {
+		t.Fatal(err)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/tasks/task_seed_event_setup/pay", "poster-1", map[string]any{}, true)
+	if status != 200 || !strings.Contains(string(body), `"provider":"simulated"`) || strings.Contains(string(body), "checkout_url") {
+		t.Fatalf("simulated pay %d %s", status, body)
+	}
+	restore := server.SetStripeClientForTest(&http.Client{Transport: stripeRoundTrip(func(req *http.Request) (*http.Response, error) {
+		if req.URL.Host != "api.stripe.com" || req.Header.Get("Authorization") == "" {
+			t.Errorf("stripe request %s %s", req.URL, req.Header.Get("Authorization"))
+		}
+		return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"id":"cs_test_1","url":"https://checkout.stripe.com/c/pay/cs_test_1"}`))}, nil
+	})})
+	t.Cleanup(restore)
+	status, _, body = h.do(http.MethodPut, "/v1/admin/stripe", "admin-1", map[string]any{"secret_key": "sk_test_demo1234", "publishable_key": "pk_test_demo1234", "webhook_secret": "whsec_demo", "enabled": true}, true)
+	if status != 200 || strings.Contains(string(body), "sk_test_demo1234") || !strings.Contains(string(body), `"mode":"stripe_test"`) {
+		t.Fatalf("save stripe %d %s", status, body)
+	}
+	if _, err := h.DB.Exec(`DELETE FROM payment_intents WHERE task_id='task_seed_event_setup'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.DB.Exec(`UPDATE tasks SET pay_status='unpaid' WHERE id='task_seed_event_setup'`); err != nil {
+		t.Fatal(err)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/tasks/task_seed_event_setup/pay", "poster-1", map[string]any{}, true)
+	if status != 200 || !strings.Contains(string(body), "checkout.stripe.com") || strings.Contains(string(body), `"pay_status":"held"`) {
+		t.Fatalf("stripe pay %d %s", status, body)
+	}
+	var payStatus string
+	if err := h.DB.QueryRow(`SELECT pay_status FROM tasks WHERE id='task_seed_event_setup'`).Scan(&payStatus); err != nil || payStatus != "unpaid" {
+		t.Fatalf("task moved before webhook: %s %v", payStatus, err)
+	}
+	payload := []byte(`{"type":"checkout.session.completed","data":{"object":{"metadata":{"task_id":"task_seed_event_setup","payment_id":"` + paymentID(t, h) + `"}}}}`)
+	req, _ := http.NewRequest(http.MethodPost, h.URL+"/v1/stripe/webhook", bytes.NewReader(payload))
+	req.Header.Set("Stripe-Signature", server.StripeSignForTest("whsec_demo", payload, time.Now()))
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		raw, _ := io.ReadAll(res.Body)
+		t.Fatalf("webhook %d %s", res.StatusCode, raw)
+	}
+	if err := h.DB.QueryRow(`SELECT pay_status FROM tasks WHERE id='task_seed_event_setup'`).Scan(&payStatus); err != nil || payStatus != "held" {
+		t.Fatalf("webhook hold %s %v", payStatus, err)
+	}
+	status, _, body = h.do(http.MethodPut, "/v1/admin/stripe", "admin-1", map[string]any{"clear": true}, true)
+	if status != 200 || !strings.Contains(string(body), `"mode":"simulated"`) {
+		t.Fatalf("clear %d %s", status, body)
+	}
+}
+
+func paymentID(t *testing.T, h *harness) string {
+	t.Helper()
+	var id string
+	if err := h.DB.QueryRow(`SELECT id FROM payment_intents WHERE task_id='task_seed_event_setup'`).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	return id
+}

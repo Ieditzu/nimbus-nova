@@ -7,6 +7,7 @@ import type { TaskPublic } from '../api/types';
 import { formatInterval } from '../lib/format';
 import { categories } from '../lib/labels';
 import { adminApi, type AdminApplication, type AdminDispute, type AdminEvent, type AdminLog, type AdminReview, type AdminUser, type IdentitySession, type LedgerEntry, type Partner } from './client';
+import { StripePanel } from './stripe';
 import { CreateTaskDialog, CreateUserDialog } from './create';
 import { sectionMeta, type Desk } from './desk';
 import { actionLabel, ago, bytes, day, downloadCsv, duration, fold, leiToBani, money, number, roleLabel, statusLabel, when } from './format';
@@ -544,11 +545,12 @@ export function System({ desk }: P) {
         <dl className="dk-facts">
           <div><dt>Mod demo</dt><dd><Pill value={info.demo_mode ? 'open' : 'active'} label={info.demo_mode ? 'Pornit' : 'Oprit'} /></dd></div>
           <div><dt>Verificare identitate (ID Analyzer)</dt><dd><Pill value={info.identity_provider ? 'active' : 'suspended'} label={info.identity_provider ? 'Configurat' : 'Lipsește'} /></dd></div>
-          <div><dt>Plăți</dt><dd>Simulat</dd></div>
+          <div><dt>Plăți</dt><dd>Simulate până se salvează o cheie Stripe</dd></div>
         </dl>
       </Section>
       <Section title="Rânduri pe tabel" className="span-2"><Meters rows={tables.map(([name, value]) => ({ label: name, value }))} format={number} /></Section>
     </div>
+    <Section title="Stripe"><StripePanel desk={desk} /></Section>
   </div>;
 }
 

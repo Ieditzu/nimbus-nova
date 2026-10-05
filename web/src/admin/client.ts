@@ -38,6 +38,16 @@ export type AdminNote = {
   created_at: string;
 };
 
+export type StripeSettings = {
+  mode: 'simulated' | 'stripe_test' | 'stripe_live';
+  enabled: boolean;
+  secret_set: boolean;
+  publishable_set: boolean;
+  webhook_set: boolean;
+  publishable_key: string;
+  secret_hint: string;
+};
+
 export type AdminTicket = {
   id: string;
   subject: string;
@@ -272,4 +282,6 @@ export const adminApi = {
   ticket: (token: string, ticketId: string) => call<{ ticket: AdminTicket; messages: AdminTicketMessage[] }>(token, `/v1/support/tickets/${id(ticketId)}`),
   replyTicket: (token: string, ticketId: string, text: string) => post<{ ticket: AdminTicket; messages: AdminTicketMessage[] }>(token, `/v1/admin/tickets/${id(ticketId)}/reply`, { text }),
   closeTicket: (token: string, ticketId: string) => post(token, `/v1/admin/tickets/${id(ticketId)}/close`),
+  stripe: (token: string) => call<StripeSettings>(token, '/v1/admin/stripe'),
+  saveStripe: (token: string, body: { secret_key?: string; publishable_key?: string; webhook_secret?: string; enabled?: boolean; clear?: boolean }) => call<StripeSettings>(token, '/v1/admin/stripe', { method: 'PUT', body: JSON.stringify(body) }),
 };

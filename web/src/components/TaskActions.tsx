@@ -24,8 +24,12 @@ export function TaskActions({ task, busy, setBusy, onChanged, onNotice }: {
     try {
       if (kind === 'pay') {
         const result = await api.pay(task.id);
+        if (result.payment.checkout_url) {
+          window.location.assign(result.payment.checkout_url);
+          return;
+        }
         setPayment(result.payment);
-        setMessage('Plata a fost înregistrată.');
+        setMessage('Plata a fost înregistrată în modul simulat.');
       } else if (kind === 'cancel') {
         await api.cancelTask(task.id);
         setPanel(null);

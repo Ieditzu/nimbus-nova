@@ -20,6 +20,7 @@
   <a href="#functionalitati">Cum merge</a> ·
   <a href="#categorii">Categorii</a> ·
   <a href="#bani">Bani</a> ·
+  <a href="#stripe">Stripe</a> ·
   <a href="#siguranta">Siguranță</a> ·
   <a href="#echipa">Echipă</a>
 </p>
@@ -48,6 +49,8 @@ Postezi în câteva minute. Oamenii din orașul tău aplică din aplicație. Nov
 | ⚙️ API | [api.nimbusnova.cc](https://api.nimbusnova.cc) |
 
 Același produs, trei uși. Telefonul este pentru cine lucrează. Site-ul este pentru cine publică. Biroul este pentru cine ține platforma.
+
+API-ul este Go, cu SQLite. Site-ul și biroul sunt React. Telefonul este Expo. Toate vorbesc cu același server. Un push pe `main` reconstruiește containerele de pe VPS.
 
 <a id="functionalitati"></a>
 
@@ -99,7 +102,25 @@ Tu propui suma pe care o primește lucrătorul. Nova adaugă **5% comision** la 
 | 100 RON | 85 RON | 15 RON |
 | 250 RON | 212,50 RON | 37,50 RON |
 
-Nova nu ține banii. Face legătura și își ia comisionul. Plătești după ce te-ai înțeles. În versiunea asta, plățile sunt simulate.
+Nova nu ține banii în mână. Face legătura și își ia comisionul. Plătești după ce te-ai înțeles. Până se salvează o cheie Stripe în birou, butonul Plătește scrie registrul în modul simulat: vezi sumele, nu pleacă un card real.
+
+<a id="stripe"></a>
+
+## 💸 Stripe
+
+Integrarea este în cod. Nu este pornită.
+
+Din [birou](https://admin.nimbusnova.cc), secțiunea **Sistem**, cardul Stripe primește cheia secretă, cheia publică și secretul de webhook. Se salvează doar pe server. Nu stă în git, nu se afișează din nou întreagă, și nu există nicio cheie în acest repo.
+
+| Stare | Ce face butonul Plătește |
+| --- | --- |
+| Nicio cheie, sau caseta debifată | Rămâne simularea. Registrul se scrie local, provider `simulated` |
+| Cheie `sk_test_` pornită | Se deschide Stripe Checkout. Registrul se ține până confirmă webhook-ul |
+| Cheie `sk_live_` pornită | Aceeași cale, pe contul live |
+
+Nu am conectat un cont Stripe. Echipa este de liceu și nu are un cont de comerciant. Judecătorul vede formularul și calea de cod. Ca să rămână simularea, nu se salvează nicio cheie.
+
+Webhook-ul este `POST /v1/stripe/webhook`. Fără secret `whsec_` salvat, ruta răspunde că Stripe este oprit.
 
 <a id="siguranta"></a>
 

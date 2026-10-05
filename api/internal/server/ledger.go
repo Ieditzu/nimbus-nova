@@ -26,6 +26,7 @@ type paymentView struct {
 	PlatformFeeBani  int64  `json:"platform_fee_bani"`
 	WorkerPayoutBani int64  `json:"worker_payout_bani"`
 	Provider         string `json:"provider"`
+	CheckoutURL      string `json:"checkout_url,omitempty"`
 }
 
 func (s *Server) handlePay(w http.ResponseWriter, r *http.Request) {
@@ -39,6 +40,15 @@ func (s *Server) handlePay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !s.readEmptyObject(w, r) {
+		return
+	}
+	if s.store.stripeReady() {
+		payment, err := s.beginStripePay(r, r.PathValue("id"), user.ID)
+		if err != nil {
+			s.writeErr(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"payment": payment})
 		return
 	}
 	payment, err := s.store.Pay(r.PathValue("id"), user.ID)

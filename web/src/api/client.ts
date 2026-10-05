@@ -97,7 +97,7 @@ export interface NovaClient {
   login(body: { email: string; password: string }): Promise<{ token: string; user: PublicAccount }>;
   logout(token: string): Promise<{ ok: true }>;
   me(token: string): Promise<{ user: PublicAccount }>;
-  pay(taskId: string): Promise<{ payment: { task_id: string; pay_status: string; amount_bani: number; platform_fee_bani: number; worker_payout_bani: number; provider: string } }>;
+  pay(taskId: string): Promise<{ payment: { task_id: string; pay_status: string; amount_bani: number; platform_fee_bani: number; worker_payout_bani: number; provider: string; checkout_url?: string } }>;
   frameworkContract(): Promise<{ contract: { id: string; worker_id: string; kind: string; status: string } }>;
   signContract(id: string): Promise<{ contract: { id: string; status: string } }>;
   listAdminTasks(): Promise<{ tasks: TaskPublic[] }>;
