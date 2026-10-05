@@ -129,9 +129,9 @@ Nova cere ce îi trebuie ca să te recunoască și să te potrivească. Nu cere 
 
 | Membru | Rol | Ce a adus |
 | --- | --- | --- |
+| **Eduard Perjoc** | Team lead · Mobil | Conduce echipa. Aplicația de telefon |
 | **Eduard Haivas** | Backend | API-ul, banii, identitatea, asistentul |
 | **Radu Ciprian** | Web | Site-ul și fluxul celui care publică |
-| **Eduard Perjoc** | Mobil | Aplicația de telefon |
 | **Eric Oprea Ștefan** | Cercetare | Conceptul și cazurile |
 | **Barbaros Vladislav** | Research & design | Fezabilitatea și prezentarea |
 | **Bogdan Șelaru** | Media | Limbajul și fața publică a proiectului |

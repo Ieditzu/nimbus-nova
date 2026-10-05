@@ -6,7 +6,7 @@ Source of truth: [official Romanian regulation (PDF)](https://vnuhack.com/regula
 
 | Rule | Our action | Source |
 | --- | --- | --- |
-| 3-6 high-school students, fixed registered team, designated team lead | Six named participants only; designate Haivas as proposed lead if the team agrees, confirm registered roster with organizers. No outside contributors. | III.1-3.2, V.2, IX |
+| 3-6 high-school students, fixed registered team, designated team lead | Six named participants. Team lead: Eduard Perjoc. No outside contributors. | III.1-3.2, V.2, IX |
 | Specific challenge is revealed at the event; public theme "CONNECT THE DOTS" is **not** the challenge | Announced challenge, from the team at the event: **man in the middle**, meaning a two-sided platform like Uber or eMAG, not a network attack. Nova proceeds as that middleman. If the written brief uses different words, keep the product and correct the pitch sentence. No project-specific code, design, research or prototype created before reveal is submitted as competition work; pre-existing generic libraries/frameworks/public datasets may be used as infrastructure, with attribution. | II, V.1-5.2, IX |
 | Only registered team members make substantial contributions | All code, design and research must be our own team's work after start. Mentors guide rather than build. | IV.5, V.2, IX |
 | Third-party software and generative AI are allowed with disclosure | Keep a source/tool log: library/API/model/dataset and license/link; identify which code/text/design/research was AI-assisted and what the team created/verified. Credit external assets and content in final description. Do not publish personal information or credentials to AI tools. | V.2, VIII |

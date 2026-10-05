@@ -24,7 +24,7 @@ UI copy is Romanian. JSON field names, error `code` values, and this document ar
 
 ## Who builds what
 
-Only the six registered teammates contribute. AI tools are assistants, not extra authors; record what they generated. Haivas is the proposed team lead unless the registered roster says otherwise.
+Only the six registered teammates contribute. AI tools are assistants, not extra authors; record what they generated. Perjoc is the team lead.
 
 | Person | Builds | Must match |
 | --- | --- | --- |
