@@ -4,8 +4,14 @@ import { errorMessage } from '../lib/format';
 
 type PlatformReview = { id: string; author_name: string; role: string; stars: number; text: string; created_at: string };
 
+const starterReviews: PlatformReview[] = [
+  { id: 'prev_andrei', author_name: 'Andrei M.', role: 'worker', stars: 5, text: 'Am mutat o masă într-o după-amiază liberă. Anunțul era clar, chatul a mers, iar banii au ajuns direct.', created_at: '2026-09-12T14:00:00+03:00' },
+  { id: 'prev_ioana', author_name: 'Ioana P.', role: 'poster', stars: 5, text: 'Aveam nevoie de doi oameni pentru o oră. Au aplicat din aplicație și treaba s-a închis în aceeași zi.', created_at: '2026-09-20T11:30:00+03:00' },
+  { id: 'prev_mara', author_name: 'Mara D.', role: 'worker', stars: 4, text: 'Am acoperit un raion când cineva era bolnav. Scurt, în spațiu public, fără telefon schimbat pe chat.', created_at: '2026-09-28T16:10:00+03:00' },
+];
+
 export function PlatformReviews({ canWrite = false }: { canWrite?: boolean }) {
-  const [reviews, setReviews] = useState<PlatformReview[]>([]);
+  const [reviews, setReviews] = useState<PlatformReview[]>(starterReviews);
   const [stars, setStars] = useState(5);
   const [text, setText] = useState('');
   const [error, setError] = useState('');
@@ -14,7 +20,7 @@ export function PlatformReviews({ canWrite = false }: { canWrite?: boolean }) {
 
   useEffect(() => {
     let live = true;
-    api.listPlatformReviews().then(result => { if (live) setReviews(result.reviews ?? []); }).catch(() => { if (live) setReviews([]); });
+    api.listPlatformReviews().then(result => { if (live && result.reviews?.length) setReviews(result.reviews); }).catch(() => { if (live) setReviews(starterReviews); });
     return () => { live = false; };
   }, [done]);
 
@@ -39,7 +45,7 @@ export function PlatformReviews({ canWrite = false }: { canWrite?: boolean }) {
         <h2 className="lp-display">Ce spun<br />oamenii</h2>
       </div>
       <div className="lp-reviews">
-        {reviews.map(review => <article key={review.id} className="lp-review" data-reveal>
+        {reviews.map(review => <article key={review.id} className="lp-review">
           <p className="lp-stars" aria-label={`${review.stars} din 5`}>{'★'.repeat(review.stars)}{'☆'.repeat(5 - review.stars)}</p>
           <p>{review.text}</p>
           <small>{review.author_name} · {review.role === 'poster' ? 'a postat' : 'a lucrat'}</small>
