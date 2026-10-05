@@ -87,6 +87,13 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /v1/me/games", s.handleGames)
 	mux.HandleFunc("POST /v1/me/games/spin", s.handleGameSpin)
 	mux.HandleFunc("POST /v1/admin/disputes/{id}/resolve", s.handleResolveDispute)
+	mux.HandleFunc("GET /v1/platform-reviews", s.handleListPlatformReviews)
+	mux.HandleFunc("POST /v1/platform-reviews", s.handleCreatePlatformReview)
+	mux.HandleFunc("GET /v1/admin/platform-reviews", s.handleAdminPlatformReviews)
+	mux.HandleFunc("POST /v1/admin/platform-reviews/{id}/hide", s.handleSetPlatformReviewStatus)
+	mux.HandleFunc("POST /v1/admin/platform-reviews/{id}/show", s.handleSetPlatformReviewStatus)
+	mux.HandleFunc("GET /v1/admin/assist/status", s.handleAdminAssistStatus)
+	mux.HandleFunc("POST /v1/admin/assist/test", s.handleAdminAssistTest)
 	s.adminExtraRoutes(mux)
 	return mux
 }

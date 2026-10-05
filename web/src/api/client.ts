@@ -67,6 +67,8 @@ export interface NovaClient {
   draftProfile(body: { brief: string }): Promise<{ skills: string[]; bio: string; availability: string }>;
   checkMessage(text: string): Promise<{ ok: boolean; warning: string }>;
   assistSearch(query: string): Promise<{ job_type: string; category: string; city: string; county: string }>;
+  listPlatformReviews(): Promise<{ reviews: Array<{ id: string; author_name: string; role: string; stars: number; text: string; created_at: string }> }>;
+  createPlatformReview(body: { stars: number; text: string }): Promise<{ review: { id: string; author_name: string; role: string; stars: number; text: string; created_at: string } }>;
   openSupportTicket(text: string): Promise<SupportThread & { guest_key?: string }>;
   listSupportTickets(): Promise<{ tickets: SupportTicket[] }>;
   getSupportTicket(id: string, key?: string): Promise<SupportThread>;
@@ -202,6 +204,8 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
     draftProfile: (body) => request("/v1/assist/profile-draft", { method: "POST", body: JSON.stringify(body) }),
     checkMessage: (text) => request("/v1/assist/message-check", { method: "POST", body: JSON.stringify({ text }) }),
     assistSearch: (query) => request("/v1/assist/search", { method: "POST", body: JSON.stringify({ query }) }),
+    listPlatformReviews: () => request("/v1/platform-reviews", {}, false),
+    createPlatformReview: (body) => request("/v1/platform-reviews", { method: "POST", body: JSON.stringify(body) }),
     openSupportTicket: (text) => request("/v1/support/tickets", { method: "POST", body: JSON.stringify({ text }) }, false),
     listSupportTickets: () => request("/v1/support/tickets"),
     getSupportTicket: (id, key) => request(`/v1/support/tickets/${encodeURIComponent(id)}`, { headers: key ? { "X-Support-Key": key } : {} }, false),

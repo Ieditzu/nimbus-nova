@@ -94,6 +94,13 @@
 | `GET /v1/admin/stripe` | live | admin |
 | `PUT /v1/admin/stripe` | live | admin |
 | `POST /v1/stripe/webhook` | live | stripe |
+| `GET /v1/platform-reviews` | live | website |
+| `POST /v1/platform-reviews` | live | website |
+| `GET /v1/admin/platform-reviews` | live | admin |
+| `POST /v1/admin/platform-reviews/{id}/hide` | live | admin |
+| `POST /v1/admin/platform-reviews/{id}/show` | live | admin |
+| `GET /v1/admin/assist/status` | live | admin |
+| `POST /v1/admin/assist/test` | live | admin |
 
 Haivas changes a row from `planned` to `live` in the same commit as the route and its test. Ciprian and Perjoc do not flip these rows.
 

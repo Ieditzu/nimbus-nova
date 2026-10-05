@@ -76,7 +76,7 @@
 
 /* ------------------------------------------------------------- marquee/nav */
 .lp-marquee { overflow: hidden; white-space: nowrap; background: #000; }
-.lp-marquee-track { display: inline-flex; animation: lp-marquee 32s linear infinite; }
+.lp-marquee-track { display: flex; justify-content: center; width: 100%; }
 .lp-marquee span { padding: 8px 0; color: #fff; font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .lp-marquee i { padding-inline: 12px; color: var(--lp-yellow); font-style: normal; }
 @keyframes lp-marquee { to { transform: translateX(-50%); } }
@@ -94,6 +94,13 @@
 .lp-nav .theme-toggle { border-color: var(--lp-ink); }
 .lp-menu-btn { display: none; place-items: center; width: 42px; height: 42px; border: 1px solid var(--lp-ink); border-radius: 50%; }
 .lp-nav-app { white-space: nowrap; }
+.lp-reviews { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.lp-review, .lp-review-form { padding: 22px; border: 1px solid var(--lp-ink); border-radius: var(--lp-radius); background: var(--lp-surface); }
+.lp-review p { margin: 8px 0; }
+.lp-stars { letter-spacing: 2px; font-weight: 800; }
+.lp-review small, .lp-review-form p { color: var(--lp-muted); font-weight: 700; }
+.lp-review-form { display: grid; gap: 12px; margin-top: 18px; }
+.lp-review-form textarea, .lp-review-form select { width: 100%; border: 1px solid var(--lp-ink); border-radius: 12px; padding: 10px; font: inherit; background: var(--lp-surface); color: inherit; }
 .lp-sheet { display: grid; gap: 4px; max-width: 1240px; margin: 8px auto 0; padding: 12px; border: 1px solid var(--lp-ink); border-radius: var(--lp-radius); background: var(--lp-surface); animation: lp-drop .2s ease; }
 .lp-sheet a { padding: 14px 12px; border-radius: 12px; font-weight: 800; }
 .lp-sheet a:hover { background: var(--lp-sky); }
@@ -282,7 +289,7 @@
   .lp-links { display: none; }
   .lp-nav-pill .theme-toggle { margin-left: auto; }
   .lp-menu-btn { display: grid; }
-  .lp-split, .lp-calc { grid-template-columns: 1fr; }
+  .lp-split, .lp-calc, .lp-reviews { grid-template-columns: 1fr; }
   .lp-card { padding: 34px 26px; }
   .lp-section { padding: 80px 0 88px; }
   .lp-ribbon.is-section { opacity: .5; }

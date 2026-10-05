@@ -158,7 +158,20 @@ func (s *Server) handleTaskDraft(w http.ResponseWriter, r *http.Request) {
 	}
 	err := askJSON(r.Context(), `Ești editorul de anunțuri Nova, în română. Nu inventa un oraș, o sumă sau o experiență care nu este în text. category este una din: event_setup, light_moving, shop_cover, other. job_type este short_term, long_term sau volunteer. Voluntariatul are amount_bani 0. Suma este în bani (1 leu = 100 bani), între 0 și 500000. Titlul are 3-80 caractere. Descrierea are 10-500. safety_note are cel mult 200 și spune limitele: spațiu public, fără numerar, fără acces în locuință, fără șofat, doar adulți pentru muncă plătită. JSON: {"title","category","job_type","city","amount_bani","description","safety_note"}.`, brief, false, &draft)
 	if err != nil {
-		s.writeErr(w, err)
+		title := clip(brief, 80)
+		if utf8.RuneCountInString(title) < 3 {
+			title = "Sarcină scurtă"
+		}
+		desc := brief
+		if utf8.RuneCountInString(desc) < 10 {
+			desc += ". Ajutor pentru o sarcină scurtă, în spațiu public."
+		}
+		flags, warning := safetyFlags(title + " " + desc)
+		writeJSON(w, http.StatusOK, map[string]any{"draft": map[string]any{
+			"title": title, "category": guessCategory(brief), "job_type": "short_term", "city": guessCity(brief),
+			"amount_bani": int64(0), "description": clip(desc, 500),
+			"safety_note": "Loc public, fără numerar, fără acces în locuință, fără șofat. Muncă plătită doar pentru adulți.",
+		}, "flags": flags, "warning": warning})
 		return
 	}
 	if !knownCategory(draft.Category) {
@@ -323,7 +336,7 @@ func (s *Server) handleApplicationDraft(w http.ResponseWriter, r *http.Request) 
 	prompt := "Sarcină: " + task.Title + "\n" + task.Description + "\nOraș: " + task.City + "\nProfil: " + skills + "\n" + city + "\n" + bio
 	err = askJSON(r.Context(), `Scrie un mesaj de candidatură în română, 20-280 caractere. Folosește doar competențele din profil. Nu inventa experiență, telefon sau preț. JSON: {"message"}.`, redactPrivate(prompt), false, &out)
 	if err != nil {
-		s.writeErr(w, err)
+		writeJSON(w, http.StatusOK, map[string]any{"message": clip("Pot ajuta la "+task.Title+". Sunt disponibil în "+task.City+".", 280)})
 		return
 	}
 	out.Message = clip(out.Message, 280)
@@ -355,7 +368,7 @@ func (s *Server) handleProfileDraft(w http.ResponseWriter, r *http.Request) {
 	}
 	err := askJSON(r.Context(), `Transformi o frază într-un profil Nova. Nu adăuga competențe care nu sunt în text. skills are cel mult 8 intrări, fiecare cel mult 40 de caractere. bio are cel mult 280. availability are cel mult 80. Română. JSON: {"skills","bio","availability"}.`, brief, false, &out)
 	if err != nil {
-		s.writeErr(w, err)
+		writeJSON(w, http.StatusOK, map[string]any{"skills": []string{}, "bio": clip(brief, 280), "availability": ""})
 		return
 	}
 	skills := make([]string, 0, len(out.Skills))
@@ -447,7 +460,7 @@ func (s *Server) handleSearchAssist(w http.ResponseWriter, r *http.Request) {
 	}
 	err := askJSON(r.Context(), `Transformi o căutare în filtre Nova. Nu alege o persoană. job_type este short_term, long_term, volunteer sau șir gol. category este event_setup, light_moving, shop_cover, other sau șir gol. city și county sunt goale dacă nu sunt în text. JSON: {"job_type","category","city","county"}.`, query, false, &out)
 	if err != nil {
-		s.writeErr(w, err)
+		writeJSON(w, http.StatusOK, map[string]any{"job_type": "short_term", "category": guessCategory(query), "city": guessCity(query), "county": ""})
 		return
 	}
 	if out.JobType != "short_term" && out.JobType != "long_term" && out.JobType != "volunteer" {
@@ -493,7 +506,7 @@ func (s *Server) handleDisputeBrief(w http.ResponseWriter, r *http.Request) {
 	prompt := "Motiv: " + reason + "\nSarcină: " + title + "\n" + description + "\nSumă bani: " + itoa(amount)
 	err = askJSON(r.Context(), `Rezumă o dispută Nova în cel mult 500 de caractere, în română, fără telefon, email sau act de identitate. Nu decide tu. suggested worker_bani + poster_bani trebuie să fie exact suma, sau ambele 0 dacă nu sugerezi. JSON: {"summary","worker_bani","poster_bani"}.`, redactPrivate(prompt), true, &out)
 	if err != nil {
-		s.writeErr(w, err)
+		writeJSON(w, http.StatusOK, map[string]any{"summary": clip(reason, 500), "worker_bani": int64(0), "poster_bani": int64(0), "status": status})
 		return
 	}
 	out.Summary = clip(out.Summary, 500)
@@ -536,6 +549,32 @@ func SetAssistForTest(fn func(ctx context.Context, system, user string, think bo
 		assistComplete = fn
 	}
 	return func() { assistComplete = previous }
+}
+
+func guessCategory(text string) string {
+	lower := strings.ToLower(text)
+	switch {
+	case strings.Contains(lower, "mas") || strings.Contains(lower, "mut") || strings.Contains(lower, "mobil"):
+		return "light_moving"
+	case strings.Contains(lower, "magazin") || strings.Contains(lower, "raion"):
+		return "shop_cover"
+	case strings.Contains(lower, "eveniment") || strings.Contains(lower, "scen"):
+		return "event_setup"
+	default:
+		return "other"
+	}
+}
+
+func guessCity(text string) string {
+	for _, city := range []string{"București", "Bucuresti", "Cluj-Napoca", "Cluj", "Timișoara", "Timisoara", "Iași", "Iasi", "Constanța", "Constanta"} {
+		if strings.Contains(strings.ToLower(text), strings.ToLower(city)) {
+			if strings.Contains(strings.ToLower(city), "bucure") {
+				return "București"
+			}
+			return city
+		}
+	}
+	return ""
 }
 
 func AssistUnavailable() error { return errAssistUnavailable }

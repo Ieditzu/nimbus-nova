@@ -8,6 +8,8 @@ import { api } from '../api/instance';
 import { formatBani } from '../api/client';
 import type { Category, TaskPublic } from '../api/types';
 import { Health } from '../components/Health';
+import { PlatformReviews } from '../components/PlatformReviews';
+import { posterToken } from '../api/session';
 import { ThemeToggle } from '../components/ThemeToggle';
 import './landing.css';
 
@@ -187,7 +189,7 @@ export default function LandingPage() {
 
     <div className="lp-marquee" aria-hidden="true">
       <div className="lp-marquee-track">
-        {[0, 1].map(copy => <span key={copy}>Sarcini scurte <i>✦</i> Oameni aproape <i>✦</i> Plată directă <i>✦</i> De la 16 ani <i>✦</i> Postează în câteva minute <i>✦</i>&nbsp;</span>)}
+        {[0].map(copy => <span key={copy}>Sarcini scurte <i>✦</i> Oameni aproape <i>✦</i> Plată directă <i>✦</i> De la 16 ani <i>✦</i> Postează în câteva minute <i>✦</i></span>)}
       </div>
     </div>
 
@@ -358,6 +360,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <PlatformReviews canWrite={posterToken() !== ''} />
 
       {/* --------------------------------------------------------- safety */}
       <section className="lp-section is-lavender" id="siguranta">

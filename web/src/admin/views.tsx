@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import {
   ArrowRightIcon, CheckCircleIcon, DownloadSimpleIcon, EyeIcon, EyeSlashIcon, PauseIcon, PlayIcon, PlusIcon, ProhibitIcon, SparkleIcon, TrashIcon,
 } from '@phosphor-icons/react';
@@ -274,6 +274,7 @@ export function Reviews({ desk }: P) {
       <Chips label="Notă" value={stars} onChange={setStars} options={[{ id: 'all', label: 'Toate', count: all.length }, { id: '5', label: '5 ★' }, { id: '4', label: '4 ★' }, { id: 'low', label: '≤ 3 ★', count: all.filter(item => item.stars <= 3).length }]} />
     </Bar>
     <DataTable label="Recenzii" rows={rows} columns={columns} rowKey={item => item.id} />
+    <PlatformReviewDesk desk={desk} />
   </div>;
 }
 
@@ -550,7 +551,39 @@ export function System({ desk }: P) {
       </Section>
       <Section title="Rânduri pe tabel" className="span-2"><Meters rows={tables.map(([name, value]) => ({ label: name, value }))} format={number} /></Section>
     </div>
+    <Section title="Asistent"><AssistPanel desk={desk} /></Section>
     <Section title="Stripe"><StripePanel desk={desk} /></Section>
+  </div>;
+}
+
+function PlatformReviewDesk({ desk }: P) {
+  const [rows, setRows] = useState<Array<{ id: string; author_name: string; role: string; stars: number; text: string; status: string }>>([]);
+  const [error, setError] = useState('');
+  useEffect(() => { let live = true; adminApi.platformReviews(desk.token).then(result => { if (live) setRows(result.reviews); }).catch(() => { if (live) setError('Recenziile platformei nu s-au încărcat.'); }); return () => { live = false; }; }, [desk.token]);
+  return <Section title="Recenzii pentru platformă">
+    {error && <p className="dk-alert" role="alert">{error}</p>}
+    {rows.length === 0 ? <p className="dk-muted">Nicio recenzie de platformă.</p> : <ul className="dk-list">{rows.map(review => <li key={review.id}>
+      <span className="dk-cell-main"><b>{'★'.repeat(review.stars)} {review.author_name}</b><small>{review.role} · {review.status} · {review.text}</small></span>
+      <button type="button" className="dk-btn is-small" onClick={() => void desk.run(() => adminApi.setPlatformReview(desk.token, review.id, review.status !== 'visible'), review.status === 'visible' ? 'Recenzia a fost ascunsă.' : 'Recenzia este din nou vizibilă.')}>{review.status === 'visible' ? 'Ascunde' : 'Arată'}</button>
+    </li>)}</ul>}
+  </Section>;
+}
+
+function AssistPanel({ desk }: P) {
+  const [status, setStatus] = useState<{ configured: boolean; model: string; fallback: string } | null>(null);
+  const [result, setResult] = useState('');
+  const [error, setError] = useState('');
+  useEffect(() => { let live = true; adminApi.assistStatus(desk.token).then(next => { if (live) setStatus(next); }).catch(() => { if (live) setError('Starea asistentului nu s-a încărcat.'); }); return () => { live = false; }; }, [desk.token]);
+  return <div>
+    {error && <p className="dk-alert" role="alert">{error}</p>}
+    <dl className="dk-facts">
+      <div><dt>Furnizor</dt><dd>Groq</dd></div>
+      <div><dt>Cheie</dt><dd><Pill value={status?.configured ? 'active' : 'suspended'} label={status?.configured ? 'Configurată' : 'Lipsește'} /></dd></div>
+      <div><dt>Model</dt><dd>{status?.model ?? '…'}</dd></div>
+      <div><dt>Rezervă</dt><dd>{status?.fallback ?? '…'}</dd></div>
+    </dl>
+    <button type="button" className="dk-btn" onClick={() => void desk.run(async () => { const probe = await adminApi.assistTest(desk.token); setResult(probe.ok ? `Groq răspunde în ${probe.latency_ms} ms.` : probe.detail); }, 'Testul asistentului s-a terminat.')}>Testează asistentul</button>
+    {result && <p role="status">{result}</p>}
   </div>;
 }
 

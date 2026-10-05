@@ -187,7 +187,7 @@ func NowRFC3339() string {
 
 func NewID(prefix string) (string, error) {
 	switch prefix {
-	case "chat_", "msg_", "task_", "app_", "rev_", "user_", "con_", "pay_", "led_", "evt_", "par_", "doc_", "dis_", "ntf_", "att_", "dip_", "idn_", "idf_", "log_", "note_", "tck_", "stm_", "spn_":
+	case "chat_", "msg_", "task_", "app_", "rev_", "user_", "con_", "pay_", "led_", "evt_", "par_", "doc_", "dis_", "ntf_", "att_", "dip_", "idn_", "idf_", "log_", "note_", "tck_", "stm_", "spn_", "prev_":
 	default:
 		return "", errors.New("invalid id prefix")
 	}

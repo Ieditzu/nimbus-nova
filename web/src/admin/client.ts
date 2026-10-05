@@ -288,4 +288,8 @@ export const adminApi = {
   closeTicket: (token: string, ticketId: string) => post(token, `/v1/admin/tickets/${id(ticketId)}/close`),
   stripe: (token: string) => call<StripeSettings>(token, '/v1/admin/stripe'),
   saveStripe: (token: string, body: { secret_key?: string; publishable_key?: string; webhook_secret?: string; enabled?: boolean; clear?: boolean }) => call<StripeSettings>(token, '/v1/admin/stripe', { method: 'PUT', body: JSON.stringify(body) }),
+  platformReviews: (token: string) => call<{ reviews: Array<{ id: string; author_id: string; author_name: string; role: string; stars: number; text: string; status: string; created_at: string }> }>(token, '/v1/admin/platform-reviews'),
+  setPlatformReview: (token: string, reviewId: string, visible: boolean) => post(token, `/v1/admin/platform-reviews/${id(reviewId)}/${visible ? 'show' : 'hide'}`),
+  assistStatus: (token: string) => call<{ configured: boolean; provider: string; model: string; fallback: string }>(token, '/v1/admin/assist/status'),
+  assistTest: (token: string) => post<{ ok: boolean; configured: boolean; model: string; latency_ms: number; detail: string }>(token, '/v1/admin/assist/test'),
 };

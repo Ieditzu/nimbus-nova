@@ -1820,7 +1820,9 @@ func TestAssistRoutes(t *testing.T) {
 		return "", server.AssistUnavailable()
 	})
 	status, _, body = h.do(http.MethodPost, "/v1/assist/task-draft", "poster-1", map[string]any{"brief": "Am nevoie de ajutor la o masă ușoară."}, true)
-	h.errorCode(status, body, 503, "assist_unavailable", "Asistentul nu este disponibil momentan. Poți continua fără el.")
+	if status != 200 || asMap(t, decode(t, body))["draft"].(map[string]any)["category"] != "light_moving" {
+		t.Fatalf("local draft %d %s", status, body)
+	}
 }
 
 func TestSafetyCheckSurvivesBrokenModelAndPlainErrors(t *testing.T) {
