@@ -419,7 +419,7 @@ func (s *Server) sendWebPush(device webPushTarget, publicKey, privateKey, title,
 	defer cancel()
 	resp, err := webpush.SendNotificationWithContext(ctx, payload, subscription, &webpush.Options{
 		HTTPClient: &http.Client{Timeout: 8 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }},
-		Subscriber: "mailto:support@nimbusnova.cc", VAPIDPublicKey: publicKey, VAPIDPrivateKey: privateKey, TTL: 86400, Urgency: webpush.UrgencyNormal,
+		Subscriber: "support@nimbusnova.cc", VAPIDPublicKey: publicKey, VAPIDPrivateKey: privateKey, TTL: 86400, Urgency: webpush.UrgencyNormal,
 	})
 	if err != nil {
 		return 0, err
