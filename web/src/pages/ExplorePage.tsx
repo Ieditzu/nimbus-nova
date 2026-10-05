@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowClockwiseIcon, ArrowRightIcon, BookmarkSimpleIcon, CalendarBlankIcon, FunnelSimpleIcon, MagnifyingGlassIcon, MapPinIcon, PlusIcon, RowsIcon, SquaresFourIcon, StarIcon, XIcon } from '@phosphor-icons/react';
+import { ArrowClockwiseIcon, ArrowRightIcon, BookmarkSimpleIcon, CalendarBlankIcon, FunnelSimpleIcon, MagnifyingGlassIcon, MapPinIcon, PlusIcon, RowsIcon, SparkleIcon, SquaresFourIcon, StarIcon, XIcon } from '@phosphor-icons/react';
 import { api } from '../api/instance';
 import { formatBani } from '../api/client';
 import type { Category, TaskPublic } from '../api/types';
@@ -90,7 +90,7 @@ export default function ExplorePage() {
     <div className="lp-wrap ex-body">
       <section className="ex-discovery" aria-label="Caută anunțuri">
         <label className="ex-search"><MagnifyingGlassIcon size={20} aria-hidden="true" /><span className="sr-only">Caută anunțuri</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Caută sarcini sau orașe" /></label>
-        <button type="button" className="lp-btn is-ghost ex-filter-btn" disabled={query.trim().length < 8} onClick={() => void api.assistSearch(query).then(result => { if (result.category) setCategory(result.category as Category); if (result.city) setCity(result.city); }).catch(cause => setError(errorMessage(cause)))}>Înțelege</button>
+        <button type="button" className="lp-btn is-ghost ex-filter-btn" disabled={query.trim().length < 8} onClick={() => void api.assistSearch(query).then(result => { if (result.category) setCategory(result.category as Category); if (result.city) setCity(result.city); }).catch(cause => setError(errorMessage(cause)))}><SparkleIcon size={16} weight="fill" aria-hidden="true" />Înțelege</button>
         <button type="button" className="lp-btn is-ghost ex-filter-btn" aria-expanded={filtersOpen} aria-controls="feed-filters" onClick={() => setFiltersOpen(value => !value)}><FunnelSimpleIcon size={18} aria-hidden="true" />Filtre{activeFilters > 0 && <span className="ex-badge">{activeFilters}</span>}</button>
       </section>
       <div className="ex-chips" role="group" aria-label="Categorie">{options.map(option => <button type="button" key={option.id} aria-pressed={category === option.id} onClick={() => setCategory(option.id)}>{option.label}</button>)}</div>

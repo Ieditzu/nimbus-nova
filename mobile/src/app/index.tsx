@@ -67,7 +67,7 @@ export default function TaskListScreen() {
       {!session?.user.volunteer_only ? <Button variant="outline" icon="add-outline" onPress={() => router.push("/jobs/new")}>Publică un job</Button> : null}
       <View style={s.searchSection}>
         <TextInput accessibilityLabel="Caută în cuvinte" value={phrase} onChangeText={setPhrase} maxLength={800} placeholder="De exemplu: mutat o masă sâmbătă în București" placeholderTextColor={colors.muted} style={{ fontFamily: fonts.body, fontSize: 16, color: colors.text, minHeight: 48 }} />
-        <Button variant="outline" disabled={phrase.trim().length < 8} onPress={() => void understand()}>Înțelege căutarea</Button>
+        <Button icon="sparkles" variant="outline" disabled={phrase.trim().length < 8} onPress={() => void understand()}>Înțelege căutarea</Button>
         {assistNote ? <Text style={{ color: colors.muted }}>{assistNote}</Text> : null}
         <Text style={s.label}>Unde cauți?</Text>
         <LocationField county={applied.county} city={applied.city} disabled={false} onChange={(county, city, locality_id) => {

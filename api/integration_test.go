@@ -1561,8 +1561,10 @@ func TestAssistRoutes(t *testing.T) {
 	})
 	t.Cleanup(restore)
 	h := start(t)
-	status, _, body := h.do(http.MethodPost, "/v1/assist/task-draft", "worker-1", map[string]any{"brief": "Vreau să mut o masă sâmbătă."}, true)
-	h.errorCode(status, body, 403, "forbidden", "Interzis.")
+	status, _, body := h.do(http.MethodPost, "/v1/assist/task-draft", "worker-1", map[string]any{"brief": "Vreau să mut o masă sâmbătă în București."}, true)
+	if status != 200 || asMap(t, decode(t, body))["draft"].(map[string]any)["title"] == "" {
+		t.Fatalf("worker draft %d %s", status, body)
+	}
 	status, _, body = h.do(http.MethodPost, "/v1/assist/task-draft", "poster-1", map[string]any{"brief": "Am nevoie de doi oameni să mute o masă în București, 150 lei."}, true)
 	if status != 200 || asMap(t, decode(t, body))["draft"].(map[string]any)["category"] != "light_moving" {
 		t.Fatalf("draft %d %s", status, body)
@@ -1574,6 +1576,10 @@ func TestAssistRoutes(t *testing.T) {
 	status, _, body = h.do(http.MethodPost, "/v1/assist/application-draft", "worker-1", map[string]any{"task_id": "task_seed_event_setup"}, true)
 	if status != 200 || asMap(t, decode(t, body))["message"] == "" {
 		t.Fatalf("application %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/assist/search", "", map[string]any{"query": "mutat o masă sâmbătă în București"}, false)
+	if status != 200 || asMap(t, decode(t, body))["city"] != "București" {
+		t.Fatalf("public search %d %s", status, body)
 	}
 	status, _, body = h.do(http.MethodPost, "/v1/assist/profile-draft", "worker-1", map[string]any{"brief": "Am mai mutat mobilă și sunt liberă după-amiaza."}, true)
 	if status != 200 || len(asMap(t, decode(t, body))["skills"].([]any)) != 1 {

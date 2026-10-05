@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import {
-  ArrowRightIcon, CheckCircleIcon, DownloadSimpleIcon, EyeIcon, EyeSlashIcon, PauseIcon, PlayIcon, PlusIcon, ProhibitIcon, TrashIcon,
+  ArrowRightIcon, CheckCircleIcon, DownloadSimpleIcon, EyeIcon, EyeSlashIcon, PauseIcon, PlayIcon, PlusIcon, ProhibitIcon, SparkleIcon, TrashIcon,
 } from '@phosphor-icons/react';
 import { toRfc3339 } from '../api/client';
 import type { TaskPublic } from '../api/types';
@@ -332,7 +332,7 @@ export function Disputes({ desk }: P) {
               const brief = await adminApi.disputeBrief(token, item.id);
               if (brief.summary) setBriefs(current => ({ ...current, [item.id]: brief.summary }));
               if (brief.worker_bani + brief.poster_bani > 0) { setSplitFor(item); setWorkerRon(String(brief.worker_bani / 100)); setPosterRon(String(brief.poster_bani / 100)); }
-            }, 'Rezumatul este gata. Împărțirea sugerată nu se salvează singură.')}>Rezumat</button>
+            }, 'Rezumatul este gata. Împărțirea sugerată nu se salvează singură.')}><SparkleIcon size={14} weight="fill" aria-hidden="true" />Rezumat</button>
             <button type="button" className="dk-btn is-small" onClick={() => settle(item, 'release')}>Eliberează lucrătorului</button>
             <button type="button" className="dk-btn is-small is-ghost" onClick={() => openSplit(item)}>Împarte</button>
             <button type="button" className="dk-btn is-small is-danger-ghost" onClick={() => settle(item, 'refund')}>Returnează posterului</button>

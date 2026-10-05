@@ -139,7 +139,7 @@ export default function NewJobScreen() {
         placeholder="De exemplu: am nevoie de doi oameni sâmbătă să mute o masă, 150 lei, fără să intre în casă."
         placeholderTextColor={colors.muted} keyboardAppearance={isDark ? "dark" : "light"}
         style={[s.input, { borderWidth: 0, backgroundColor: colors.raised, borderRadius: 12 }]} />
-      <Button variant="outline" disabled={busy || brief.trim().length < 8} onPress={() => void sketch()}>{busy ? "Se gândește..." : "Schițează anunțul"}</Button>
+      <Button icon="sparkles" variant="outline" disabled={busy || brief.trim().length < 8} onPress={() => void sketch()}>{busy ? "Se gândește..." : "Schițează anunțul"}</Button>
       {warning ? <Text accessibilityRole="alert" style={s.body}>{warning}</Text> : null}
       <Text style={[s.label, { fontSize: 14, marginTop: 4, marginBottom: -8 }]}>Numele jobului</Text>
       <TextInput accessibilityLabel="Titlu" value={title} onChangeText={setTitle} editable={!busy} maxLength={80}
@@ -188,7 +188,7 @@ export default function NewJobScreen() {
         <TextInput accessibilityLabel="Detalii de siguranță (opțional)" value={safety} onChangeText={setSafety} editable={!busy} maxLength={200}
           placeholder="Ex.: lucrăm într-un spațiu public" placeholderTextColor={colors.muted} keyboardAppearance={isDark ? "dark" : "light"}
           style={{ fontFamily: fonts.body, fontSize: 13, lineHeight: 20, minHeight: 48, color: colors.text, paddingVertical: 10 }} />
-        <Button variant="outline" disabled={busy || description.trim().length < 8} onPress={() => void checkSafety()}>Verifică siguranța</Button>
+        <Button icon="sparkles" variant="outline" disabled={busy || description.trim().length < 8} onPress={() => void checkSafety()}>Verifică siguranța</Button>
         <Text style={s.body}>{categoryLabel[category]}</Text>
       </View>
       <View style={[s.card, { borderWidth: 0, gap: 16 }]}>

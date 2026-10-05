@@ -121,13 +121,20 @@ func clip(text string, max int) string {
 	return strings.TrimSpace(string(runes[:max]))
 }
 
+func listingAssistAllowed(user User) *AppError {
+	if user.Role == "admin" {
+		return nil
+	}
+	return requirePublisher(user)
+}
+
 func (s *Server) handleTaskDraft(w http.ResponseWriter, r *http.Request) {
 	user, ok := s.assistUser(w, r)
 	if !ok {
 		return
 	}
-	if user.Role != "poster" && user.Role != "admin" {
-		writeAppError(w, errForbidden)
+	if ae := listingAssistAllowed(user); ae != nil {
+		writeAppError(w, ae)
 		return
 	}
 	brief, ae := readBrief(r, "brief")
@@ -181,8 +188,8 @@ func (s *Server) handleSafetyCheck(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if user.Role != "poster" && user.Role != "admin" {
-		writeAppError(w, errForbidden)
+	if ae := listingAssistAllowed(user); ae != nil {
+		writeAppError(w, ae)
 		return
 	}
 	var body struct {
@@ -245,22 +252,35 @@ func containsFlag(flags []string, flag string) bool {
 
 func safetyFlags(text string) ([]string, string) {
 	var flags []string
-	if assistOffsite.MatchString(text) {
+	if positiveHit(assistOffsite, text) {
 		flags = append(flags, "cash")
 	}
-	if assistHome.MatchString(text) {
+	if positiveHit(assistHome, text) {
 		flags = append(flags, "home")
 	}
-	if assistDrive.MatchString(text) {
+	if positiveHit(assistDrive, text) {
 		flags = append(flags, "driving")
 	}
-	if assistMinor.MatchString(text) {
+	if positiveHit(assistMinor, text) {
 		flags = append(flags, "underage")
 	}
 	if len(flags) == 0 {
 		return []string{}, ""
 	}
 	return flags, "Anunțul pare să ceară numerar, acces în locuință, șofat sau muncă pentru minori. Nova ține banii și limitează sarcina la spațiu public, adulți și fără volan."
+}
+
+func positiveHit(re *regexp.Regexp, text string) bool {
+	loc := re.FindStringIndex(text)
+	if loc == nil {
+		return false
+	}
+	start := loc[0] - 48
+	if start < 0 {
+		start = 0
+	}
+	prefix := strings.ToLower(text[start:loc[0]])
+	return !strings.Contains(prefix, "fără") && !strings.Contains(prefix, "fara") && !strings.Contains(prefix, " nu")
 }
 
 func (s *Server) handleApplicationDraft(w http.ResponseWriter, r *http.Request) {
@@ -401,12 +421,12 @@ func (s *Server) noteAssist(userID, text string) {
 }
 
 func (s *Server) handleSearchAssist(w http.ResponseWriter, r *http.Request) {
-	user, ok := s.assistUser(w, r)
-	if !ok {
-		return
+	actor := "public:" + r.RemoteAddr
+	if user, ae := s.currentUser(r); ae == nil {
+		actor = user.ID
 	}
-	if user.Role != "worker" && user.Role != "poster" && user.Role != "admin" {
-		writeAppError(w, errForbidden)
+	if !takeAssist(actor) {
+		writeAppError(w, errAssistLimited)
 		return
 	}
 	query, ae := readBrief(r, "query")

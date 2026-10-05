@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRightIcon, XIcon } from '@phosphor-icons/react';
+import { ArrowRightIcon, SparkleIcon, XIcon } from '@phosphor-icons/react';
 import { ronToBani, toRfc3339 } from '../api/client';
 import { api } from '../api/instance';
 import type { Category } from '../api/types';
@@ -80,7 +80,7 @@ export function TaskForm({ onCreated, onClose }: { onCreated: () => Promise<void
       <fieldset disabled={busy || assistBusy}>
         <div className="form-grid">
           <label className="field field-wide">Spune cu cuvintele tale<textarea value={brief} onChange={event => setBrief(event.target.value)} rows={2} maxLength={800} placeholder="De exemplu: am nevoie de doi oameni sâmbătă în București să mute o masă, în jur de 150 lei, fără să intre în casă." /></label>
-          <div className="field field-wide form-bottom"><button className="button button-secondary" type="button" disabled={assistBusy || brief.trim().length < 8} onClick={() => void sketch()}>{assistBusy ? 'Se gândește...' : 'Schițează anunțul'}</button></div>
+          <div className="field field-wide form-bottom"><button className="button button-secondary" type="button" disabled={assistBusy || brief.trim().length < 8} onClick={() => void sketch()}><SparkleIcon size={16} weight="fill" aria-hidden="true" />{assistBusy ? 'Se gândește...' : 'Schițează anunțul'}</button></div>
           <label className="field field-wide">Titlu<input name="title" required minLength={3} maxLength={80} defaultValue={draft?.title} placeholder="De exemplu: Amenajare mese pentru un eveniment" /></label>
           <label className="field">Categorie<select name="category" defaultValue={draft?.category || 'event_setup'}>{Object.entries(categories).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
           <label className="field">Oraș<input name="city" required minLength={2} maxLength={80} defaultValue={draft?.city || 'București'} autoComplete="address-level2" /></label>
@@ -90,7 +90,7 @@ export function TaskForm({ onCreated, onClose }: { onCreated: () => Promise<void
           <div className="field field-wide amount-field"><label htmlFor="task-amount">Sumă propusă (RON)</label><div className="input-unit"><input id="task-amount" name="amount" inputMode="decimal" required placeholder="100,00" defaultValue={draft?.amount} aria-invalid={!!fields.amount} aria-describedby={fields.amount ? 'amount-error amount-note' : 'amount-note'} /><span aria-hidden="true">RON</span></div>{fields.amount && <span id="amount-error" className="field-error" role="alert">{fields.amount}</span>}<span className="field-note" id="amount-note">{amountCaption}</span></div>
           <label className="field field-wide">Descriere<textarea name="description" rows={3} required minLength={10} maxLength={500} defaultValue={draft?.description} placeholder="Ce trebuie făcut? Ce ar trebui să știe persoana care aplică?" /></label>
           <label className="field field-wide">Notă de siguranță <span className="optional">Opțional</span><input name="safety_note" maxLength={200} defaultValue={draft?.safety_note} placeholder="De exemplu: Doar obiecte ușoare, fără acces în locuințe." /></label>
-          <div className="field field-wide"><button className="button button-secondary" type="button" disabled={assistBusy} onClick={() => void checkSafety()}>Verifică siguranța</button></div>
+          <div className="field field-wide"><button className="button button-secondary" type="button" disabled={assistBusy} onClick={() => void checkSafety()}><SparkleIcon size={16} weight="fill" aria-hidden="true" />Verifică siguranța</button></div>
         </div>
       </fieldset>
       <div className="legal-accept"><label><input type="checkbox" required disabled={busy} /> <span>Confirm că anunțul respectă Termenii și condițiile și nu conține date personale ale altor persoane.</span></label><p>Titlul, orașul, suma și descrierea pot fi vizibile public. Citește <Link to="/termeni" target="_blank" rel="noopener noreferrer">Termenii</Link> și <Link to="/confidentialitate" target="_blank" rel="noopener noreferrer">Nota de confidențialitate</Link>.</p></div>
