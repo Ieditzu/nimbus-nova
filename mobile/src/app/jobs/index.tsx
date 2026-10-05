@@ -24,7 +24,7 @@ export default function MyJobsScreen() {
     <Page onRefresh={() => void reload()} refreshing={loading}>
       <Header
         title="Anunțurile tale"
-        subtitle="Publică o sarcină și găsește ajutor."
+        subtitle="Găsește ajutor și gestionează joburile publicate."
       />
       {session?.user.volunteer_only ? (
         <Text style={s.body}>
@@ -32,7 +32,7 @@ export default function MyJobsScreen() {
         </Text>
       ) : (
         <Button icon="add-outline" onPress={() => router.push("/jobs/new")}>
-          Publică o sarcină
+          Publică un job
         </Button>
       )}
       <State
@@ -41,7 +41,7 @@ export default function MyJobsScreen() {
         onRetry={() => void reload()}
         empty={
           !loading && !error && data?.tasks.length === 0
-            ? "Nu ai publicat încă nicio sarcină."
+            ? "Nu ai anunțuri încă. Apasă «Publică un job» pentru a începe."
             : undefined
         }
       />

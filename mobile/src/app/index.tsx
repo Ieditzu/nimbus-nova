@@ -1,12 +1,12 @@
 import { useCallback, useState } from "react";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { useAuth } from "../auth/session";
 import { api } from "../api";
 import { formatBani } from "../api/client";
 import type { JobType, TaskPublic } from "../api/types";
@@ -29,12 +29,10 @@ const filterLabels: Record<JobType, string> = {
   volunteer: "Voluntariat",
 };
 export default function TaskListScreen() {
+  const { session } = useAuth();
   const { colors } = useTheme();
   const s = styles(colors);
   const [category, setCategory] = useState<JobType | undefined>();
-  const [county, setCounty] = useState("");
-  const [city, setCity] = useState("");
-  const [localityId, setLocalityId] = useState("");
   const [applied, setApplied] = useState({ county: "", city: "", locality_id: "" });
   const load = useCallback(
     () => api.listOpenTasks({ job_type: category, ...applied }),
@@ -47,33 +45,22 @@ export default function TaskListScreen() {
     await reload();
     setRefreshing(false);
   }
-  function search() {
-    if (county === applied.county && city === applied.city && localityId === applied.locality_id) void reload();
-    else setApplied({ county, city, locality_id: localityId });
-  }
   return (
     <Page onRefresh={() => void refresh()} refreshing={refreshing}>
       <Header
-        hero
-        title={"Sarcini pe\nritmul tău."}
-        subtitle="Alege ce poți face. Câștigă în timpul tău."
+        title="Găsește un job"
+        subtitle="Joburi plătite și voluntariat, în zona ta."
       />
+      {!session?.user.volunteer_only ? <Button variant="outline" icon="add-outline" onPress={() => router.push("/jobs/new")}>Publică un job</Button> : null}
       <View style={s.searchSection}>
-        <LocationField county={county} city={city} disabled={false} onChange={(nextCounty, nextCity, nextId) => {
-          setCounty(nextCounty); setCity(nextCity); setLocalityId(nextId);
+        <Text style={s.label}>Unde cauți?</Text>
+        <LocationField county={applied.county} city={applied.city} disabled={false} onChange={(county, city, locality_id) => {
+          setApplied({ county, city, locality_id });
         }} />
-        <View style={s.searchRow}>
-          <View style={{ flex: 1 }}><Button onPress={search}>Caută sarcini</Button></View>
-          {county || applied.county ? <Button variant="outline" onPress={() => {
-            setCounty(""); setCity(""); setLocalityId(""); setApplied({ county: "", city: "", locality_id: "" });
-          }}>Toată țara</Button> : null}
-        </View>
+        <Text style={s.locationHelp}>{applied.city ? `Rezultate din ${applied.city}, ${applied.county}` : applied.county ? `Toate localitățile din ${applied.county}` : "Vezi joburi din toată țara. Alege o zonă pentru rezultate mai apropiate."}</Text>
+        {applied.county ? <Button variant="outline" onPress={() => setApplied({ county: "", city: "", locality_id: "" })}>Vezi toată țara</Button> : null}
       </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={s.filters}
-      >
+      <View style={s.filters}>
         {[undefined, ...jobCategories].map((value) => (
           <Pressable
             key={value ?? "all"}
@@ -93,14 +80,14 @@ export default function TaskListScreen() {
             </Text>
           </Pressable>
         ))}
-      </ScrollView>
+      </View>
       <View style={s.results}>
         <Text style={s.resultsTitle}>
-          {category ? filterLabels[category] : "Sarcini disponibile"}
+          {category ? filterLabels[category] : "Joburi disponibile"}
         </Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Actualizează sarcinile"
+          accessibilityLabel="Actualizează joburile"
           disabled={loading}
           onPress={() => void refresh()}
           style={s.refresh}
@@ -119,22 +106,12 @@ export default function TaskListScreen() {
         onRetry={() => void reload()}
         empty={
           !loading && !error && data?.tasks.length === 0
-            ? "Nu există sarcini deschise."
+            ? (applied.county || category ? "Nu am găsit joburi cu aceste filtre. Încearcă altă zonă sau toate categoriile." : session?.user.volunteer_only ? "Nu sunt joburi disponibile momentan. Revino mai târziu sau verifică altă zonă." : "Nu sunt joburi disponibile momentan. Poți publica primul anunț.")
             : undefined
         }
-        emptyAction={
-          <Button
-            variant="outline"
-            onPress={() => {
-              setCategory(undefined);
-              setCity("");
-              setCounty(""); setLocalityId("");
-              setApplied({ county: "", city: "", locality_id: "" });
-            }}
-          >
-            Șterge filtrele
-          </Button>
-        }
+        emptyAction={applied.county || category ? (
+          <Button variant="outline" onPress={() => { setCategory(undefined); setApplied({ county: "", city: "", locality_id: "" }); }}>Vezi toate joburile</Button>
+        ) : undefined}
       />
       {data?.tasks.map((task) => (
         <TaskCard key={task.id} task={task} />
@@ -190,7 +167,7 @@ function TaskCard({ task }: { task: TaskPublic }) {
         <View style={s.cardBottom}>
           <View>
             <Text style={s.price}>{task.amount_bani === 0 ? "Voluntariat" : formatBani(task.amount_bani)}</Text>
-            <Text style={s.caption}>Sumă propusă</Text>
+            <Text style={s.caption}>{task.amount_bani === 0 ? "Activitate fără plată" : "Plată propusă"}</Text>
           </View>
           <Text style={s.details}>Vezi detalii</Text>
         </View>
@@ -202,12 +179,13 @@ const styles = (c: Colors) =>
   StyleSheet.create({
     searchSection: { gap: 16, backgroundColor: c.surface, borderRadius: 24, padding: 20 },
     label: { fontFamily: fonts.bold, color: c.text, fontSize: 14 },
-    searchRow: { flexDirection: "row", gap: 8 },
-    filters: { gap: 8 },
+    locationHelp: { fontFamily: fonts.body, color: c.muted, fontSize: 12, lineHeight: 19 },
+    filters: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
     filter: {
-      minHeight: 44,
-      justifyContent: "center",
-      paddingHorizontal: 16,
+      minHeight: 48,
+      flexBasis: "47%", flexGrow: 1,
+      justifyContent: "center", alignItems: "center",
+      paddingHorizontal: 12,
       borderWidth: 1,
       borderColor: c.border,
       borderRadius: 22,

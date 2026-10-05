@@ -19,9 +19,9 @@ export function LocationField({ county, city, disabled, onChange }: {
  function open(next: "county" | "city") { setQuery(""); setMode(next); }
  const field = (label: string, value: string, next: "county" | "city") => <View style={{ gap: 8 }}>
   <Text style={{ fontFamily: fonts.body, color: colors.muted, fontSize: 12 }}>{label}</Text>
-  <Pressable disabled={disabled || (next === "city" && !county)} accessibilityRole="button" accessibilityLabel={label}
+  <Pressable disabled={disabled || (next === "city" && !county)} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: disabled || (next === "city" && !county) }}
    onPress={() => open(next)} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 52, padding: 12, borderRadius: 12, backgroundColor: colors.raised }}>
-   <Text style={{ fontFamily: fonts.body, color: value ? colors.text : colors.muted }}>{value || (next === "county" ? "Alege județul" : "Alege localitatea")}</Text>
+   <Text style={{ flex: 1, marginRight: 8, lineHeight: 20, fontFamily: fonts.body, color: value ? colors.text : colors.muted }}>{value || (next === "county" ? "Alege județul" : !county ? "Alege mai întâi județul" : "Alege localitatea")}</Text>
    <Icon name="chevron-down-outline" color={colors.muted} />
   </Pressable>
  </View>;
@@ -37,7 +37,7 @@ export function LocationField({ county, city, disabled, onChange }: {
      keyboardAppearance={isDark ? "dark" : "light"} placeholderTextColor={colors.muted}
      style={{ color: colors.text, fontFamily: fonts.body, fontSize: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 14, minHeight: 52 }} />
     <FlatList data={options} keyExtractor={(item) => item.id} keyboardShouldPersistTaps="handled"
-     ListEmptyComponent={<Text style={{ color: colors.muted }}>Nu am găsit localități. Încearcă altă căutare.</Text>}
+     ListEmptyComponent={<Text style={{ color: colors.muted }}>{mode === "county" ? "Nu am găsit județe. Încearcă altă căutare." : "Nu am găsit localități. Încearcă altă căutare."}</Text>}
      renderItem={({ item }) => <Pressable accessibilityRole="button" accessibilityLabel={item.area && item.area !== item.name ? `${item.name}, ${item.area}` : item.name}
       onPress={() => { onChange(mode === "county" ? item.name : county, mode === "county" ? "" : item.name, mode === "county" ? "" : item.id); setMode(undefined); }}
       style={{ paddingVertical: 16, borderBottomWidth: 1, borderColor: colors.border, gap: 4 }}>

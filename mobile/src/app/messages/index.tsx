@@ -1,8 +1,8 @@
 import { useCallback } from "react";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { useAuth } from "../../auth/session";
-import { Header, Icon, Page, State, useData } from "../../components/ui";
+import { Button, Header, Icon, Page, State, useData } from "../../components/ui";
 import { useTheme } from "../../components/theme";
 import { jobStyles } from "../../components/job-ui";
 export default function InboxScreen() {
@@ -15,7 +15,7 @@ export default function InboxScreen() {
     <Page onRefresh={() => void reload()} refreshing={loading}>
       <Header
         title="Mesaje"
-        subtitle="Vorbește direct despre sarcinile care te interesează."
+        subtitle="Conversațiile tale despre joburi."
       />
       <State
         loading={loading}
@@ -23,9 +23,10 @@ export default function InboxScreen() {
         onRetry={() => void reload()}
         empty={
           !loading && !error && data?.conversations.length === 0
-            ? "Nicio conversație încă. Deschide o sarcină și apasă «Discută cu organizatorul». "
+            ? "Nu ai mesaje încă. Deschide un job și apasă «Trimite un mesaj» pentru a începe."
             : undefined
         }
+        emptyAction={<Button variant="outline" onPress={() => router.replace("/")}>Găsește un job</Button>}
       />
       {data?.conversations.map((chat) => (
         <Link

@@ -97,7 +97,7 @@ export default function NewJobScreen() {
   if (session?.user.volunteer_only)
     return (
       <Page>
-        <Header title="Publică o sarcină" />
+        <Header title="Publică un job" />
         <Text style={s.body}>
           Publicarea este disponibilă de la 16 ani.
         </Text>
@@ -106,8 +106,8 @@ export default function NewJobScreen() {
   return (
     <Page>
       <Header
-        title={id ? "Editează anunțul" : "Publică o sarcină"}
-        subtitle="Detalii clare, pentru omul potrivit."
+        title={id ? "Editează anunțul" : "Publică un job"}
+        subtitle="Spune ce ai nevoie, unde și când."
       />
       <TextInput accessibilityLabel="Titlu" value={title} onChangeText={setTitle} editable={!busy} maxLength={80}
         placeholder="Cum se numește jobul?" placeholderTextColor={colors.muted} keyboardAppearance={isDark ? "dark" : "light"}

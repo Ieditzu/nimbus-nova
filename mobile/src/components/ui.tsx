@@ -249,7 +249,7 @@ export function Page({
   );
 }
 const dockTabs = [
-  { href: "/" as const, icon: "search-outline" as const, label: "Sarcini" },
+  { href: "/" as const, icon: "search-outline" as const, label: "Joburi" },
   {
     href: "/jobs" as const,
     icon: "briefcase-outline" as const,
@@ -485,7 +485,7 @@ export function State({
           accessibilityRole="alert"
           style={[s.body, { color: colors.danger }]}
         >
-          {error}
+          {error === "API oprit" ? "Nu ne putem conecta momentan." : error}
         </Text>
         {error === "API oprit" ? (
           <Text style={[s.body, { color: colors.danger }]}>
