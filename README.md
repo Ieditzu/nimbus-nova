@@ -98,9 +98,9 @@ Tu propui suma pe care o primește lucrătorul. Nova adaugă **5% comision** la 
 
 | Suma propusă | Lucrătorul | Nova |
 | --- | --- | --- |
-| 20 RON | 17 RON | 3 RON |
-| 100 RON | 85 RON | 15 RON |
-| 250 RON | 212,50 RON | 37,50 RON |
+| 20 RON | 19 RON | 1 RON |
+| 100 RON | 95 RON | 5 RON |
+| 250 RON | 232,50 RON | 17,50 RON |
 
 Nova nu ține banii în mână. Face legătura și își ia comisionul. Plătești după ce te-ai înțeles. Până se salvează o cheie Stripe în birou, butonul Plătește scrie registrul în modul simulat: vezi sumele, nu pleacă un card real.
 
