@@ -14,7 +14,7 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import './landing.css';
 
 const APP_URL = 'https://app.nimbusnova.cc';
-const FEE_PERCENT = 15;
+const FEE_PERCENT = 5;
 
 const reduced = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const delay = (ms: number) => ({ '--d': `${ms}ms` }) as CSSProperties;
@@ -152,7 +152,7 @@ const safety = [
 const faq = [
   { q: 'Cine poate posta sarcini?', a: 'Oricine are cel puțin 16 ani și un cont verificat. La înscriere verificăm identitatea cu un act european și un selfie. Sub 16 ani nu se pot posta sarcini.' },
   { q: 'Unde aplică oamenii?', a: 'În aplicația mobilă Nova. Site-ul este pentru cei care postează: publici, primești candidaturi, accepți, plătești și dai recenzii.' },
-  { q: 'Cât costă?', a: `Publici gratuit. Când sarcina e plătită, Nova își ia ${FEE_PERCENT}% din suma propusă, iar restul ajunge la lucrător. Poți vedea calculul mai sus.` },
+  { q: 'Cât costă?', a: `Publici gratuit. Nova adaugă ${FEE_PERCENT}% comision peste suma propusă. Lucrătorul primește suma propusă. Poți vedea calculul mai sus.` },
   { q: 'Ce fel de sarcini sunt permise?', a: 'Sarcini scurte, de cel mult 12 ore, în spații publice: amenajări de evenimente, mutat obiecte ușoare, acoperire într-un stand sau magazin. Fără numerar, fără acces la domiciliu și fără condus.' },
   { q: 'Ce fac dacă ceva nu merge bine?', a: 'Deschide o dispută din sarcina respectivă. Un moderator Nova citește ambele părți și propune o soluție.' },
   { q: 'Pot participa și cei sub 16 ani?', a: 'Politica Nova limitează conturile sub 16 ani la activități de voluntariat, fără plată și cu implicarea tutorelui. Înscrierea actuală cere însă verificarea unui CI/CEI românesc; conturile pentru copiii care nu au un astfel de act nu sunt încă disponibile.' },
@@ -345,15 +345,15 @@ export default function LandingPage() {
           <div data-reveal>
             <p className="lp-eyebrow">Tarif</p>
             <h2 className="lp-display">Vezi exact<br />unde merg banii</h2>
-            <p className="lp-lead">Tu propui suma. Nova își ia {FEE_PERCENT}% din suma propusă, iar restul ajunge la lucrător. Fără taxe ascunse.</p>
+            <p className="lp-lead">Tu propui suma. Nova adaugă {FEE_PERCENT}% comision peste ea. Lucrătorul primește suma propusă. Fără taxe ascunse.</p>
           </div>
           <div className="lp-calc-card" data-reveal style={delay(120)}>
             <label htmlFor="lp-amount">Suma propusă</label>
             <output htmlFor="lp-amount" className="lp-calc-amount">{formatBani(bani)}</output>
             <input id="lp-amount" type="range" min={20} max={1000} step={10} value={amount} onChange={event => setAmount(Number(event.target.value))} aria-valuetext={formatBani(bani)} />
-            <div className="lp-calc-bar" aria-hidden="true"><span style={{ width: `${100 - FEE_PERCENT}%` }} /><span /></div>
+            <div className="lp-calc-bar" aria-hidden="true"><span style={{ width: `${Math.round((bani / (bani + fee)) * 100)}%` }} /><span /></div>
             <dl>
-              <div><dt><i className="is-worker" aria-hidden="true" />Lucrătorul primește</dt><dd>{formatBani(bani - fee)}</dd></div>
+              <div><dt><i className="is-worker" aria-hidden="true" />Lucrătorul primește</dt><dd>{formatBani(bani)}</dd></div>
               <div><dt><i className="is-fee" aria-hidden="true" />Comision Nova ({FEE_PERCENT}%)</dt><dd>{formatBani(fee)}</dd></div>
             </dl>
             <small>Exemplu de calcul pentru sume până la 1.000 RON. Plățile din această versiune sunt simulate.</small>
