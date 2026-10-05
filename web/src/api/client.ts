@@ -119,7 +119,11 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
     if (init.body) headers.set("Content-Type", "application/json");
     const response = await fetch(root + path, { ...init, headers });
     const text = await response.text();
-    const data = text ? JSON.parse(text) : {};
+    let data: unknown = {};
+    if (text) {
+      try { data = JSON.parse(text); }
+      catch { throw new NovaError(response.status, "bad_response", "Răspuns neașteptat de la server."); }
+    }
     if (!response.ok) {
       const error = (data as ApiErrorBody).error;
       if (!error?.message) throw new NovaError(response.status, "bad_response", "Răspuns neașteptat de la server.");

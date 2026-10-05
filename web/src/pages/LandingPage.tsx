@@ -203,12 +203,14 @@ export default function LandingPage() {
           <Link to="/suport">Suport</Link>
         </nav>
         <ThemeToggle />
+        <a className="lp-btn is-small lp-nav-app" href={APP_URL}>Descarcă</a>
         <Link className="lp-btn is-small lp-nav-cta" to="/poster?new=1">Postează</Link>
         <button type="button" className="lp-menu-btn" aria-expanded={menu} aria-controls="lp-sheet" aria-label={menu ? 'Închide meniul' : 'Deschide meniul'} onClick={() => setMenu(value => !value)}>
           {menu ? <XIcon size={20} aria-hidden="true" /> : <ListIcon size={20} aria-hidden="true" />}
         </button>
       </div>
       {menu && <nav id="lp-sheet" className="lp-sheet" aria-label="Meniu">
+        <a className="lp-btn" href={APP_URL}>Descarcă aplicația</a>
         {[['#cum-functioneaza', 'Cum funcționează'], ['#tarif', 'Tarif'], ['#siguranta', 'Siguranță'], ['#intrebari', 'Întrebări']].map(([href, label]) => <a key={href} href={href} onClick={() => setMenu(false)}>{label}</a>)}
         <Link to="/explore">Explorează sarcini</Link>
         <Link to="/suport">Suport</Link>
@@ -234,6 +236,7 @@ export default function LandingPage() {
         <p className="lp-tagline lp-rise" style={delay(520)}>Omul din mijloc dintre cine are timp și cine are o sarcină scurtă.</p>
         <p className="lp-sub lp-rise" style={delay(620)}>Postezi în câteva minute. Oamenii din orașul tău aplică din aplicație. Nova face legătura între voi.</p>
         <div className="lp-actions lp-rise" style={delay(720)}>
+          <a className="lp-btn" href={APP_URL}>Descarcă aplicația<DeviceMobileIcon size={18} aria-hidden="true" /></a>
           <Link className="lp-btn" to="/poster?new=1">Postează o sarcină<ArrowRightIcon size={18} aria-hidden="true" /></Link>
           <Link className="lp-btn is-ghost" to="/explore">Vezi sarcinile deschise</Link>
         </div>

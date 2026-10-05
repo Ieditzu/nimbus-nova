@@ -214,7 +214,11 @@ async function call<T>(token: string, path: string, init: RequestInit = {}): Pro
   if (init.body) headers.set('Content-Type', 'application/json');
   const response = await fetch(apiBaseUrl().replace(/\/$/, '') + path, { ...init, headers });
   const text = await response.text();
-  const data: unknown = text ? JSON.parse(text) : {};
+  let data: unknown = {};
+  if (text) {
+    try { data = JSON.parse(text); }
+    catch { throw new NovaError(response.status, 'bad_response', 'Răspuns neașteptat de la server.'); }
+  }
   if (!response.ok) {
     const error = errorFrom(data);
     throw new NovaError(response.status, error.code, error.message);

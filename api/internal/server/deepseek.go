@@ -13,6 +13,10 @@ import (
 
 const deepseekURL = "https://api.deepseek.com/chat/completions"
 
+// Hard cap stays under the reverse-proxy read timeout, so a hung model
+// becomes a JSON error instead of an HTML 502.
+var assistHTTP = &http.Client{Timeout: 20 * time.Second}
+
 type assistFn func(ctx context.Context, system, user string, think bool) (string, error)
 
 // Tests replace this. Production calls DeepSeek when DEEPSEEK_API_KEY is set.
@@ -40,7 +44,7 @@ func deepseekComplete(ctx context.Context, system, user string, think bool) (str
 	if err != nil {
 		return "", errInternal
 	}
-	callCtx, cancel := context.WithTimeout(ctx, 25*time.Second)
+	callCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(callCtx, http.MethodPost, deepseekURL, bytes.NewReader(payload))
 	if err != nil {
@@ -48,7 +52,7 @@ func deepseekComplete(ctx context.Context, system, user string, think bool) (str
 	}
 	req.Header.Set("Authorization", "Bearer "+key)
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := assistHTTP.Do(req)
 	if err != nil {
 		return "", errAssistUnavailable
 	}

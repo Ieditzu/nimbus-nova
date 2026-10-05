@@ -44,12 +44,23 @@ export function TaskForm({ onCreated, onClose }: { onCreated: () => Promise<void
 
   async function checkSafety() {
     const value = current();
+    const title = value('title'), description = value('description'), safety = value('safety_note');
+    if (`${title}\n${description}\n${safety}`.trim().length < 8) {
+      setError('Scrie descrierea înainte de verificare.');
+      return;
+    }
     setError(''); setAssistBusy(true);
+    const keep = (note: string) => setDraft(current => ({ ...(current ?? { title, category: value('category'), city: value('city'), amount: value('amount'), description, safety_note: '' }), safety_note: note }));
     try {
-      const result = await api.checkSafety({ title: value('title'), description: value('description'), safety_note: value('safety_note') });
-      setWarning(result.warning);
-      if (result.safety_note) setDraft(currentDraft => ({ ...(currentDraft ?? { title: value('title'), category: value('category'), city: value('city'), amount: value('amount'), description: value('description'), safety_note: '' }), safety_note: result.safety_note }));
-    } catch (failure) { setError(errorMessage(failure)); } finally { setAssistBusy(false); }
+      const result = await api.checkSafety({ title, description, safety_note: safety });
+      setWarning(typeof result?.warning === 'string' ? result.warning : '');
+      if (result?.safety_note) keep(result.safety_note);
+    } catch (failure) {
+      const message = errorMessage(failure);
+      if (message !== 'Răspuns neașteptat de la server.') { setError(message); return; }
+      keep(safety || 'Loc public, fără numerar, fără acces în locuință, fără șofat. Muncă plătită doar pentru adulți.');
+      setWarning('Verificarea de pe server nu a răspuns. Am pus o notă pentru spațiu public, fără numerar și fără șofat.');
+    } finally { setAssistBusy(false); }
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {

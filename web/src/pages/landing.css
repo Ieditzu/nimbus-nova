@@ -93,6 +93,7 @@
 .lp-links a:hover { border-color: var(--lp-ink); background: var(--lp-sky); }
 .lp-nav .theme-toggle { border-color: var(--lp-ink); }
 .lp-menu-btn { display: none; place-items: center; width: 42px; height: 42px; border: 1px solid var(--lp-ink); border-radius: 50%; }
+.lp-nav-app { white-space: nowrap; }
 .lp-sheet { display: grid; gap: 4px; max-width: 1240px; margin: 8px auto 0; padding: 12px; border: 1px solid var(--lp-ink); border-radius: var(--lp-radius); background: var(--lp-surface); animation: lp-drop .2s ease; }
 .lp-sheet a { padding: 14px 12px; border-radius: 12px; font-weight: 800; }
 .lp-sheet a:hover { background: var(--lp-sky); }

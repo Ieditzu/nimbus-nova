@@ -97,7 +97,12 @@ func redactPrivate(text string) string {
 	return text
 }
 
-func askJSON(ctx context.Context, system, user string, think bool, dest any) error {
+func askJSON(ctx context.Context, system, user string, think bool, dest any) (err error) {
+	defer func() {
+		if recover() != nil {
+			err = errAssistUnavailable
+		}
+	}()
 	raw, err := assistComplete(ctx, system+" Răspunde doar cu un obiect JSON.", user, think)
 	if err != nil {
 		return err
@@ -106,7 +111,7 @@ func askJSON(ctx context.Context, system, user string, think bool, dest any) err
 	raw = strings.TrimPrefix(raw, "```json")
 	raw = strings.TrimPrefix(raw, "```")
 	raw = strings.TrimSuffix(raw, "```")
-	if err := json.Unmarshal([]byte(strings.TrimSpace(raw)), dest); err != nil {
+	if err = json.Unmarshal([]byte(strings.TrimSpace(raw)), dest); err != nil {
 		return errAssistUnavailable
 	}
 	return nil

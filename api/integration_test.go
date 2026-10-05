@@ -1756,6 +1756,33 @@ func TestAssistRoutes(t *testing.T) {
 	h.errorCode(status, body, 503, "assist_unavailable", "Asistentul nu este disponibil momentan. Poți continua fără el.")
 }
 
+func TestSafetyCheckSurvivesBrokenModelAndPlainErrors(t *testing.T) {
+	h := start(t)
+	status, _, body := h.do(http.MethodGet, "/v1/missing", "", nil, false)
+	h.errorCode(status, body, 404, "not_found", "Nu există.")
+	status, _, body = h.do(http.MethodGet, "/v1/assist/safety-check", "poster-1", nil, true)
+	h.errorCode(status, body, 405, "method_not_allowed", "Metoda nu este permisă.")
+
+	restore := server.SetAssistForTest(func(context.Context, string, string, bool) (string, error) {
+		panic("model boom")
+	})
+	defer restore()
+	status, _, body = h.do(http.MethodPost, "/v1/assist/safety-check", "poster-1", map[string]any{
+		"title":       "Mutat masă",
+		"description": "Ajutor la mutat o masă în București, loc public.",
+		"safety_note": "Muncă plătită doar pentru adulți. Loc public, fără numerar, fără acces în locuință, fără șofat.",
+	}, true)
+	if status != 200 {
+		t.Fatalf("safety %d %s", status, body)
+	}
+	payload := asMap(t, decode(t, body))
+	flags, ok := payload["flags"].([]any)
+	note, _ := payload["safety_note"].(string)
+	if !ok || len(flags) != 0 || !strings.Contains(note, "adulți") {
+		t.Fatalf("envelope %s", body)
+	}
+}
+
 func TestSupportTickets(t *testing.T) {
 	restore := server.SetAssistForTest(func(_ context.Context, _, user string, _ bool) (string, error) {
 		if strings.Contains(strings.ToLower(user), "bani") {
