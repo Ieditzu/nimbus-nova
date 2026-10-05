@@ -44,7 +44,7 @@ function WorkerApplications() {
   const s = styles(colors);
   const { client } = useAuth();
   const load = useCallback(() => client.listMyApplications(), [client]);
-  const { data, loading, error, reload } = useData(load);
+  const { data, loading, error, reload } = useData(load, 5000);
   const [refreshing, setRefreshing] = useState(false);
   async function refresh() {
     setRefreshing(true);

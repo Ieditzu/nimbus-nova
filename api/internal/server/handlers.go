@@ -62,6 +62,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /v1/admin/ledger", s.handleAdminLedger)
 	mux.HandleFunc("GET /v1/me/contracts", s.handleMyContracts)
 	mux.HandleFunc("GET /v1/me/notifications", s.handleNotifications)
+	mux.HandleFunc("POST /v1/me/notifications/read", s.handleReadNotifications)
 	mux.HandleFunc("POST /v1/me/push-token", s.handleRegisterPushToken)
 	mux.HandleFunc("DELETE /v1/me/push-token", s.handleDeletePushToken)
 	mux.HandleFunc("GET /v1/me/web-push-config", s.handleWebPushConfig)

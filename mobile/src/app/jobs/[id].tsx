@@ -31,7 +31,7 @@ export default function ManageJobScreen() {
     const { applications } = await client.listTaskApplications(id);
     return { task, applications };
   }, [id, client, session?.user.id]);
-  const { data, loading, error, reload } = useData(load);
+  const { data, loading, error, reload } = useData(load, 5000);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");

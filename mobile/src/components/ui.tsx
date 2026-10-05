@@ -286,7 +286,7 @@ const dockTabs = [
   },
 ];
 // Mounted beside the stack so the indicator survives screen changes.
-export function BottomNav() {
+export function BottomNav({ notificationCount = 0 }: { notificationCount?: number }) {
   const path = usePathname();
   const { colors } = useTheme();
   const selectedIndex =
@@ -370,6 +370,7 @@ export function BottomNav() {
           tab={tab}
           selected={selectedIndex === index}
           reduceMotion={reduceMotion}
+          notificationCount={tab.href === "/profile" ? notificationCount : 0}
         />
       ))}
     </View>
@@ -379,10 +380,12 @@ function DockTab({
   tab,
   selected,
   reduceMotion,
+  notificationCount,
 }: {
   tab: (typeof dockTabs)[number];
   selected: boolean;
   reduceMotion: boolean;
+  notificationCount: number;
 }) {
   const { colors } = useTheme();
   const [progress] = useState(() => new Animated.Value(selected ? 1 : 0));
@@ -405,7 +408,7 @@ function DockTab({
     <Link href={tab.href} replace asChild>
       <Pressable
         accessibilityRole="tab"
-        accessibilityLabel={tab.label}
+        accessibilityLabel={notificationCount ? `${tab.label}, ${notificationCount} notificări necitite` : tab.label}
         accessibilityState={{ selected }}
         style={s.navItem}
       >
@@ -433,6 +436,9 @@ function DockTab({
             {tab.label}
           </Text>
         </Animated.View>
+        {notificationCount > 0 ? <View pointerEvents="none" style={{ position: "absolute", top: 5, right: 14, minWidth: 17, height: 17, borderRadius: 9, paddingHorizontal: 3, alignItems: "center", justifyContent: "center", backgroundColor: colors.danger }}>
+          <Text style={{ color: colors.surface, fontSize: 10, fontWeight: "700" }}>{notificationCount > 9 ? "9+" : notificationCount}</Text>
+        </View> : null}
       </Pressable>
     </Link>
   );

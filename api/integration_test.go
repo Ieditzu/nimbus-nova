@@ -57,6 +57,39 @@ func TestWebPushProbeIsScopedToCurrentAccount(t *testing.T) {
 	}
 }
 
+func TestNotificationInboxReadIsScopedToCurrentAccount(t *testing.T) {
+	h := start(t)
+	status, body := h.apply("task_seed_event_setup", "Pot ajunge.")
+	if status != http.StatusCreated {
+		t.Fatalf("apply %d %s", status, body)
+	}
+	if _, err := h.DB.Exec(`INSERT INTO notifications(id,user_id,kind,task_id,read_at,created_at) VALUES('ntf_worker_unread','worker-1','task_completed','task_seed_event_setup',NULL,?)`, time.Now().UTC().Format(time.RFC3339)); err != nil {
+		t.Fatal(err)
+	}
+	status, _, body = h.do(http.MethodGet, "/v1/me/notifications", "poster-1", nil, true)
+	if status != http.StatusOK {
+		t.Fatalf("list %d %s", status, body)
+	}
+	items := asMap(t, decode(t, body))["notifications"].([]any)
+	if len(items) == 0 || asMap(t, items[0])["kind"] != "application_received" {
+		t.Fatalf("missing application alert: %s", body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/me/notifications/read", "poster-1", map[string]any{}, true)
+	if status != http.StatusOK {
+		t.Fatalf("read %d %s", status, body)
+	}
+	var posterUnread, workerUnread int
+	if err := h.DB.QueryRow(`SELECT COUNT(*) FROM notifications WHERE user_id='poster-1' AND read_at IS NULL`).Scan(&posterUnread); err != nil {
+		t.Fatal(err)
+	}
+	if err := h.DB.QueryRow(`SELECT COUNT(*) FROM notifications WHERE user_id='worker-1' AND read_at IS NULL`).Scan(&workerUnread); err != nil {
+		t.Fatal(err)
+	}
+	if posterUnread != 0 || workerUnread != 1 {
+		t.Fatalf("cross-account read: poster=%d worker=%d", posterUnread, workerUnread)
+	}
+}
+
 func start(t *testing.T) *harness {
 	t.Helper()
 	t.Setenv("NOVA_DEMO", "1")

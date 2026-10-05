@@ -337,6 +337,23 @@ func (s *Server) handleNotifications(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"notifications": rows})
 }
 
+func (s *Server) handleReadNotifications(w http.ResponseWriter, r *http.Request) {
+	user, ae := s.currentUser(r)
+	if ae != nil {
+		writeAppError(w, ae)
+		return
+	}
+	if !s.readEmptyObject(w, r) {
+		return
+	}
+	_, err := s.store.db.Exec(`UPDATE notifications SET read_at=? WHERE user_id=? AND read_at IS NULL`, NowRFC3339(), user.ID)
+	if err != nil {
+		s.writeErr(w, errInternal)
+		return
+	}
+	writeJSON(w, http.StatusOK, okBody{OK: true})
+}
+
 func (s *Store) Notify(userID, kind, taskID string) error {
 	id, err := NewID("ntf_")
 	if err != nil {

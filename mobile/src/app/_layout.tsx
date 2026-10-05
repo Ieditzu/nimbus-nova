@@ -1,5 +1,5 @@
 import { PwaProvider } from "../pwa/install";
-import { NotificationsProvider } from "../notifications/provider";
+import { NotificationsProvider, useNotificationCount } from "../notifications/provider";
 import { useFonts } from "expo-font";
 import { Anton_400Regular } from "@expo-google-fonts/anton/400Regular";
 import { Manrope_500Medium } from "@expo-google-fonts/manrope/500Medium";
@@ -38,6 +38,7 @@ function Navigation() {
   const { session, restoring } = useAuth();
   const insets = useSafeAreaInsets();
   const ready = !!session?.user.phone_number;
+  const notificationCount = useNotificationCount();
   if (restoring)
     return (
       <View style={{
@@ -73,6 +74,7 @@ function Navigation() {
           <Stack.Screen name="jobs/[id]" />
           <Stack.Screen name="messages/index" />
           <Stack.Screen name="messages/[id]" />
+          <Stack.Screen name="notifications" />
         </Stack.Protected>
       </Stack>
       {ready ? (
@@ -85,7 +87,7 @@ function Navigation() {
             paddingBottom: Math.max(6, insets.bottom - 28),
           }}
         >
-          <BottomNav />
+          <BottomNav notificationCount={notificationCount} />
         </View>
       ) : null}
     </View>

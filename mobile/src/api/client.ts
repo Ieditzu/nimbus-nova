@@ -42,6 +42,14 @@ export interface SupportMessage {
   created_at: string;
 }
 
+export interface NovaNotification {
+  id: string;
+  kind: string;
+  task_id: string;
+  read_at: string;
+  created_at: string;
+}
+
 export interface SupportTicket {
   id: string;
   subject: string;
@@ -56,6 +64,8 @@ export interface SupportThread {
 }
 
 export interface NovaClient {
+  listNotifications(): Promise<{ notifications: NovaNotification[] }>;
+  readNotifications(): Promise<{ ok: true }>;
   updatePhone(phone_number: string): Promise<{ user: PublicAccount }>;
   registerPushToken(expo_push_token: string): Promise<{ ok: true }>;
   deletePushToken(expo_push_token: string): Promise<{ ok: true }>;
@@ -137,6 +147,8 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
   }
 
   return {
+    listNotifications: () => request("/v1/me/notifications"),
+    readNotifications: () => request("/v1/me/notifications/read", { method: "POST", body: "{}" }),
     updatePhone: (phone_number) => request("/v1/me/phone", { method: "PUT", body: JSON.stringify({ phone_number }) }),
     registerPushToken: (expo_push_token) => request("/v1/me/push-token", { method: "POST", body: JSON.stringify({ expo_push_token }) }),
     deletePushToken: (expo_push_token) => request("/v1/me/push-token", { method: "DELETE", body: JSON.stringify({ expo_push_token }) }),

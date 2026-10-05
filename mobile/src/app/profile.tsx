@@ -1,5 +1,5 @@
 import { PwaInstallCard } from "../pwa/install";
-import { NotificationSettings } from "../notifications/provider";
+import { NotificationSettings, useNotificationCount } from "../notifications/provider";
 import { router } from "expo-router";
 import { PhoneForm } from "../components/phone-form";
 import { useCallback, useState } from "react";
@@ -82,6 +82,7 @@ export default function ProfileScreen() {
   );
 }
 function WorkerProfile() {
+  const unreadNotifications = useNotificationCount();
   const { session, signOut, notice, client } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState("");
@@ -129,6 +130,7 @@ function WorkerProfile() {
     <>
       {notice ? <Text style={s.help}>{notice}</Text> : null}
       <NotificationSettings />
+      <Button variant="outline" icon="notifications-outline" onPress={() => router.push("/notifications")}>{unreadNotifications ? `Notificări (${unreadNotifications})` : "Vezi notificările"}</Button>
       <Text style={s.help}>Telefon: {session?.user.phone_number}</Text>
       <Button
         variant="outline"
