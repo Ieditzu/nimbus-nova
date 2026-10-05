@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { ListIcon, XIcon } from '@phosphor-icons/react';
 import { Health } from './components/Health';
-import { SupportWidget } from './components/SupportWidget';
+import { SupportPage, SupportWidget } from './components/SupportWidget';
 import { ThemeToggle } from './components/ThemeToggle';
 import LandingPage from './pages/LandingPage';
 import './pages/site.css';
@@ -61,6 +61,7 @@ function SiteFrame({ children }: { children: ReactNode }) {
           <NavLink to="/" end>Acasă</NavLink>
           <NavLink to="/explore">Explorează</NavLink>
           <NavLink to="/poster">Sarcinile mele</NavLink>
+          <NavLink to="/suport">Suport</NavLink>
         </nav>
         <ThemeToggle />
         <Link className="lp-btn is-small lp-nav-cta" to="/poster?new=1">Postează</Link>
@@ -73,6 +74,7 @@ function SiteFrame({ children }: { children: ReactNode }) {
         <Link to="/explore">Explorează</Link>
         <Link to="/poster">Sarcinile mele</Link>
         <Link to="/poster?new=1" className="lp-btn">Postează o sarcină</Link>
+        <Link to="/suport">Suport</Link>
       </nav>}
     </header>
     {children}
@@ -82,6 +84,7 @@ function SiteFrame({ children }: { children: ReactNode }) {
         <nav aria-label="Linkuri">
           <Link to="/explore">Explorează</Link>
           <Link to="/poster">Sarcinile mele</Link>
+          <Link to="/suport">Suport</Link>
           <Link to="/confidentialitate">Confidențialitate</Link>
           <Link to="/termeni">Termeni și condiții</Link>
         </nav>
@@ -101,6 +104,7 @@ export default function App() {
       <Route path="/admin" element={<AdminPage />} />
       <Route path="/explore" element={<SiteFrame><ExplorePage /></SiteFrame>} />
       <Route path="/poster" element={<SiteFrame><PosterPage /></SiteFrame>} />
+      <Route path="/suport" element={<SiteFrame><SupportPage /></SiteFrame>} />
       <Route path="/confidentialitate" element={<SiteFrame><PrivacyPage /></SiteFrame>} />
       <Route path="/termeni" element={<SiteFrame><TermsPage /></SiteFrame>} />
       <Route path="*" element={<SiteFrame><NotFoundPage /></SiteFrame>} />

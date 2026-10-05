@@ -1619,7 +1619,9 @@ func TestSupportTickets(t *testing.T) {
 	t.Cleanup(restore)
 	h := start(t)
 	status, _, body := h.do(http.MethodPost, "/v1/support/tickets", "", map[string]any{"text": "Unde este butonul?"}, false)
-	h.errorCode(status, body, 401, "missing_actor", "Lipsește antetul X-Demo-Actor.")
+	if status != 201 || !strings.Contains(string(body), "guest_key") {
+		t.Fatalf("guest open %d %s", status, body)
+	}
 	status, _, body = h.do(http.MethodPost, "/v1/support/tickets", "poster-1", map[string]any{"text": "Banii nu au ajuns."}, true)
 	if status != 201 {
 		t.Fatalf("open %d %s", status, body)

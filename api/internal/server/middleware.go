@@ -16,7 +16,7 @@ func withCORS(next http.Handler) http.Handler {
 		}
 		if r.Method == http.MethodOptions {
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Demo-Actor, Authorization")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Demo-Actor, Authorization, X-Support-Key")
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}

@@ -39,7 +39,10 @@ export default function ProfileScreen() {
       ) : session ? (
         <WorkerProfile />
       ) : (
-        <AuthForm />
+        <>
+          <Button variant="outline" icon="sparkles-outline" onPress={() => router.push("/support")}>Suport</Button>
+          <AuthForm />
+        </>
       )}
       <PwaInstallCard />
       <View style={s.appearance}>

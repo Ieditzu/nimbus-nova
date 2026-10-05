@@ -60,6 +60,7 @@ function Navigation() {
         }}
       >
         <Stack.Screen name="profile" />
+        <Stack.Screen name="support" />
         <Stack.Protected guard={!!session}>
           <Stack.Screen name="phone" />
         </Stack.Protected>
@@ -72,7 +73,6 @@ function Navigation() {
           <Stack.Screen name="jobs/[id]" />
           <Stack.Screen name="messages/index" />
           <Stack.Screen name="messages/[id]" />
-          <Stack.Screen name="support" />
         </Stack.Protected>
       </Stack>
       {ready ? (

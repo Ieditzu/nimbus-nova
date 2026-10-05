@@ -200,6 +200,7 @@ export default function LandingPage() {
           <a href="#siguranta">Siguranță</a>
           <a href="#intrebari">Întrebări</a>
           <Link to="/explore">Explorează</Link>
+          <Link to="/suport">Suport</Link>
         </nav>
         <ThemeToggle />
         <Link className="lp-btn is-small lp-nav-cta" to="/poster?new=1">Postează</Link>
@@ -210,6 +211,7 @@ export default function LandingPage() {
       {menu && <nav id="lp-sheet" className="lp-sheet" aria-label="Meniu">
         {[['#cum-functioneaza', 'Cum funcționează'], ['#tarif', 'Tarif'], ['#siguranta', 'Siguranță'], ['#intrebari', 'Întrebări']].map(([href, label]) => <a key={href} href={href} onClick={() => setMenu(false)}>{label}</a>)}
         <Link to="/explore">Explorează sarcini</Link>
+        <Link to="/suport">Suport</Link>
         <Link to="/poster?new=1" className="lp-btn">Postează o sarcină</Link>
       </nav>}
     </header>
@@ -411,6 +413,7 @@ export default function LandingPage() {
           <Link to="/explore">Explorează</Link>
           <Link to="/poster">Sarcinile mele</Link>
           <a href={APP_URL} target="_blank" rel="noopener noreferrer">Aplicația</a>
+          <Link to="/suport">Suport</Link>
         </nav>
         <Health />
         <p>© {new Date().getFullYear()} Nimbus Nova · Sarcini scurte, prin contul tău.</p>

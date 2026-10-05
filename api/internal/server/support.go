@@ -2,7 +2,9 @@ package server
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"net/http"
 	"strings"
 	"unicode/utf8"
@@ -20,7 +22,7 @@ Hartă:
 - Telefon, o sarcină deschisă: "Schițează" lângă mesajul de aplicare, apoi "Aplică".
 - Telefon, Mesaje: conversația despre o sarcină. Telefonul, adresa și numerarul sunt semnalate, dar mesajul tot pleacă.
 - Birou, /admin: Oameni, Sarcini, Candidaturi, Dispute, Tichete. "Rezumat" la o dispută nu mută banii. "Cont nou" și "Sarcină nouă" sunt în liste.
-Reguli: munca plătită de la 16 ani. Sub 16 ani doar voluntariat. Nova ține banii, nu numerarul. Identitatea se verifică cu CI sau CEI și un selfie, nu în acest chat.
+Reguli: munca plătită de la 16 ani. Sub 16 ani doar voluntariat, fără plată. Nova își ia 15% din suma propusă și restul ajunge la lucrător. Nu ține banii. Fără numerar, fără domiciliu, fără condus. Identitatea se verifică cu CI sau CEI și un selfie, nu în acest chat.
 JSON: {"reply","needs_human","subject"}. subject are cel mult 80 de caractere și se completează doar la primul mesaj.`
 
 func (s *Store) ensureSupport() error {
@@ -42,7 +44,14 @@ func (s *Store) ensureSupport() error {
 	);
 	CREATE INDEX IF NOT EXISTS support_tickets_user ON support_tickets(user_id, updated_at);
 	CREATE INDEX IF NOT EXISTS support_messages_ticket ON support_messages(ticket_id, created_at);`)
-	return err
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(`ALTER TABLE support_tickets ADD COLUMN guest_key TEXT NOT NULL DEFAULT ''`)
+	if err != nil && !strings.Contains(strings.ToLower(err.Error()), "duplicate column") {
+		return err
+	}
+	return nil
 }
 
 func (s *Server) supportRoutes(mux *http.ServeMux) {
@@ -75,9 +84,22 @@ func (s *Server) askSupport(r *http.Request, history string) supportReply {
 	return out
 }
 
+func (s *Server) supportCaller(r *http.Request) (string, string, bool, *AppError) {
+	key := strings.TrimSpace(r.Header.Get("X-Support-Key"))
+	if r.Header.Get("Authorization") == "" && strings.TrimSpace(r.Header.Get("X-Demo-Actor")) == "" {
+		return "", key, false, nil
+	}
+	user, ae := s.currentUser(r)
+	if ae != nil {
+		return "", key, false, ae
+	}
+	return user.ID, key, user.Role == "admin", nil
+}
+
 func (s *Server) handleOpenTicket(w http.ResponseWriter, r *http.Request) {
-	user, ok := s.assistUser(w, r)
-	if !ok {
+	userID, _, _, ae := s.supportCaller(r)
+	if ae != nil {
+		writeAppError(w, ae)
 		return
 	}
 	text, ae := readSupportText(w, r)
@@ -86,15 +108,18 @@ func (s *Server) handleOpenTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	reply := s.askSupport(r, "Primul mesaj: "+redactPrivate(text))
-	id, err := s.store.openTicket(user.ID, reply.Subject, text, reply.Reply, reply.NeedsHuman)
+	id, key, err := s.store.openTicket(userID, reply.Subject, text, reply.Reply, reply.NeedsHuman)
 	if err != nil {
 		s.writeErr(w, err)
 		return
 	}
-	detail, err := s.store.ticketDetail(id, user.ID, false)
+	detail, err := s.store.ticketDetail(id, userID, key, userID != "")
 	if err != nil {
 		s.writeErr(w, err)
 		return
+	}
+	if key != "" {
+		detail["guest_key"] = key
 	}
 	writeJSON(w, http.StatusCreated, detail)
 }
@@ -114,12 +139,12 @@ func (s *Server) handleMyTickets(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTicket(w http.ResponseWriter, r *http.Request) {
-	user, ae := s.currentUser(r)
+	userID, key, admin, ae := s.supportCaller(r)
 	if ae != nil {
 		writeAppError(w, ae)
 		return
 	}
-	detail, err := s.store.ticketDetail(r.PathValue("id"), user.ID, user.Role == "admin")
+	detail, err := s.store.ticketDetail(r.PathValue("id"), userID, key, admin)
 	if err != nil {
 		s.writeErr(w, err)
 		return
@@ -128,8 +153,9 @@ func (s *Server) handleTicket(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTicketMessage(w http.ResponseWriter, r *http.Request) {
-	user, ok := s.assistUser(w, r)
-	if !ok {
+	userID, key, _, ae := s.supportCaller(r)
+	if ae != nil {
+		writeAppError(w, ae)
 		return
 	}
 	text, ae := readSupportText(w, r)
@@ -138,7 +164,7 @@ func (s *Server) handleTicketMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ticketID := r.PathValue("id")
-	waiting, err := s.store.ticketWaiting(ticketID, user.ID)
+	waiting, err := s.store.ticketWaiting(ticketID, userID, key)
 	if err != nil {
 		s.writeErr(w, err)
 		return
@@ -155,11 +181,11 @@ func (s *Server) handleTicketMessage(w http.ResponseWriter, r *http.Request) {
 		reply = answer.Reply
 		needs = answer.NeedsHuman
 	}
-	if err := s.store.addTicketMessage(ticketID, user.ID, text, reply, needs, waiting); err != nil {
+	if err := s.store.addTicketMessage(ticketID, userID, key, text, reply, needs, waiting); err != nil {
 		s.writeErr(w, err)
 		return
 	}
-	detail, err := s.store.ticketDetail(ticketID, user.ID, false)
+	detail, err := s.store.ticketDetail(ticketID, userID, key, false)
 	if err != nil {
 		s.writeErr(w, err)
 		return
@@ -194,7 +220,7 @@ func (s *Server) handleAdminTicketReply(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	s.audit(admin.ID, "ticket_reply", r.PathValue("id"), clip(text, 80))
-	detail, err := s.store.ticketDetail(r.PathValue("id"), admin.ID, true)
+	detail, err := s.store.ticketDetail(r.PathValue("id"), admin.ID, "", true)
 	if err != nil {
 		s.writeErr(w, err)
 		return
@@ -230,10 +256,26 @@ func readSupportText(w http.ResponseWriter, r *http.Request) (string, *AppError)
 	return text, nil
 }
 
-func (s *Store) openTicket(userID, subject, text, reply string, needs bool) (string, error) {
+func newGuestKey() (string, error) {
+	buf := make([]byte, 16)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf), nil
+}
+
+func (s *Store) openTicket(userID, subject, text, reply string, needs bool) (string, string, error) {
 	id, err := NewID("tck_")
 	if err != nil {
-		return "", errInternal
+		return "", "", errInternal
+	}
+	key := ""
+	if userID == "" {
+		userID = "guest"
+		key, err = newGuestKey()
+		if err != nil {
+			return "", "", errInternal
+		}
 	}
 	status := "open"
 	flag := 0
@@ -243,15 +285,15 @@ func (s *Store) openTicket(userID, subject, text, reply string, needs bool) (str
 	}
 	now := NowRFC3339()
 	err = s.withImmediate(func(ctx context.Context, conn *sql.Conn) error {
-		if _, err := conn.ExecContext(ctx, `INSERT INTO support_tickets (id, user_id, subject, status, needs_human, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`, id, userID, subject, status, flag, now, now); err != nil {
+		if _, err := conn.ExecContext(ctx, `INSERT INTO support_tickets (id, user_id, subject, status, needs_human, created_at, updated_at, guest_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, id, userID, subject, status, flag, now, now, key); err != nil {
 			return err
 		}
 		return insertSupportPair(ctx, conn, id, text, reply, now)
 	})
 	if err != nil {
-		return "", errInternal
+		return "", "", errInternal
 	}
-	return id, nil
+	return id, key, nil
 }
 
 func insertSupportPair(ctx context.Context, conn *sql.Conn, ticketID, userText, reply, now string) error {
@@ -316,17 +358,24 @@ func scanTickets(rows *sql.Rows, _ bool) ([]map[string]any, error) {
 	return out, rows.Err()
 }
 
-func (s *Store) ticketDetail(id, userID string, admin bool) (map[string]any, error) {
-	var owner, subject, status, updated, name string
+func ticketAllowed(owner, guestKey, userID, key string, admin bool) bool {
+	if admin || (userID != "" && owner == userID) {
+		return true
+	}
+	return guestKey != "" && key != "" && guestKey == key
+}
+
+func (s *Store) ticketDetail(id, userID, key string, admin bool) (map[string]any, error) {
+	var owner, subject, status, updated, name, guestKey string
 	var needs int
-	err := s.db.QueryRow(`SELECT t.user_id, t.subject, t.status, t.needs_human, t.updated_at, COALESCE(u.display_name, '') FROM support_tickets t LEFT JOIN users u ON u.id = t.user_id WHERE t.id = ?`, id).Scan(&owner, &subject, &status, &needs, &updated, &name)
+	err := s.db.QueryRow(`SELECT t.user_id, t.subject, t.status, t.needs_human, t.updated_at, COALESCE(u.display_name, ''), COALESCE(t.guest_key, '') FROM support_tickets t LEFT JOIN users u ON u.id = t.user_id WHERE t.id = ?`, id).Scan(&owner, &subject, &status, &needs, &updated, &name, &guestKey)
 	if err == sql.ErrNoRows {
 		return nil, errNotFound
 	}
 	if err != nil {
 		return nil, errInternal
 	}
-	if !admin && owner != userID {
+	if !ticketAllowed(owner, guestKey, userID, key, admin) {
 		return nil, errForbidden
 	}
 	rows, err := s.db.Query(`SELECT id, author, text, created_at FROM support_messages WHERE ticket_id = ? ORDER BY created_at ASC, id ASC`, id)
@@ -348,17 +397,17 @@ func (s *Store) ticketDetail(id, userID string, admin bool) (map[string]any, err
 	return map[string]any{"ticket": map[string]any{"id": id, "user_id": owner, "user_name": name, "subject": subject, "status": status, "needs_human": needs == 1, "updated_at": updated}, "messages": messages}, rows.Err()
 }
 
-func (s *Store) ticketWaiting(id, userID string) (bool, error) {
-	var owner, status string
+func (s *Store) ticketWaiting(id, userID, key string) (bool, error) {
+	var owner, status, guestKey string
 	var needs int
-	err := s.db.QueryRow(`SELECT user_id, status, needs_human FROM support_tickets WHERE id = ?`, id).Scan(&owner, &status, &needs)
+	err := s.db.QueryRow(`SELECT user_id, status, needs_human, COALESCE(guest_key, '') FROM support_tickets WHERE id = ?`, id).Scan(&owner, &status, &needs, &guestKey)
 	if err == sql.ErrNoRows {
 		return false, errNotFound
 	}
 	if err != nil {
 		return false, errInternal
 	}
-	if owner != userID {
+	if !ticketAllowed(owner, guestKey, userID, key, false) {
 		return false, errForbidden
 	}
 	if status == "closed" {
@@ -387,7 +436,7 @@ func (s *Store) ticketHistory(id string) (string, error) {
 	return b.String(), rows.Err()
 }
 
-func (s *Store) addTicketMessage(id, userID, text, reply string, needs, alreadyWaiting bool) error {
+func (s *Store) addTicketMessage(id, userID, key, text, reply string, needs, alreadyWaiting bool) error {
 	now := NowRFC3339()
 	status := "open"
 	flag := 0
@@ -396,15 +445,15 @@ func (s *Store) addTicketMessage(id, userID, text, reply string, needs, alreadyW
 		flag = 1
 	}
 	return s.withImmediate(func(ctx context.Context, conn *sql.Conn) error {
-		var owner string
-		err := conn.QueryRowContext(ctx, `SELECT user_id FROM support_tickets WHERE id = ?`, id).Scan(&owner)
+		var owner, guestKey string
+		err := conn.QueryRowContext(ctx, `SELECT user_id, COALESCE(guest_key, '') FROM support_tickets WHERE id = ?`, id).Scan(&owner, &guestKey)
 		if err == sql.ErrNoRows {
 			return errNotFound
 		}
 		if err != nil {
 			return errInternal
 		}
-		if owner != userID {
+		if !ticketAllowed(owner, guestKey, userID, key, false) {
 			return errForbidden
 		}
 		if _, err = conn.ExecContext(ctx, `UPDATE support_tickets SET status = ?, needs_human = ?, updated_at = ? WHERE id = ?`, status, flag, now, id); err != nil {

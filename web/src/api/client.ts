@@ -67,10 +67,10 @@ export interface NovaClient {
   draftProfile(body: { brief: string }): Promise<{ skills: string[]; bio: string; availability: string }>;
   checkMessage(text: string): Promise<{ ok: boolean; warning: string }>;
   assistSearch(query: string): Promise<{ job_type: string; category: string; city: string; county: string }>;
-  openSupportTicket(text: string): Promise<SupportThread>;
+  openSupportTicket(text: string): Promise<SupportThread & { guest_key?: string }>;
   listSupportTickets(): Promise<{ tickets: SupportTicket[] }>;
-  getSupportTicket(id: string): Promise<SupportThread>;
-  sendSupportMessage(id: string, text: string): Promise<SupportThread>;
+  getSupportTicket(id: string, key?: string): Promise<SupportThread>;
+  sendSupportMessage(id: string, text: string, key?: string): Promise<SupportThread>;
   getHealth(): Promise<{ ok: true }>;
   listOpenTasks(query?: { job_type?: JobType; category?: Category; county?: string; locality_id?: string; city?: string; sector?: string; lat?: number; lng?: number; radius_km?: number }): Promise<{ tasks: TaskPublic[] }>;
   searchTasks(query?: { kind?: string; from?: string; to?: string; city?: string }): Promise<{ tasks: TaskPublic[] }>;
@@ -198,10 +198,10 @@ export function createNovaClient(baseUrl: string, auth: ActorId | { token: strin
     draftProfile: (body) => request("/v1/assist/profile-draft", { method: "POST", body: JSON.stringify(body) }),
     checkMessage: (text) => request("/v1/assist/message-check", { method: "POST", body: JSON.stringify({ text }) }),
     assistSearch: (query) => request("/v1/assist/search", { method: "POST", body: JSON.stringify({ query }) }),
-    openSupportTicket: (text) => request("/v1/support/tickets", { method: "POST", body: JSON.stringify({ text }) }),
+    openSupportTicket: (text) => request("/v1/support/tickets", { method: "POST", body: JSON.stringify({ text }) }, false),
     listSupportTickets: () => request("/v1/support/tickets"),
-    getSupportTicket: (id) => request(`/v1/support/tickets/${encodeURIComponent(id)}`),
-    sendSupportMessage: (id, text) => request(`/v1/support/tickets/${encodeURIComponent(id)}/messages`, { method: "POST", body: JSON.stringify({ text }) }),
+    getSupportTicket: (id, key) => request(`/v1/support/tickets/${encodeURIComponent(id)}`, { headers: key ? { "X-Support-Key": key } : {} }, false),
+    sendSupportMessage: (id, text, key) => request(`/v1/support/tickets/${encodeURIComponent(id)}/messages`, { method: "POST", body: JSON.stringify({ text }), headers: key ? { "X-Support-Key": key } : {} }, false),
   };
 }
 
