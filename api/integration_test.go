@@ -1608,3 +1608,40 @@ func TestAssistRoutes(t *testing.T) {
 	status, _, body = h.do(http.MethodPost, "/v1/assist/task-draft", "poster-1", map[string]any{"brief": "Am nevoie de ajutor la o masă ușoară."}, true)
 	h.errorCode(status, body, 503, "assist_unavailable", "Asistentul nu este disponibil momentan. Poți continua fără el.")
 }
+
+func TestSupportTickets(t *testing.T) {
+	restore := server.SetAssistForTest(func(_ context.Context, _, user string, _ bool) (string, error) {
+		if strings.Contains(strings.ToLower(user), "bani") {
+			return `{"reply":"Am trimis echipei.","needs_human":true,"subject":"Banii nu au ajuns"}`, nil
+		}
+		return `{"reply":"Apasă Schițează anunțul în formularul O sarcină nouă.","needs_human":false,"subject":"Cum public"}`, nil
+	})
+	t.Cleanup(restore)
+	h := start(t)
+	status, _, body := h.do(http.MethodPost, "/v1/support/tickets", "", map[string]any{"text": "Unde este butonul?"}, false)
+	h.errorCode(status, body, 401, "missing_actor", "Lipsește antetul X-Demo-Actor.")
+	status, _, body = h.do(http.MethodPost, "/v1/support/tickets", "poster-1", map[string]any{"text": "Banii nu au ajuns."}, true)
+	if status != 201 {
+		t.Fatalf("open %d %s", status, body)
+	}
+	opened := asMap(t, decode(t, body))
+	ticket := asMap(t, opened["ticket"])
+	if ticket["needs_human"] != true || ticket["status"] != "waiting" || len(opened["messages"].([]any)) != 2 {
+		t.Fatalf("ticket %#v", opened)
+	}
+	id := ticket["id"].(string)
+	status, _, body = h.do(http.MethodGet, "/v1/support/tickets/"+id, "worker-1", nil, true)
+	h.errorCode(status, body, 403, "forbidden", "Interzis.")
+	status, _, body = h.do(http.MethodGet, "/v1/admin/tickets", "admin-1", nil, true)
+	if status != 200 || !strings.Contains(string(body), "Banii nu au ajuns") {
+		t.Fatalf("admin list %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/admin/tickets/"+id+"/reply", "admin-1", map[string]any{"text": "Verific registrul."}, true)
+	if status != 200 || asMap(t, asMap(t, decode(t, body))["ticket"])["needs_human"] != false {
+		t.Fatalf("reply %d %s", status, body)
+	}
+	status, _, body = h.do(http.MethodPost, "/v1/admin/tickets/"+id+"/close", "admin-1", map[string]any{}, true)
+	if status != 200 {
+		t.Fatalf("close %d %s", status, body)
+	}
+}

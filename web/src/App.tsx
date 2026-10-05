@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { ListIcon, XIcon } from '@phosphor-icons/react';
 import { Health } from './components/Health';
+import { SupportWidget } from './components/SupportWidget';
 import { ThemeToggle } from './components/ThemeToggle';
 import LandingPage from './pages/LandingPage';
 import './pages/site.css';
@@ -105,5 +106,6 @@ export default function App() {
       <Route path="*" element={<SiteFrame><NotFoundPage /></SiteFrame>} />
     </Routes>
     </Suspense>
+    <SupportWidget />
   </>;
 }

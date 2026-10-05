@@ -1,211 +1,162 @@
-<h1 align="center">✦ Nova</h1>
+# Nimbus Nova
 
-<p align="center">
-  <strong>Timpul tău liber. Oportunități aproape de tine.</strong>
-</p>
+Nova stă la mijloc. Cine are o după-amiază liberă și cine are o sarcină scurtă nu se angajează unul pe altul și nu își dau telefonul. Amândoi trec prin Nova: profilul, anunțul, potrivirea, banii și istoricul rămân la platformă.
 
-<p align="center">
-  Micro-joburi · Servicii între persoane · Voluntariat · Experiență profesională
-</p>
+Construit pentru [VNU Hack 2026](https://vnuhack.com/), 4–5 octombrie, Colegiul Național de Informatică „Tudor Vianu”. Tema publică este „CONNECT THE DOTS”. Proba anunțată la eveniment este omul din mijloc, în sensul unei platforme cu două părți, nu al unui atac de rețea. Rezumatul regulilor este în [docs/VNU-HACK-RULES.md](docs/VNU-HACK-RULES.md). Regulamentul oficial rămâne [PDF-ul organizatorilor](https://vnuhack.com/regulament-vnu-hack.pdf).
 
-<p align="center">
-  Dezvoltat de <strong>Nimbus Nova</strong>
-</p>
+Codul este pe [GitHub](https://github.com/Ieditzu/nimbus-nova). Un push pe `main` reconstruieste containerele de pe VPS.
 
-<p align="center">
-  <img alt="Platformă mobilă" src="https://img.shields.io/badge/Platformă-Mobile-6366F1?style=for-the-badge" />
-  <img alt="Comunitate" src="https://img.shields.io/badge/Focus-Comunitate-10B981?style=for-the-badge" />
-  <img alt="Echipa Nimbus Nova" src="https://img.shields.io/badge/Echipă-Nimbus_Nova-0F172A?style=for-the-badge" />
-</p>
+## Unde rulează
 
-<p align="center">
-  <a href="#despre">Despre</a> ·
-  <a href="#functionalitati">Funcționalități</a> ·
-  <a href="#categorii">Categorii</a> ·
-  <a href="#comisioane">Comisioane</a> ·
-  <a href="#siguranta">Siguranță</a> ·
-  <a href="#echipa">Echipă</a>
-</p>
-
----
-
-<a id="despre"></a>
-
-## 📱 Despre Nova
-
-**Nova** este o aplicație mobilă dezvoltată de echipa **Nimbus Nova**, concepută pentru a conecta oamenii care au nevoie de ajutor cu cei care au timp și abilități de oferit.
-
-O după-amiază liberă poate deveni o oportunitate de venit, o experiență practică sau o ocazie de a contribui la comunitate. Nova își propune să aducă aceste posibilități într-un singur loc, prin sarcini locale, condiții clare și un proces simplu de conectare.
-
-> **Misiunea noastră:** să transformăm timpul disponibil în oportunități accesibile, aproape de utilizatori.
-
-### De ce Nova?
-
-| Pentru cine? | Nevoia | Soluția propusă |
+| Ce | Adresă | Ce vezi |
 | --- | --- | --- |
-| 🎓 Elevi și studenți | Experiență și oportunități compatibile cu studiile | Activități adaptate programului, vârstei și eligibilității |
-| 🤝 Persoane fizice | Ajutor pentru sarcini punctuale | Conectare cu persoane disponibile în apropiere |
-| 🌱 Voluntari și organizații | Implicare în comunitate | Descoperirea și organizarea activităților de voluntariat |
-| 🏢 Companii | Personal pentru nevoi temporare | Un flux dedicat misiunilor și verificării candidaților |
+| Site | [nimbusnova.cc](https://nimbusnova.cc) | Pagina publică, explorarea sarcinilor și publicarea |
+| Site, fără www | [www.nimbusnova.cc](https://www.nimbusnova.cc) | Aceeași pagină |
+| Telefon în browser | [app.nimbusnova.cc](https://app.nimbusnova.cc) | Aplicația de lucrător: căutare, profil, aplicare, mesaje, suport |
+| Birou | [admin.nimbusnova.cc](https://admin.nimbusnova.cc) | Panoul de administrare. Intrarea duce la `/admin` |
+| API | [api.nimbusnova.cc](https://api.nimbusnova.cc) | Serverul Go. [Starea](https://api.nimbusnova.cc/health) răspunde `{"ok":true}` |
 
-> Acest README prezintă conceptul și funcționalitățile propuse. Disponibilitatea lor depinde de stadiul implementării, iar modelul comercial și contractual necesită validare înainte de lansare.
+Producția are modul demo oprit. Conturile `poster-1`, `worker-1` și `admin-1` există doar când pornești API-ul local cu `NOVA_DEMO=1`. Pe site-ul live intri cu un cont real. Identitatea cere CI sau CEI plus un selfie; fără cheia furnizorului, verificarea răspunde că serviciul nu este disponibil și nu cere documentele.
 
-<a id="functionalitati"></a>
+## Pentru cine este
 
-## ⚡ Experiența Nova
-
-### De la timp liber la o activitate concretă
-
-1. **Creează-ți profilul** — completează informațiile necesare și parcurge verificările relevante.
-2. **Descoperă oportunități** — găsește activități în apropiere, potrivite disponibilității și abilităților tale.
-3. **Verifică detaliile** — consultă cerințele, remunerația și eventualele taxe înainte de acceptare.
-4. **Stabilește contactul** — discută detaliile prin chat, după îndeplinirea condițiilor de acces.
-5. **Finalizează activitatea** — primește remunerația sau documentele de participare conform regulilor activității.
-
-### Funcționalități propuse
-
-| Funcționalitate | Rol |
-| --- | --- |
-| 📍 Oportunități locale | Descoperirea sarcinilor disponibile în apropiere |
-| 👤 Profil personal | Prezentarea abilităților și a experienței |
-| 🪪 Verificarea identității | Reducerea conturilor false și verificarea vârstei |
-| 💬 Chat asociat sarcinii | Stabilirea detaliilor între participanți |
-| 📄 CV Universal | Reutilizarea profilului profesional pentru misiuni |
-| 💳 Comisioane transparente | Afișarea costurilor înainte de acceptare |
-
-<a id="categorii"></a>
-
-## 🧩 Trei categorii. Mai multe moduri de a participa.
-
-### 🌱 A1 · Voluntariat și experiență
-
-Activități neplătite pentru dezvoltarea abilităților și implicarea în comunitate, inclusiv oportunități potrivite minorilor.
-
-- Participare la activități organizate și adaptate vârstei.
-- Experiență practică pentru construirea unui portofoliu.
-- Posibilitatea obținerii documentelor de participare oferite de organizatori.
-- Acces condiționat de regulile activității și de acordurile necesare.
-
-### 🤝 A2 · Servicii între persoane
-
-Sarcini punctuale între persoane fizice, precum:
-
-- Ajutor la mutat.
-- Asamblarea mobilierului.
-- Alte activități practice permise pe platformă.
-
-Nova este concepută ca intermediar tehnologic pentru găsirea sarcinilor și stabilirea contactului. Modelul propus prevede plata serviciului direct între utilizatori și încasarea separată a comisionului platformei.
-
-**Încadrarea contractuală și fiscală a acestor activități rămâne de validat înainte de lansare.**
-
-### 🏢 A3 · Misiuni pentru companii
-
-O direcție de dezvoltare dedicată colaborării cu organizații care au nevoie de personal temporar.
-
-- **CV Universal:** un profil profesional reutilizabil.
-- **Misiuni definite:** durată, cerințe și condiții prezentate înainte de acceptare.
-- **Verificarea eligibilității:** confirmarea documentelor relevante.
-- **Flux contractual dedicat:** adaptat modelului operațional validat.
-
-Este analizată posibilitatea ca Nova să funcționeze ca agent de muncă temporară, sub rezerva autorizărilor și obligațiilor aplicabile. Criteriile de acces, regimul fiscal și obligațiile dintre misiuni trebuie stabilite înainte de activarea acestei categorii.
-
-<a id="comisioane"></a>
-
-## 💳 Modelul de comisionare
-
-**Costuri vizibile înainte de acceptare.**
-
-| Tipul activității | Taxa propusă pentru platformă |
-| --- | --- |
-| Sarcină plătită | **3%** din valoarea sarcinii |
-| Comision minim pentru o sarcină plătită | **1 RON** |
-| Activitate cu remunerație de 0 RON / voluntariat | **10 RON**, taxă fixă de procesare propusă |
-
-Pentru sarcinile plătite:
-
-**Comision Nova = max(valoarea sarcinii × 3%, 1 RON)**
-
-### Exemple
-
-| Valoarea sarcinii | Comision Nova |
-| --- | --- |
-| 20 RON | 1 RON |
-| 100 RON | 3 RON |
-| 250 RON | 7,50 RON |
-
-### Deblocarea contactului
-
-În fluxul propus, chatul se deblochează după plata sau rezervarea comisionului Nova, fără blocarea întregii valori a sarcinii.
-
-Pentru o sarcină de **100 RON**, suma aferentă comisionului este de **3 RON**. Această operațiune nu garantează plata remunerației sau finalizarea serviciului.
-
-> Modelul este în curs de definire: trebuie stabilite persoana care suportă taxa, regulile de anulare și rambursare și eventualele costuri suplimentare. Pentru voluntariat, remunerația de 0 RON nu înseamnă cost total zero dacă se aplică taxa de procesare.
-
-<a id="siguranta"></a>
-
-## 🛡️ Identitate și siguranță
-
-Măsurile propuse urmăresc reducerea utilizării abuzive și accesul la activități adecvate fiecărui utilizator.
-
-| Măsură | Scop |
-| --- | --- |
-| Verificarea identității | Reducerea conturilor false |
-| Verificarea vârstei | Direcționarea către activități potrivite |
-| Verificarea eligibilității | Confirmarea condițiilor specifice categoriei |
-| Acces controlat la chat | Asocierea conversației cu sarcina și starea comisionului |
-| Verificări suplimentare pentru A3 | Confirmarea documentelor necesare misiunilor |
-
-Actul de identitate nu confirmă singur statutul de student, situația profesională sau toate condițiile de participare. Acestea necesită verificări distincte.
-
-Verificarea identității poate reduce riscurile, dar nu elimină frauda și nu garantează comportamentul participanților.
-
-## 🔐 Protecția datelor
-
-Protecția datelor este un obiectiv de proiectare al aplicației Nova.
-
-- **Minimizarea datelor:** colectarea informațiilor necesare pentru scopuri clar explicate.
-- **Protecția minorilor:** fluxuri adaptate vârstei și acord parental acolo unde este necesar.
-- **Control asupra CV-ului:** transmiterea informațiilor profesionale doar destinatarilor relevanți.
-- **Acces restricționat:** protejarea documentelor și limitarea accesului la acestea.
-- **Gestionarea datelor personale:** mecanisme pentru acces, corectare și solicitarea ștergerii, cu explicarea eventualelor obligații de păstrare.
-
-Conformitatea GDPR trebuie susținută prin implementare, documentație și verificarea proceselor operaționale.
-
-<a id="echipa"></a>
-
-## 👥 Echipa Nimbus Nova
-
-| Membru | Rol principal | Contribuții |
+| Cine | Ce poate face | Ce nu face |
 | --- | --- | --- |
-| **Eduard Perjoc** | Back-End Developer | Dezvoltare back-end și structurarea aplicației |
-| **Eduard Haivas** | Back-End Developer | Dezvoltare back-end și structurarea aplicației |
-| **Eric Oprea Ștefan** | Research & Back-End | Dezvoltarea conceptului, cercetare și back-end |
-| **Barbaros Vladislav** | Research & Designer | Cercetarea fezabilității, validarea ideilor și design |
-| **Radu Ciprian** | Main Designer & Back-End | Design UI/UX principal și dezvoltare back-end |
-| **Bogdan Șelaru** | Media & Design | Prezentarea proiectului și structurarea documentației GitHub |
+| Lucrător, 18+ | Își lasă un profil reutilizabil și ia o sarcină plătită prin contractul cu Nova | Nu încasează numerar și nu semnează direct cu magazinul sau cu cel care a publicat |
+| Persoană sau firmă care publică | Descrie o sarcină, alege omul și plătește suma propusă către Nova | Nu vede actul, adresa sau telefonul lucrătorului |
+| Voluntar sub 18 ani | Se înscrie la un eveniment și poate primi diploma organizatorului | Nu vede preț, plată sau sarcină plătită |
+| Organizator | Publică un eveniment fără bani, face prezența și închide participarea | Nu poate numi munca plătită voluntariat |
+| Administrator | Moderează anunțuri, dispute, identitate și tichete | Nu mută bani fără un rând în registru |
 
-## 🤖 Utilizarea inteligenței artificiale
+Munca plătită începe de la 18 ani în regulile de produs. Sub 18 ani rămâne doar banda de voluntariat. Un anunț plătit relabelat ca voluntariat este respins, nu ocolit.
 
-În dezvoltarea proiectului am folosit:
+## Ce poți face acum
 
-- **Codex**, pentru asistență la scrierea codului.
-- **Instrumente de inteligență artificială**, pentru corectarea și îmbunătățirea textului din README.
+Fluxul care rulează, pe site și pe telefon:
 
-## 🚀 Pași următori propuși
+1. Îți faci contul și treci verificarea de identitate.
+2. Lucrătorul completează profilul: competențe, oraș, disponibilitate, o descriere scurtă.
+3. Cine are nevoie de ajutor publică o sarcină: termen scurt, termen lung sau voluntariat. Suma este în bani, nu în lei cu zecimale libere.
+4. Lucrătorul caută după oraș, categorie și cuvinte. Butonul cu steluță „Înțelege” propune filtrele, nu publică nimic.
+5. Aplică cu un mesaj. Cel care a publicat vede candidaturile și acceptă una.
+6. Conversația stă pe sarcină. Telefonul, adresa de acasă și cererea de numerar sunt semnalate. Mesajul tot poate pleca; semnalul nu șterge textul.
+7. Plata simulată ține suma la Nova până la finalizare sau până la decizia dintr-o dispută.
+8. După finalizare, fiecare parte poate lăsa o recenzie. Reputația publică este numărul și media, nu textul unei sarcini ascunse.
 
-- [ ] Documentarea funcțiilor implementate și a limitărilor versiunii curente.
-- [ ] Adăugarea capturilor de ecran și a unui demo.
-- [ ] Documentarea tehnologiilor și a pașilor de rulare locală.
-- [ ] Testarea fluxului de la publicarea sarcinii până la finalizare.
-- [ ] Definirea regulilor pentru comisioane, anulări și rambursări.
-- [ ] Validarea cadrului contractual, fiscal și de protecție a datelor.
+Exemplele din pitch rămân aceleași: ajuți pe cineva să mute o masă, acoperi o tură scurtă, sau te înscrii la un eveniment ca voluntar. Nume precum Glovo, Tazz, Uber sau Lidl sunt exemple de formă, nu parteneri activați. Un partener devine activ doar din birou, după un acord real.
 
----
+## Banii
 
-<p align="center">
-  <strong>Nova by Nimbus Nova</strong>
-</p>
+Posterul plătește suma propusă, nu suma plus comisionul. Din acea sumă, Nova reține 15%, rotunjit la ban întreg, jumătate în sus. Restul este plata lucrătorului.
 
-<p align="center">
-  Conectăm timpul disponibil cu oamenii care au nevoie de el.
-</p>
+Pentru 100,00 RON, adică 10000 bani:
+
+- posterul este debitat cu 100,00 RON;
+- lucrătorul are de primit 85,00 RON;
+- Nova păstrează 15,00 RON.
+
+Suma stă în escrow până când posterul marchează sarcina finalizată sau un administrator rezolvă disputa: eliberare, returnare sau împărțire. Voluntariatul nu are plată. Furnizorul de plată din demonstrație este simulat. Nu există încasare în mână și nu există transfer direct între cele două conturi.
+
+Regulile de anulare, fiscalitatea și încadrarea contractuală trebuie verificate înainte de o lansare comercială. Ceea ce rulează acum este regula de produs, nu o opinie juridică.
+
+## Suportul
+
+Butonul **Suport** este pe site, jos în dreapta, și în aplicație, din Profil. Este disponibil doar după autentificare.
+
+Asistentul răspunde în română și are o hartă a butoanelor reale: „Înțelege”, „Schițează anunțul”, „Verifică siguranța”, „Publică sarcina”, profilul, mesajele și biroul. Nu inventează o plată, un partener sau o verificare. Nu cere CNP, parolă sau poze de acte.
+
+Dacă nu poate rezolva din explicație, tichetul trece în așteptare. În birou, la **Tichete**, badge-ul portocaliu pulsează până când un om răspunde. Răspunsul uman readuce tichetul la deschis și oprește pulsul. Un tichet al altui cont nu poate fi citit.
+
+## Cele trei suprafețe
+
+Toate vorbesc cu același API. Clientul nu ține o a doua copie a adevărului.
+
+```text
+telefon  ──┐
+site     ──┼── HTTPS ── API Go ── SQLite
+birou    ──┘
+```
+
+| Parte | Unde stă | Rol |
+| --- | --- | --- |
+| API | `api/` | Conturi, sarcini, bani, dispute, identitate, asistent, tichete |
+| Site și pagină publică | `web/` | Cererea: publică, alege, plătește, închide |
+| Telefon | `mobile/` | Oferta: profil, caută, aplică, mesaje |
+| Birou | `web/src/admin/` | Oameni, sarcini, dispute, identitate, registru, tichete |
+| Contractul JSON | `docs/agents/types.ts`, `docs/agents/client.ts` | Câmpurile nu se redenumesc. O rută `planned` nu se apelează |
+
+Starea rutelor este în [docs/agents/API-STATUS.md](docs/agents/API-STATUS.md). Planul de produs, separat de felia care deja rulează, este în [docs/PLATFORM.md](docs/PLATFORM.md).
+
+## Siguranță
+
+- Actul și selfie-ul se verifică pe server. Celălalt utilizator nu primește documentul.
+- Sub 18 ani, contul rămâne doar pentru voluntariat.
+- Asistentul redactă emailuri, telefoane și șiruri de 13 cifre înainte să trimită textul mai departe.
+- Un mesaj de pe o sarcină poate avertiza la telefon, adresă sau numerar. Avertismentul nu înlocuiește moderarea umană.
+- Disputele îngheață banii până la o decizie din birou.
+- Producția refuză antetul de demo. Resetul de demonstrație răspunde 404.
+
+Verificarea de identitate reduce conturile false. Nu garantează comportamentul oamenilor și nu înlocuiește un acord semnat pe hârtie la eveniment.
+
+## Cum pornești local
+
+Îți trebuie Go, Node și npm. Din rădăcina repo-ului:
+
+```sh
+cd api && NOVA_DEMO=1 go run .
+```
+
+API-ul ascultă pe `http://127.0.0.1:8080`. `PORT` schimbă portul. Baza locală este `api/nova.db` și nu se comite.
+
+Site-ul, în alt terminal:
+
+```sh
+cd web && npm install && npm run dev
+```
+
+Vite pornește pe `http://127.0.0.1:5173` și, pe localhost, vorbește cu API-ul local. În producție, site-ul și aplicația folosesc originea publică, nu `127.0.0.1`.
+
+Telefonul:
+
+```sh
+cd mobile && npm install && npm run web
+```
+
+Pentru emulatorul Android, API-ul local este `http://10.0.2.2:8080`. Variabila este `EXPO_PUBLIC_API_BASE_URL`.
+
+Testele care păzesc contractul:
+
+```sh
+cd api && go test -count=1 -timeout 180s ./...
+cd web && npm test
+cd mobile && npm run typecheck && npm test
+```
+
+Actorii de demo, doar local: `X-Demo-Actor: poster-1` pe site și `X-Demo-Actor: worker-1` pe telefon.
+
+## Deploy
+
+Detaliile de pe VPS sunt în [deploy/README.md](deploy/README.md). Pe scurt: site-ul stă în container pe portul local 8090, API-ul pe 8091, aplicația pe 8092. Nginx și Cloudflare expun hosturile de mai sus. Fișierul SQLite de producție rămâne în volumul `nova-data`. Parola de administrator și cheile de identitate și asistent nu sunt în git.
+
+## Echipa
+
+Șase oameni. Uneltele scriu cod doar după ce un membru îl citește și îl asumă.
+
+| Membru | În cod | Ce ține |
+| --- | --- | --- |
+| Eduard Haivas | `api/` | Serverul, registrul, contractul JSON și starea rutelor |
+| Radu Ciprian | `web/` | Site-ul și fluxul celui care publică |
+| Eduard Perjoc | `mobile/` | Aplicația de telefon |
+| Eric Oprea Ștefan | cercetare | Fezabilitate, cazuri și reguli de operare |
+| Barbaros Vladislav | cercetare și verificare | Pitch, cazuri negative, proba că cele două părți se întâlnesc doar prin Nova |
+| Bogdan Șelaru | limbaj și prezentare | Textele, cazurile pe care softul trebuie să le respecte, documentația publică |
+
+## Ce nu pretindem
+
+- Nu există un contract semnat cu Glovo, Tazz, Uber, Lidl sau eMAG. Sunt exemple de formă.
+- Plata live este simulată. Un furnizor licențiat vine după lansare, nu în această demonstrație.
+- Diploma de voluntariat este o înregistrare a organizatorului, nu un act școlar emis de Nova.
+- Semnarea contractului-cadru este o acceptare înregistrată, nu o semnătură electronică calificată.
+- Asistentul nu decide bani, nu verifică acte și nu înlocuiește un om când badge-ul pulsează.
+
+Sursa regulilor de eveniment, dacă diferă de copia din repo, este anunțul organizatorilor.

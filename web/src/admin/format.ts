@@ -7,12 +7,14 @@ export const statusLabel: Record<string, string> = {
   resolved: 'Rezolvată', pending: 'În așteptare', accepted: 'Acceptată', rejected: 'Respinsă', prospect: 'Prospect', paused: 'Pauză',
   held: 'Reținută', released: 'Eliberată', refunded: 'Returnată', unpaid: 'Neplătită', collecting: 'Colectare', processing: 'Procesare',
   verified: 'Verificată', consumed: 'Folosită', review: 'De revizuit', passed: 'Trecut', failed: 'Picat', going: 'Înscris', checked_in: 'Prezent',
+  waiting: 'Cere un om', closed: 'Închis',
   credit: 'Credit', debit: 'Debit',
 };
 
 export const actionLabel: Record<string, string> = {
   user_suspend: 'Cont suspendat', user_activate: 'Cont reactivat', user_revoke_sessions: 'Sesiuni revocate', task_hide: 'Sarcină ascunsă',
   task_unhide: 'Sarcină republicată', dispute_resolve: 'Dispută rezolvată', partner_activate: 'Partener activat', partner_pause: 'Partener în pauză',
+  ticket_reply: 'Răspuns la tichet', ticket_close: 'Tichet închis',
   user_edit: 'Date cont modificate', user_password_reset: 'Parolă resetată', partner_create: 'Partener adăugat', review_remove: 'Recenzie ștearsă', note_create: 'Notă internă', event_delete: 'Eveniment șters',
   user_create: 'Cont creat', task_create: 'Sarcină creată', task_edit: 'Sarcină modificată', task_assign: 'Sarcină atribuită', application_accept: 'Candidatură acceptată',
 };
@@ -20,7 +22,7 @@ export const actionLabel: Record<string, string> = {
 /** Tone drives the pill colour; unknown values fall back to neutral. */
 export function tone(value: string): 'good' | 'warn' | 'bad' | 'info' | 'neutral' {
   if (['active', 'completed', 'resolved', 'accepted', 'released', 'verified', 'passed', 'credit', 'checked_in'].includes(value)) return 'good';
-  if (['open', 'pending', 'held', 'prospect', 'collecting', 'processing', 'review', 'going'].includes(value)) return 'warn';
+  if (['open', 'pending', 'held', 'prospect', 'collecting', 'processing', 'review', 'going', 'waiting'].includes(value)) return 'warn';
   if (['suspended', 'hidden', 'rejected', 'refunded', 'failed', 'paused', 'debit'].includes(value)) return 'bad';
   if (['assigned', 'consumed'].includes(value)) return 'info';
   return 'neutral';

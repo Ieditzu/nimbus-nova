@@ -72,6 +72,7 @@ function Navigation() {
           <Stack.Screen name="jobs/[id]" />
           <Stack.Screen name="messages/index" />
           <Stack.Screen name="messages/[id]" />
+          <Stack.Screen name="support" />
         </Stack.Protected>
       </Stack>
       {ready ? (

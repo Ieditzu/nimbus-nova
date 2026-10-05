@@ -78,6 +78,13 @@
 | `GET /v1/admin/logs` | live | admin |
 | `GET /v1/admin/disputes` | live | admin |
 | `POST /v1/admin/tasks/{id}/unhide` | live | admin |
+| `POST /v1/support/tickets` | live | phone, website |
+| `GET /v1/support/tickets` | live | phone, website |
+| `GET /v1/support/tickets/{id}` | live | phone, website, admin |
+| `POST /v1/support/tickets/{id}/messages` | live | phone, website |
+| `GET /v1/admin/tickets` | live | admin |
+| `POST /v1/admin/tickets/{id}/reply` | live | admin |
+| `POST /v1/admin/tickets/{id}/close` | live | admin |
 
 Haivas changes a row from `planned` to `live` in the same commit as the route and its test. Ciprian and Perjoc do not flip these rows.
 

@@ -36,6 +36,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /v1/admin/logs", s.handleAdminLogs)
 	mux.HandleFunc("GET /v1/admin/disputes", s.handleAdminDisputes)
 	s.assistRoutes(mux)
+	s.supportRoutes(mux)
 	mux.HandleFunc("POST /v1/demo/reset", s.handleReset)
 	mux.HandleFunc("POST /v1/auth/register", s.handleRegister)
 	mux.HandleFunc("POST /v1/auth/identity", s.handleStartIdentity)

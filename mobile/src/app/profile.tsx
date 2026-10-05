@@ -144,6 +144,7 @@ function WorkerProfile() {
         </Button>
       ) : null}
 
+      <Button variant="outline" icon="sparkles-outline" onPress={() => router.push("/support")}>Suport</Button>
       <Button
         variant="outline"
         disabled={loggingOut}

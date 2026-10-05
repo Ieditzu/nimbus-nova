@@ -9,13 +9,14 @@ import { TaskDrawer, UserDrawer } from './drawers';
 import { ago, fold, roleLabel } from './format';
 import { Dialog } from './ui';
 import { Applications, Disputes, Events, Identity, Ledger, Logs, Overview, Partners, Reviews, System, Tasks, Users } from './views';
+import { Tickets } from './tickets';
 import './admin.css';
 
 const TOKEN_KEY = 'nova-admin-token';
 const REFRESH_MS = 60_000;
 
 const views: Record<Section, (props: { desk: Desk }) => ReactNode> = {
-  overview: Overview, users: Users, tasks: Tasks, applications: Applications, reviews: Reviews, disputes: Disputes,
+  overview: Overview, users: Users, tasks: Tasks, applications: Applications, reviews: Reviews, disputes: Disputes, tickets: Tickets,
   identity: Identity, ledger: Ledger, partners: Partners, events: Events, logs: Logs, system: System,
 };
 
@@ -111,7 +112,7 @@ function Desk({ token, onExit }: { token: string; onExit: (reason?: string) => v
     const settled = await Promise.allSettled([
       adminApi.stats(token, days), adminApi.system(token), adminApi.users(token), adminApi.tasks(token), adminApi.applications(token),
       adminApi.disputes(token), adminApi.reviews(token), adminApi.ledger(token), adminApi.partners(token), adminApi.events(token),
-      adminApi.identity(token), adminApi.logs(token),
+      adminApi.identity(token), adminApi.logs(token), adminApi.tickets(token),
     ]);
     if (current !== request.current) return;
     const expired = settled.find(item => item.status === 'rejected' && item.reason instanceof NovaError && (item.reason.status === 401 || item.reason.status === 403));
@@ -134,8 +135,9 @@ function Desk({ token, onExit }: { token: string; onExit: (reason?: string) => v
       events: value<{ events: DeskData['events'] }>(9)?.events ?? previous.events,
       identity: value<{ sessions: DeskData['identity'] }>(10)?.sessions ?? previous.identity,
       logs: value<{ logs: DeskData['logs'] }>(11)?.logs ?? previous.logs,
+      tickets: value<{ tickets: DeskData['tickets'] }>(12)?.tickets ?? previous.tickets,
     }));
-    setPartial(failed ? `${failed} din 12 surse nu s-au putut încărca. Datele afișate pot fi vechi.` : '');
+    setPartial(failed ? `${failed} din 13 surse nu s-au putut încărca. Datele afișate pot fi vechi.` : '');
     setLoadedAt(new Date().toISOString());
     setLoading(false);
   }, [token, days, onExit]);
@@ -210,7 +212,8 @@ function Desk({ token, onExit }: { token: string; onExit: (reason?: string) => v
   const View = views[section];
   const openDisputes = data.disputes.filter(item => item.status === 'open').length;
   const inReview = data.identity.filter(item => item.status === 'review').length;
-  const badge: Partial<Record<Section, number>> = { disputes: openDisputes, identity: inReview };
+  const needsHuman = data.tickets.filter(item => item.needs_human).length;
+  const badge: Partial<Record<Section, number>> = { disputes: openDisputes, identity: inReview, tickets: needsHuman };
   const groups = [...new Set(sections.map(item => sectionMeta[item].group))];
 
   return <div className="dk">
@@ -229,7 +232,7 @@ function Desk({ token, onExit }: { token: string; onExit: (reason?: string) => v
             const count = badge[item] ?? 0;
             return <button key={item} type="button" aria-current={item === section ? 'page' : undefined} onClick={() => go(item)}>
               <Icon size={18} weight={item === section ? 'fill' : 'regular'} aria-hidden="true" />{sectionMeta[item].title}
-              {count > 0 && <b className="dk-count">{count}</b>}
+              {count > 0 && <b className={item === 'tickets' ? 'dk-count is-ping' : 'dk-count'}>{count}</b>}
             </button>;
           })}
         </div>)}

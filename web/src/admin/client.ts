@@ -38,6 +38,22 @@ export type AdminNote = {
   created_at: string;
 };
 
+export type AdminTicket = {
+  id: string;
+  subject: string;
+  status: string;
+  needs_human: boolean;
+  updated_at: string;
+  user_id: string;
+  user_name: string;
+};
+
+export type AdminTicketMessage = {
+  id: string;
+  author: string;
+  text: string;
+  created_at: string;
+};
 export type LedgerEntry = {
   id: string;
   task_id: string;
@@ -252,4 +268,8 @@ export const adminApi = {
   notes: (token: string, target: string) => call<{ notes: AdminNote[] }>(token, `/v1/admin/notes?target=${id(target)}`),
   addNote: (token: string, target: string, text: string) => post<{ note: AdminNote }>(token, '/v1/admin/notes', { target, text }),
   logs: (token: string) => call<{ logs: AdminLog[] }>(token, '/v1/admin/logs'),
+  tickets: (token: string) => call<{ tickets: AdminTicket[] }>(token, '/v1/admin/tickets'),
+  ticket: (token: string, ticketId: string) => call<{ ticket: AdminTicket; messages: AdminTicketMessage[] }>(token, `/v1/support/tickets/${id(ticketId)}`),
+  replyTicket: (token: string, ticketId: string, text: string) => post<{ ticket: AdminTicket; messages: AdminTicketMessage[] }>(token, `/v1/admin/tickets/${id(ticketId)}/reply`, { text }),
+  closeTicket: (token: string, ticketId: string) => post(token, `/v1/admin/tickets/${id(ticketId)}/close`),
 };

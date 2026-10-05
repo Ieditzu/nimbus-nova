@@ -1,15 +1,15 @@
 import type { ReactNode } from 'react';
 import {
-  BankIcon, CalendarBlankIcon, ClipboardTextIcon, ClockCounterClockwiseIcon, HandshakeIcon, IdentificationCardIcon,
+  BankIcon, CalendarBlankIcon, ClipboardTextIcon, ClockCounterClockwiseIcon, HandshakeIcon, HeadsetIcon, IdentificationCardIcon,
   PaperPlaneTiltIcon, PulseIcon, ScalesIcon, SquaresFourIcon, StarIcon, UsersIcon, type Icon,
 } from '@phosphor-icons/react';
 import type { TaskPublic } from '../api/types';
 import type {
-  AdminApplication, AdminDispute, AdminEvent, AdminLog, AdminReview, AdminStats, AdminSystem, AdminUser,
+  AdminApplication, AdminDispute, AdminEvent, AdminLog, AdminReview, AdminStats, AdminSystem, AdminTicket, AdminUser,
   IdentitySession, LedgerEntry, Partner,
 } from './client';
 
-export const sections = ['overview', 'users', 'tasks', 'applications', 'reviews', 'disputes', 'identity', 'ledger', 'partners', 'events', 'logs', 'system'] as const;
+export const sections = ['overview', 'users', 'tasks', 'applications', 'reviews', 'disputes', 'tickets', 'identity', 'ledger', 'partners', 'events', 'logs', 'system'] as const;
 export type Section = (typeof sections)[number];
 
 export const sectionMeta: Record<Section, { title: string; blurb: string; icon: Icon; group: string; key: string }> = {
@@ -19,6 +19,7 @@ export const sectionMeta: Record<Section, { title: string; blurb: string; icon: 
   applications: { title: 'Candidaturi', blurb: 'Cine a aplicat unde și ce a scris.', icon: PaperPlaneTiltIcon, group: 'Piață', key: '4' },
   reviews: { title: 'Recenzii', blurb: 'Reputația din spatele fiecărui cont. Elimină ce încalcă regulile.', icon: StarIcon, group: 'Piață', key: '5' },
   disputes: { title: 'Dispute', blurb: 'Nova nu ține banii. Decizi cine are dreptate: eliberare, returnare sau împărțire.', icon: ScalesIcon, group: 'Încredere', key: '6' },
+  tickets: { title: 'Tichete', blurb: 'Suportul automat. Badge-ul portocaliu pulsează când un om trebuie să răspundă.', icon: HeadsetIcon, group: 'Încredere', key: '0' },
   identity: { title: 'Identitate', blurb: 'Verificările CI și CEI, cu rezultatul fiecărei etape.', icon: IdentificationCardIcon, group: 'Încredere', key: '7' },
   ledger: { title: 'Bani', blurb: 'Registrul dublu: fiecare leu care intră, stă sau pleacă.', icon: BankIcon, group: 'Bani', key: '8' },
   partners: { title: 'Parteneri', blurb: 'Magazinele și organizațiile care publică ture.', icon: HandshakeIcon, group: 'Bani', key: '9' },
@@ -32,6 +33,7 @@ export type DeskData = {
   tasks: TaskPublic[];
   applications: AdminApplication[];
   disputes: AdminDispute[];
+  tickets: AdminTicket[];
   reviews: AdminReview[];
   entries: LedgerEntry[];
   partners: Partner[];
@@ -43,7 +45,7 @@ export type DeskData = {
 };
 
 export const emptyData: DeskData = {
-  users: [], tasks: [], applications: [], disputes: [], reviews: [], entries: [], partners: [], events: [], identity: [], logs: [], stats: null, system: null,
+  users: [], tasks: [], applications: [], disputes: [], tickets: [], reviews: [], entries: [], partners: [], events: [], identity: [], logs: [], stats: null, system: null,
 };
 
 export type ConfirmRequest = { title: string; body: ReactNode; label: string; danger?: boolean; onConfirm: () => void };

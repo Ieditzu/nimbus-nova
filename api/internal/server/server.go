@@ -37,6 +37,10 @@ func New(dbPath string) (*Server, error) {
 		_ = st.Close()
 		return nil, err
 	}
+	if err := st.ensureSupport(); err != nil {
+		_ = st.Close()
+		return nil, err
+	}
 	if err := st.SeedIfEmpty(); err != nil {
 		_ = st.Close()
 		return nil, err
