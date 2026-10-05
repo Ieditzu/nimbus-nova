@@ -35,6 +35,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   function dismiss() {
     seenThisSession = true;
     setIntro(false);
+    if (typeof window !== "undefined" && typeof window.dispatchEvent === "function" && typeof Event !== "undefined") window.dispatchEvent(new Event("nova:notification-choice"));
     void AsyncStorage.setItem(seenKey, "seen").catch(() => setMessage("Preferința nu a putut fi salvată pe dispozitiv."));
   }
   async function enable() {
