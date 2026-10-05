@@ -6,6 +6,82 @@ Construit pentru [VNU Hack 2026](https://vnuhack.com/), 4–5 octombrie, Colegiu
 
 Codul este pe [GitHub](https://github.com/Ieditzu/nimbus-nova). Un push pe `main` reconstruieste containerele de pe VPS.
 
+## Descriere pentru predare
+
+Secțiunea 5.3 cere, până la 5 octombrie, ora 12:00, o descriere scurtă cu problema, soluția, tehnologiile și contribuția fiecărui membru, plus prototipul și demo-ul live la stand. Organizatorii nu au publicat un formular separat pe site. Team lead-ul înregistrat depune textul de mai jos pe platforma VNU Hack, la help desk, sau pe canalul anunțat la eveniment. După ora 12:00 proiectul nu mai intră în jurizare, decât dacă o perioadă de grație a fost anunțată înainte de start.
+
+### Problema
+
+O după-amiază liberă și o sarcină scurtă nu se întâlnesc în siguranță. Oamenii își dau telefonul, adresa și banii în mână. Un minor poate fi tras într-o muncă plătită. Un magazin sau o persoană care are nevoie de ajutor pentru o zi nu are un strat la mijloc care să țină profilul, potrivirea și banii.
+
+### Soluția
+
+Nova este omul din mijloc. Cele două părți nu se angajează una pe alta. Amândouă trec prin Nova. Profilul, anunțul, potrivirea, banii și istoricul rămân la platformă. Munca plătită este de la 18 ani. Sub 18 ani există doar voluntariat, fără preț. Suma propusă stă la Nova până la finalizare sau până la decizia dintr-o dispută. Nu există numerar și nu există un parteneriat pretins cu Glovo, Tazz, Uber, Lidl sau eMAG.
+
+Tema publică este „CONNECT THE DOTS”. Proba anunțată la eveniment este omul din mijloc, o platformă cu două părți, nu un atac de rețea. Nova leagă timpul liber de sarcina scurtă fără să lege datele private ale celor două persoane.
+
+Prototipul care se predă este cel care rulează acum:
+
+- [nimbusnova.cc](https://nimbusnova.cc)
+- [app.nimbusnova.cc](https://app.nimbusnova.cc)
+- [admin.nimbusnova.cc](https://admin.nimbusnova.cc)
+- [api.nimbusnova.cc/health](https://api.nimbusnova.cc/health)
+
+### Tehnologii
+
+| Piesă | Cu ce este făcută | Credit |
+| --- | --- | --- |
+| API | Go, SQLite prin `modernc.org/sqlite`, `golang.org/x/crypto` | [Go](https://go.dev), [modernc sqlite](https://pkg.go.dev/modernc.org/sqlite), [Go crypto](https://pkg.go.dev/golang.org/x/crypto) |
+| Site și birou | React, React Router, Vite, TypeScript | [React](https://react.dev) MIT, [React Router](https://reactrouter.com) MIT, [Vite](https://vite.dev) MIT, [TypeScript](https://www.typescriptlang.org) Apache-2.0 |
+| Telefon | Expo și React Native, inclusiv export web | [Expo](https://expo.dev), [React Native](https://reactnative.dev) |
+| Icoane și litere | Phosphor, Anton, Manrope | [Phosphor](https://phosphoricons.com) MIT, Anton și Manrope prin Fontsource, SIL OFL-1.1 |
+| Hartă în telefon | Leaflet | [Leaflet](https://leafletjs.com) BSD-2-Clause |
+| Identitate | ID Analyzer v2, doar pe server, doar dacă există cheie | Serviciu comercial. Cheia nu este în git |
+| Schițe de text | DeepSeek, doar pe server | Serviciu comercial. Cheia nu este în git. Nu publică, nu plătește și nu verifică acte |
+| Găzduire | VPS, Nginx, Cloudflare | Hosturile de mai sus |
+
+Lista de localități este fișierul `api/internal/server/data/romania-localities.json`, folosit ca infrastructură ca să nu inventăm orașe. În repo nu există o notă de licență a sursei. Nu pretindem că lista este opera echipei.
+
+### Contribuția fiecărui membru
+
+Contribuțiile de mai jos sunt cele care se văd în git și în rolurile asumate. Nu inventăm research, pitch sau design care nu este în repo. Dacă un membru a lucrat în afara git, își corectează rândul înainte de predare.
+
+| Membru | Ce se vede | Ce nu pretindem |
+| --- | --- | --- |
+| Eduard Haivas | API-ul, registrul, identitatea, asistentul, tichetele, deploy-ul și o parte mare din telefon și din legătura dintre ecrane, din conturile `Ieditzu` și `Kawase` | Nu este confirmat în regulament ca team lead. Lead-ul înregistrat depune proiectul |
+| Radu Ciprian | Site-ul, în commit-urile `ciprixn`, doar în `web/` | Nu are commit-uri în API sau în telefon |
+| Eduard Perjoc | Zona de telefon îi este atribuită în planul echipei | În acest repo nu există commit-uri pe numele lui. Istoricul de telefon împins este pe conturile lui Haivas |
+| Barbaros Vladislav | A extins README-ul și a adăugat pagina din `download/` | Trei commit-uri, nu API și nu telefon |
+| Eric Oprea Ștefan | Rol asumat: cercetare și cazuri de operare | Niciun commit pe numele lui în acest repo |
+| Bogdan Șelaru | Rol asumat: limbaj, cazuri și documentație publică | Niciun commit pe numele lui în acest repo |
+
+### Inteligență artificială
+
+Folosirea este permisă de secțiunile 5.2 și VIII doar dacă este spusă explicit.
+
+- Codex și alte unelte de cod au asistat scrierea, testele și o parte din acest README. Echipa a citit diferențele, a rulat testele și a decis regulile de produs: vârsta, escrow-ul, interzicerea numerarului și refuzul parteneriatelor inventate.
+- DeepSeek primește un text redactat și întoarce o schiță: anunț, profil, căutare, verificare de siguranță, rezumat de dispută sau răspuns de suport. Nu apasă publicarea, nu mută bani și nu aprobă un act.
+- Emailurile, telefoanele și șirurile de 13 cifre sunt scoase din text înainte de apel.
+- Nu am folosit AI ca să inventăm interviuri, testimoniale sau parteneri.
+
+### Ce am testat și ce este ipoteză
+
+Testele din `api/integration_test.go` acoperă fluxul de demo, plata simulată, disputele, identitatea sintetică și tichetele de suport. Nu am făcut interviuri cu utilizatori și nu cităm feedback pe care nu îl avem. Ipoteza de produs este că un strat la mijloc reduce schimbul de telefon, adresă și numerar. Ipoteza nu este încă măsurată pe utilizatori reali. Plata live este simulată. Încadrarea fiscală și contractuală nu este o opinie juridică.
+
+Fotografia de pe site, `web/public/images/community.webp`, este ilustrativă, de Mineragua Sparkling Water: [Unsplash](https://unsplash.com/photos/a-group-of-people-sitting-outside-of-a-building-WVtFP7i8Pb0), [licență Unsplash](https://unsplash.com/license). Nu înfățișează utilizatori sau parteneri Nova.
+
+### La stand
+
+Între 12:00 și 14:00 echipa completă stă la stand. Dacă lipsește cineva și absența nu a fost anunțată înainte, criteriul „Pitch și demonstrație” poate fi 0, iar persoana lipsă nu mai susține prezentarea. Demo-ul live, în ordine:
+
+1. Pe [site](https://nimbusnova.cc), arată anunțurile deschise și că cele două părți nu își văd telefonul.
+2. Pe [telefon](https://app.nimbusnova.cc), caută o sarcină și arată profilul reutilizabil.
+3. Arată că o sarcină plătită nu este disponibilă sub 18 ani și că voluntariatul nu are sumă.
+4. În [birou](https://admin.nimbusnova.cc), arată registrul și un tichet care cere un om.
+5. Spune limita: plata este simulată, parteneriatele nu există, diploma nu este act școlar.
+
+După ora 11:30 regulamentul permite doar documentație și prezentare, nu funcționalități noi.
+
 ## Unde rulează
 
 | Ce | Adresă | Ce vezi |
