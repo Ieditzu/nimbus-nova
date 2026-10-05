@@ -45,8 +45,8 @@ export function PlatformReviews({ canWrite = false }: { canWrite?: boolean }) {
         <h2 className="lp-display">Ce spun<br />oamenii</h2>
       </div>
       <div className="lp-reviews">
-        {reviews.map(review => <article key={review.id} className="lp-review">
-          <p className="lp-stars" aria-label={`${review.stars} din 5`}>{'★'.repeat(review.stars)}{'☆'.repeat(5 - review.stars)}</p>
+        {reviews.map((review, index) => <article key={review.id} className={`lp-review is-${['yellow', 'pink', 'mint', 'sky', 'lavender'][index % 5]}`}>
+          <p className="lp-stars" aria-label={`${review.stars} din 5`}>{[1, 2, 3, 4, 5].map(value => <span key={value} className={value <= review.stars ? 'is-on' : 'is-off'}>★</span>)}</p>
           <p>{review.text}</p>
           <small>{review.author_name} · {review.role === 'poster' ? 'a postat' : 'a lucrat'}</small>
         </article>)}

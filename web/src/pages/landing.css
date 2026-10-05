@@ -95,10 +95,19 @@
 .lp-menu-btn { display: none; place-items: center; width: 42px; height: 42px; border: 1px solid var(--lp-ink); border-radius: 50%; }
 .lp-nav-app { white-space: nowrap; }
 .lp-reviews { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.lp-review, .lp-review-form { padding: 22px; border: 1px solid var(--lp-ink); border-radius: var(--lp-radius); background: var(--lp-surface); }
+.lp-review, .lp-review-form { padding: 22px; border: 1px solid #000; border-radius: var(--lp-radius); background: var(--lp-yellow); color: #000; }
+.lp-review.is-pink { background: var(--lp-pink); }
+.lp-review.is-mint { background: var(--lp-mint); }
+.lp-review.is-sky { background: var(--lp-sky); }
+.lp-review.is-lavender { background: var(--lp-lavender); }
+.lp-review.is-yellow { background: var(--lp-yellow); }
 .lp-review p { margin: 8px 0; }
-.lp-stars { letter-spacing: 2px; font-weight: 800; }
-.lp-review small, .lp-review-form p { color: var(--lp-muted); font-weight: 700; }
+.lp-stars { display: flex; gap: 4px; margin: 0 0 8px; font-size: 22px; line-height: 1; }
+.lp-stars .is-on { color: #ffd731; -webkit-text-stroke: 1px #000; paint-order: stroke fill; }
+.lp-review.is-yellow .lp-stars .is-on { color: #fb4903; }
+.lp-stars .is-off { color: transparent; -webkit-text-stroke: 1.5px #000; }
+.lp-review small { display: inline-block; margin-top: 8px; padding: 4px 10px; border: 1px solid #000; border-radius: var(--lp-pill); background: #fff; color: #000; font-weight: 800; }
+.lp-review-form p { color: var(--lp-muted); font-weight: 700; }
 .lp-review-form { display: grid; gap: 12px; margin-top: 18px; }
 .lp-review-form textarea, .lp-review-form select { width: 100%; border: 1px solid var(--lp-ink); border-radius: 12px; padding: 10px; font: inherit; background: var(--lp-surface); color: inherit; }
 .lp-sheet { display: grid; gap: 4px; max-width: 1240px; margin: 8px auto 0; padding: 12px; border: 1px solid var(--lp-ink); border-radius: var(--lp-radius); background: var(--lp-surface); animation: lp-drop .2s ease; }
