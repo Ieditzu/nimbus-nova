@@ -30,13 +30,11 @@
 
 ## 📱 Despre Nova
 
-**Nova** este omul din mijloc.
+**Nova** stă între cine are timp și cine are o sarcină scurtă.
 
-Andrei are o masă de mutat. Maria are o după-amiază liberă. Nu se sună. Nu își dau adresa. Nu își trec banii din mână în mână. Amândoi intră în Nova, iar Nova ține profilul, anunțul, potrivirea și suma.
+Postezi în câteva minute. Oamenii din orașul tău aplică din aplicație. Nova face legătura. Sarcinile sunt de cel mult 12 ore, în spații publice: amenajare de eveniment, mutat obiecte ușoare, acoperire într-un stand sau magazin.
 
-Poate fi o masă grea. Poate fi o tură scurtă într-un magazin, pentru că un om a lipsit. Poate fi un drum București–Constanța, cu un loc liber în mașină. Poate fi un eveniment care are nevoie de voluntari, nu de un salariu.
-
-> **Misiunea:** timpul liber devine o sarcină clară, aproape de tine, fără un contract nou la fiecare ușă.
+> **Pe site:** sarcini plătite de la 16 ani. Sub 16 ani, doar voluntariat.
 
 <a id="live"></a>
 
@@ -55,57 +53,53 @@ Același produs, trei uși. Telefonul este pentru cine lucrează. Site-ul este p
 
 ## ⚡ Cum merge
 
-1. **Îți faci contul.** Un profil. Un act verificat. O vârstă.
-2. **Lași un CV universal.** Competențe, oraș, disponibilitate. Nu îl rescrii la fiecare ușă.
-3. **Găsești sau publici o sarcină.** Mutat, acoperit de tură, drum, eveniment.
-4. **Aplici.** Cel care a publicat alege omul. Conversația stă pe sarcină, nu pe WhatsApp.
-5. **Nova ține banii** până la final. Apoi lucrătorul este plătit, iar amândoi pot lăsa o recenzie.
-6. **Dacă ceva nu se găsește,** butonul Suport știe unde sunt celelalte butoane. Dacă nu poate rezolva, un om din birou vede tichetul.
+1. **Postezi sarcina.** Titlu, oraș, interval de cel mult 12 ore și suma propusă. Publici gratuit.
+2. **Oamenii aplică.** Cei cu timp liber văd sarcina în aplicația Nova și scriu de ce sunt potriviți.
+3. **Alegi și vorbești.** Accepți o candidatură și discuți în chatul privat din aplicație.
+4. **Plata ajunge la lucrător.** Banii merg la cel care a făcut sarcina. Nova își ia comisionul și vă pune în legătură. La final lăsați recenzii.
 
-| Ce ai în mână | La ce folosește |
+| Ce vezi | Ce înseamnă |
 | --- | --- |
-| 📍 Sarcini în orașul tău | Găsești ceva aproape, nu un job la celălalt capăt al țării |
-| 👤 Profil reutilizabil | Același dosar pentru mai multe zile |
-| 🪪 Identitate | Mai puține conturi false. Vârsta decide banda |
-| 💬 Mesaje pe sarcină | Detaliile se stabilesc acolo, nu în privat |
-| ✨ Asistent | Schițează anunțul, caută, verifică textul. Nu publică singur |
-| 💳 Bani ținuți de Nova | Suma nu pleacă până nu e gata treaba |
+| 📍 Sarcini scurte | Cel mult 12 ore, în spații publice |
+| 🪪 Cont verificat | CI sau CEI și un selfie, înainte să deschizi contul |
+| 💬 Chat privat | Vorbești în aplicație, fără număr și fără adresă de la început |
+| 💳 15% | Nova își ia comisionul din suma propusă. Restul ajunge la lucrător |
+| ✨ Asistent | Schițează anunțul și caută. Publicarea rămâne a ta |
 
 <a id="categorii"></a>
 
-## 🧩 Trei feluri de a intra
+## 🧩 Ce poți face
 
-### 🌱 Voluntariat
+### 🌱 Sub 16 ani
 
-Pentru cine are sub 18 ani, și pentru oricine vrea experiență, nu bani.
+Doar voluntariat, fără plată, cu implicarea tutorelui. Nu pot posta sarcini. Înscrierea actuală cere un CI sau CEI românesc, așa că un cont pentru un copil fără acest act nu este încă disponibil.
 
-Un organizator spune că are nevoie de oameni la un eveniment. Tu te duci dacă vrei. Primești prezența și, la final, diploma organizatorului. Nu există preț pe ecran.
+### 🤝 De la 16 ani
 
-### 🤝 O sarcină între oameni
+Sarcini plătite. Poți posta dacă ai cont verificat, poți aplica din telefon, poți vedea suma și poți fi plătit.
 
-Ajutor la mutat. O masă grea. Un loc în mașină pe un drum lung. Cineva care lipsește o după-amiază.
+### 📦 Sarcinile de pe site
 
-Nova găsește omul și ține suma. Cei doi nu își dau telefonul și nu semnează unul cu altul.
+- Amenajare evenimente: scaune, mese, standuri.
+- Mutat obiecte ușoare: cutii și obiecte mici, fără urcat în locuințe.
+- Acoperire în magazin: câteva ore la un stand de cartier.
+- Altele: orice sarcină scurtă și sigură care nu încape în restul.
 
-### 🏢 O zi, prin Nova
-
-Un magazin sau un partener are nevoie de cineva pentru o tură, nu pentru un contract nou. Lucrătorul intră prin acordul lui cu Nova, lucrează ziua, și pleacă. Partenerul cumpără tura. Nu devine angajatorul lui.
+Fără numerar. Fără acces la domiciliu. Fără condus.
 
 <a id="bani"></a>
 
 ## 💳 Banii
 
-Cine publică plătește suma scrisă pe anunț. Nu suma plus un comision pe deasupra.
+Tu propui suma. Nova își ia **15%** din suma propusă, iar restul ajunge la lucrător. Publici gratuit. Fără taxe ascunse.
 
-Din suta aceea, Nova păstrează **15%**. Restul este al lucrătorului.
-
-| Suma de pe anunț | Lucrătorul | Nova |
+| Suma propusă | Lucrătorul | Nova |
 | --- | --- | --- |
 | 20 RON | 17 RON | 3 RON |
 | 100 RON | 85 RON | 15 RON |
 | 250 RON | 212,50 RON | 37,50 RON |
 
-Banii stau la Nova până când treaba e marcată gata, sau până când biroul desparte o dispută. Voluntariatul nu se plătește. În demonstrație, plata este simulată: vezi registrul, nu un card real.
+Nova nu ține banii. Face legătura și își ia comisionul. Plătești după ce te-ai înțeles. În versiunea asta, plățile sunt simulate.
 
 <a id="siguranta"></a>
 
@@ -113,15 +107,13 @@ Banii stau la Nova până când treaba e marcată gata, sau până când biroul 
 
 | | |
 | --- | --- |
-| Actul și selfie-ul | Stau pe server. Celălalt om nu le vede |
-| Sub 18 ani | Doar voluntariat. Fără sumă, fără sarcină plătită |
-| Mesajul | Poate avertiza la telefon, adresă sau numerar. Avertismentul nu șterge textul |
-| Disputa | Îngheață banii până decide biroul |
-| Suportul | Știe butoanele. Un om intră când steluța nu ajunge |
+| Identitate verificată | CI sau CEI și un selfie, înainte de cont |
+| Vârstă | Sarcini plătite de la 16 ani. Sub 16 ani, doar voluntariat |
+| Chat privat | În aplicație, fără număr și fără adresă de la început |
+| Limite | Fără numerar, fără domiciliu, fără condus. Doar sarcini scurte, în spații publice |
+| Ceva nu merge | Deschizi o dispută. Un moderator citește ambele părți și propune o soluție |
 
-## 🔐 Datele tale
 
-Nova cere ce îi trebuie ca să te recunoască și să te potrivească. Nu cere parola în chat. Nu cere CNP-ul asistentului. Documentele nu au link public.
 
 <a id="echipa"></a>
 
