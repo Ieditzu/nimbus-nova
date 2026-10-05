@@ -5,7 +5,11 @@ import { Anton_400Regular } from "@expo-google-fonts/anton/400Regular";
 import { Manrope_500Medium } from "@expo-google-fonts/manrope/500Medium";
 import { Manrope_800ExtraBold } from "@expo-google-fonts/manrope/800ExtraBold";
 import { ActivityIndicator, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaProvider,
+  initialWindowMetrics,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { BottomNav } from "../components/ui";
 import { AuthProvider, useAuth } from "../auth/session";
 import { Stack } from "expo-router";
@@ -20,16 +24,19 @@ export default function RootLayout() {
   });
   if (!loaded && !error) return null;
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <PwaProvider><NotificationsProvider><Navigation /></NotificationsProvider></PwaProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <ThemeProvider>
+        <AuthProvider>
+          <PwaProvider><NotificationsProvider><Navigation /></NotificationsProvider></PwaProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 function Navigation() {
   const { colors, isDark } = useTheme();
   const { session, restoring } = useAuth();
+  const insets = useSafeAreaInsets();
   const ready = !!session?.user.phone_number;
   if (restoring)
     return (
@@ -68,9 +75,17 @@ function Navigation() {
         </Stack.Protected>
       </Stack>
       {ready ? (
-        <SafeAreaView edges={["bottom", "left", "right"]} style={{ backgroundColor: colors.background, flexShrink: 0 }}>
+        <View
+          style={{
+            backgroundColor: colors.background,
+            flexShrink: 0,
+            paddingLeft: insets.left,
+            paddingRight: insets.right,
+            paddingBottom: Math.max(12, insets.bottom - 10),
+          }}
+        >
           <BottomNav />
-        </SafeAreaView>
+        </View>
       ) : null}
     </View>
   );

@@ -596,7 +596,7 @@ const s = StyleSheet.create({
     borderRadius: 999,
     padding: 5,
     marginHorizontal: 16,
-    marginBottom: 10,
+    marginBottom: 0,
     maxWidth: 608,
     width: "92%",
     alignSelf: "center",
