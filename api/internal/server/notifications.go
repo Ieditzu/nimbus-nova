@@ -167,6 +167,52 @@ func (s *Server) handleDeleteWebPushSubscription(w http.ResponseWriter, r *http.
 	writeJSON(w, http.StatusOK, okBody{OK: true})
 }
 
+// A delivery probe is deliberately limited to a subscription owned by the caller.
+// A provider acceptance means the push service queued it, not that the OS displayed it.
+func (s *Server) handleWebPushTest(w http.ResponseWriter, r *http.Request) {
+	u, ae := s.currentUser(r)
+	if ae != nil {
+		writeAppError(w, ae)
+		return
+	}
+	if ae = requireMember(u); ae != nil {
+		writeAppError(w, ae)
+		return
+	}
+	var body struct {
+		Endpoint string `json:"endpoint"`
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 8192)
+	if ae = readJSON(r, &body, false); ae != nil {
+		writeAppError(w, ae)
+		return
+	}
+	var device webPushTarget
+	err := s.store.db.QueryRow(`SELECT endpoint,p256dh,auth FROM web_push_devices WHERE user_id=? AND endpoint=?`, u.ID, body.Endpoint).Scan(&device.endpoint, &device.p256dh, &device.auth)
+	if err == sql.ErrNoRows {
+		writeJSON(w, http.StatusOK, map[string]any{"accepted": false, "reason": "subscription_missing"})
+		return
+	}
+	if err != nil {
+		s.writeErr(w, errInternal)
+		return
+	}
+	publicKey, privateKey, err := s.store.webPushKeys()
+	if err != nil {
+		s.writeErr(w, errInternal)
+		return
+	}
+	status, err := s.sendWebPush(device, publicKey, privateKey, "Test notificări Nova", "Dacă vezi acest mesaj, notificările push funcționează pe acest dispozitiv.", nil)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{"accepted": false, "reason": "connection_failed"})
+		return
+	}
+	if status == http.StatusGone || status == http.StatusNotFound {
+		_, _ = s.store.db.Exec(`DELETE FROM web_push_devices WHERE endpoint=?`, device.endpoint)
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"accepted": status >= 200 && status < 300, "reason": "provider_response", "provider_status": status})
+}
+
 func validWebPushKey(value string, wantLength int) bool {
 	decoded, err := base64.RawURLEncoding.DecodeString(value)
 	return err == nil && len(decoded) == wantLength
@@ -361,6 +407,27 @@ func (s *Server) pushUser(userID, title, body string, data map[string]string) {
 	}
 }
 
+type webPushTarget struct{ endpoint, p256dh, auth string }
+
+func (s *Server) sendWebPush(device webPushTarget, publicKey, privateKey, title, body string, data map[string]string) (int, error) {
+	payload, err := json.Marshal(map[string]any{"title": title, "body": body, "data": data})
+	if err != nil {
+		return 0, err
+	}
+	subscription := &webpush.Subscription{Endpoint: device.endpoint, Keys: webpush.Keys{P256dh: device.p256dh, Auth: device.auth}}
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+	resp, err := webpush.SendNotificationWithContext(ctx, payload, subscription, &webpush.Options{
+		HTTPClient: &http.Client{Timeout: 8 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }},
+		Subscriber: "mailto:support@nimbusnova.cc", VAPIDPublicKey: publicKey, VAPIDPrivateKey: privateKey, TTL: 86400, Urgency: webpush.UrgencyNormal,
+	})
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode, nil
+}
+
 func (s *Server) pushWebUser(userID, title, body string, data map[string]string) {
 	publicKey, privateKey, err := s.store.webPushKeys()
 	if err != nil {
@@ -370,10 +437,9 @@ func (s *Server) pushWebUser(userID, title, body string, data map[string]string)
 	if err != nil {
 		return
 	}
-	type target struct{ endpoint, p256dh, auth string }
-	devices := []target{}
+	devices := []webPushTarget{}
 	for rows.Next() {
-		var device target
+		var device webPushTarget
 		if rows.Scan(&device.endpoint, &device.p256dh, &device.auth) == nil {
 			devices = append(devices, device)
 		}
@@ -382,28 +448,16 @@ func (s *Server) pushWebUser(userID, title, body string, data map[string]string)
 	if len(devices) == 0 {
 		return
 	}
-	payload, err := json.Marshal(map[string]any{"title": title, "body": body, "data": data})
-	if err != nil {
-		return
-	}
-	subject := "mailto:support@nimbusnova.cc"
 	for _, device := range devices {
-		subscription := &webpush.Subscription{Endpoint: device.endpoint, Keys: webpush.Keys{P256dh: device.p256dh, Auth: device.auth}}
-		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
-		resp, sendErr := webpush.SendNotificationWithContext(ctx, payload, subscription, &webpush.Options{
-			HTTPClient: &http.Client{Timeout: 8 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }},
-			Subscriber: subject, VAPIDPublicKey: publicKey, VAPIDPrivateKey: privateKey, TTL: 60, Urgency: webpush.UrgencyNormal,
-		})
-		cancel()
+		status, sendErr := s.sendWebPush(device, publicKey, privateKey, title, body, data)
 		if sendErr != nil {
 			log.Printf("web push request failed host=%q", endpointHost(device.endpoint))
 			continue
 		}
-		resp.Body.Close()
-		if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-			log.Printf("web push provider responded status=%d host=%q", resp.StatusCode, endpointHost(device.endpoint))
+		if status < http.StatusOK || status >= http.StatusMultipleChoices {
+			log.Printf("web push provider responded status=%d host=%q", status, endpointHost(device.endpoint))
 		}
-		if resp.StatusCode == http.StatusGone || resp.StatusCode == http.StatusNotFound {
+		if status == http.StatusGone || status == http.StatusNotFound {
 			_, _ = s.store.db.Exec(`DELETE FROM web_push_devices WHERE endpoint=?`, device.endpoint)
 		}
 	}

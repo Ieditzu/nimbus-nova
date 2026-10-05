@@ -36,6 +36,27 @@ type harness struct {
 	api *server.Server
 }
 
+func TestWebPushProbeIsScopedToCurrentAccount(t *testing.T) {
+	h := start(t)
+	endpoint := "https://fcm.googleapis.com/fcm/send/private-test"
+	_, err := h.DB.Exec(`INSERT INTO web_push_devices(user_id,endpoint,p256dh,auth,created_at,updated_at) VALUES(?,?,?,?,?,?)`, "worker-1", endpoint, "unused", "unused", time.Now().UTC().Format(time.RFC3339), time.Now().UTC().Format(time.RFC3339))
+	if err != nil {
+		t.Fatal(err)
+	}
+	status, _, payload := h.do(http.MethodPost, "/v1/me/web-push-test", "poster-1", map[string]string{"endpoint": endpoint}, true)
+	if status != http.StatusOK {
+		t.Fatalf("status=%d body=%s", status, payload)
+	}
+	result := asMap(t, decode(t, payload))
+	if result["accepted"] != false || result["reason"] != "subscription_missing" {
+		t.Fatalf("unexpected probe result: %v", result)
+	}
+	status, _, _ = h.do(http.MethodPost, "/v1/me/web-push-test", "", map[string]string{"endpoint": endpoint}, false)
+	if status != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated probe status=%d", status)
+	}
+}
+
 func start(t *testing.T) *harness {
 	t.Helper()
 	t.Setenv("NOVA_DEMO", "1")

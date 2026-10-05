@@ -10,7 +10,7 @@ export default function InboxScreen() {
   const { colors } = useTheme();
   const s = jobStyles(colors);
   const load = useCallback(() => client.listConversations(), [client]);
-  const { data, loading, error, reload } = useData(load);
+  const { data, loading, error, reload } = useData(load, 4000);
   return (
     <Page onRefresh={() => void reload()} refreshing={loading}>
       <Header

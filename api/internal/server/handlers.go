@@ -67,6 +67,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /v1/me/web-push-config", s.handleWebPushConfig)
 	mux.HandleFunc("POST /v1/me/web-push-subscription", s.handleRegisterWebPushSubscription)
 	mux.HandleFunc("DELETE /v1/me/web-push-subscription", s.handleDeleteWebPushSubscription)
+	mux.HandleFunc("POST /v1/me/web-push-test", s.handleWebPushTest)
 	mux.HandleFunc("GET /v1/me/notification-preferences", s.handleGetNotificationPreferences)
 	mux.HandleFunc("PUT /v1/me/notification-preferences", s.handlePutNotificationPreferences)
 	mux.HandleFunc("POST /v1/profiles/me/documents", s.handleCreateDocument)

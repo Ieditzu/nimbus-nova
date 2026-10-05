@@ -33,7 +33,16 @@ export async function existingWebPushSubscription(): Promise<WebPushSubscription
 export async function createWebPushSubscription(publicKey: string): Promise<WebPushSubscriptionPayload> {
   if (!supported()) throw new Error(unsupportedHint);
   const registration = await navigator.serviceWorker.ready;
-  const existing = await registration.pushManager.getSubscription();
+  let existing = await registration.pushManager.getSubscription();
+  if (existing) {
+    const currentKey = existing.options.applicationServerKey;
+    const expectedKey = new Uint8Array(decodeBase64Url(publicKey));
+    const actualKey = currentKey ? new Uint8Array(currentKey) : null;
+    if (!actualKey || actualKey.length !== expectedKey.length || actualKey.some((value, index) => value !== expectedKey[index])) {
+      await existing.unsubscribe();
+      existing = null;
+    }
+  }
   const subscription = existing ?? await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeBase64Url(publicKey) });
   const payload = subscription.toJSON() as WebPushSubscriptionPayload;
   if (!payload.endpoint || !payload.keys?.p256dh || !payload.keys?.auth) throw new Error("Browserul nu a putut crea abonamentul push.");

@@ -12,6 +12,7 @@ import { Link, useFocusEffect, usePathname } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
+  AppState,
   AccessibilityInfo,
   Animated,
   Easing,
@@ -27,7 +28,7 @@ import {
 } from "react-native";
 import { errorMessage } from "../lib/errors";
 import { fonts, useTheme } from "./theme";
-export function useData<T>(load: () => Promise<T>) {
+export function useData<T>(load: () => Promise<T>, refreshMs?: number) {
   const [data, setData] = useState<T>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -35,9 +36,9 @@ export function useData<T>(load: () => Promise<T>) {
   const invalidate = useCallback(() => {
     seq.current++;
   }, []);
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (silent = false) => {
     const current = ++seq.current;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const result = await load();
       if (current === seq.current) {
@@ -47,7 +48,7 @@ export function useData<T>(load: () => Promise<T>) {
     } catch (e) {
       if (current === seq.current) {
         setError(errorMessage(e));
-        setData(undefined);
+        if (!silent) setData(undefined);
       }
     } finally {
       if (current === seq.current) setLoading(false);
@@ -65,6 +66,24 @@ export function useData<T>(load: () => Promise<T>) {
         invalidate();
       };
     }, [reload, invalidate]),
+  );
+  useFocusEffect(
+    useCallback(() => {
+      if (!refreshMs) return;
+      const poll = () => {
+        if (AppState.currentState !== null && AppState.currentState !== "active") return;
+        if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+        void reload(true);
+      };
+      const timer = setInterval(poll, refreshMs);
+      const appState = AppState.addEventListener("change", state => { if (state === "active") poll(); });
+      if (typeof document !== "undefined") document.addEventListener("visibilitychange", poll);
+      return () => {
+        clearInterval(timer);
+        appState.remove();
+        if (typeof document !== "undefined") document.removeEventListener("visibilitychange", poll);
+      };
+    }, [refreshMs, reload]),
   );
   return { data, loading, error, reload };
 }
